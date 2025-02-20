@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Info } from "lucide-react";
+import { Search, Cat, Instagram, Github, Info, Menu, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -28,6 +28,7 @@ export default function SearchPage() {
   // Default aiEnabled set to true.
   const [aiEnabled, setAiEnabled] = useState(true);
   const [searchEngine, setSearchEngine] = useState("brave");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Read the AI preference from localStorage on mount.
   useEffect(() => {
@@ -148,100 +149,187 @@ export default function SearchPage() {
     <div className="min-h-screen relative pb-20">
       <main className="p-4 md:p-8">
         {/* Search Header */}
-        <div className="max-w-5xl ml-8 mr-auto mb-8">
+        <div className="max-w-5xl ml-0 md:ml-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full max-w-2xl space-x-4">
             <Link href="/">
               <Image src="/tekir.png" alt="Tekir Logo" width={40} height={40} />
             </Link>
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search anything..."
-              className="flex-1 px-6 py-3 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
-            />
-            <button 
-              type="submit"
-              className="p-2 rounded-full hover:bg-muted transition-colors"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-            {/* Toggle switch for Karakulak AI */}
-            <div className="relative">
+            <div className="relative w-full">
               <input
-                type="checkbox"
-                id="toggleAi"
-                className="sr-only"
-                checked={aiEnabled}
-                onChange={toggleAiEnabled}
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search anything..."
+                className="w-full px-6 py-3 pr-10 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
               />
-              <label
-                htmlFor="toggleAi"
-                className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
-              ></label>
-              <div
-                className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${
-                  aiEnabled ? "translate-x-5" : ""
-                }`}
-              ></div>
+              <button 
+                type="submit"
+                className="absolute right-0 top-0 h-full flex items-center pr-3"
+              >
+                <Search className="w-5 h-5" />
+              </button>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-muted-foreground">Karakulak</span>
-              <div className="relative group">
-                <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-3 py-1 text-xs bg-gray-700 text-white rounded shadow-lg opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 whitespace-nowrap">
-                  Karakulak is the modern AI assistant for Tekir Search. Powered by Gemini 2.0.
+            {/* Desktop options */}
+            <div className="hidden md:flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">Karakulak</span>
+                <div className="relative group">
+                  <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-3 py-1 text-xs bg-gray-700 text-white rounded shadow-lg opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 whitespace-nowrap">
+                    Karakulak is the modern AI assistant for Tekir Search. Powered by Gemini 2.0.
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  id="toggleAi"
+                  className="sr-only"
+                  checked={aiEnabled}
+                  onChange={toggleAiEnabled}
+                />
+                <label
+                  htmlFor="toggleAi"
+                  className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
+                ></label>
+                <div
+                  className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${
+                    aiEnabled ? "translate-x-5" : ""
+                  }`}
+                ></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Search engine:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchEngine("brave");
+                    localStorage.setItem("searchEngine", "brave");
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    searchEngine === "brave"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  Brave
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchEngine("duck");
+                    localStorage.setItem("searchEngine", "duck");
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    searchEngine === "duck"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  DuckDuckGo
+                </button>
+                <div className="relative group">
+                  <button
+                    type="button"
+                    disabled
+                    className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
+                  >
+                    Google
+                  </button>
+                  <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                    Google support has not been integrated. (yet :P)
+                  </div>
                 </div>
               </div>
             </div>
+            {/* Mobile menu toggle */}
+            <button 
+              type="button" 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </form>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Search engine:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchEngine("brave");
-                localStorage.setItem("searchEngine", "brave");
-              }}
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                searchEngine === "brave"
-                  ? "bg-blue-500 text-white"
-                  : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-              }`}
-            >
-              Brave
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchEngine("duck");
-                localStorage.setItem("searchEngine", "duck");
-              }}
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                searchEngine === "duck"
-                  ? "bg-blue-500 text-white"
-                  : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-              }`}
-            >
-              DuckDuckGo
-            </button>
-            <div className="relative group">
-              <button
-                type="button"
-                disabled
-                className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
-              >
-                Google
-              </button>
-              <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                Google support has not been integrated. (yet :P)
+          {/* Mobile menu */}
+          {menuOpen && (
+            <div className="md:hidden mt-4 p-4 bg-background rounded shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm text-muted-foreground">Karakulak</span>
+                  <div className="relative group">
+                    <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-3 py-1 text-xs bg-gray-700 text-white rounded shadow-lg opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 whitespace-nowrap">
+                      Karakulak is the modern AI assistant for Tekir Search. Powered by Gemini 2.0.
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="toggleAi-mobile"
+                    className="sr-only"
+                    checked={aiEnabled}
+                    onChange={toggleAiEnabled}
+                  />
+                  <label
+                    htmlFor="toggleAi-mobile"
+                    className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
+                  ></label>
+                  <div
+                    className={`relative left-[-2.5rem] bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${
+                      aiEnabled ? "translate-x-5" : ""
+                    }`}
+                  ></div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setMenuOpen(false)}
+                  className="p-2 rounded-full hover:bg-muted transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Search engine:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchEngine("brave");
+                    localStorage.setItem("searchEngine", "brave");
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    searchEngine === "brave"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  Brave
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchEngine("duck");
+                    localStorage.setItem("searchEngine", "duck");
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    searchEngine === "duck"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  DuckDuckGo
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
+                >
+                  Google
+                </button>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Search Results */}
-        <div className="max-w-3xl ml-8 mr-auto">
+        <div className="max-w-3xl ml-0 md:ml-8">
           {query && (
             <p className="text-muted-foreground mb-6">
               Showing results for: <span className="font-medium text-foreground">{query}</span>
@@ -328,7 +416,7 @@ export default function SearchPage() {
 
       {/* Footer */}
       <footer className="absolute bottom-0 w-full py-4 px-6 border-t border-border bg-background">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
+        <div className="max-w-5xl ml-0 md:ml-8 flex justify-between items-center">
           <p className="text-sm text-muted-foreground">
             🇹🇷 Tekir was made in Turkiye!
           </p>
