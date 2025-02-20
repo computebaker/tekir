@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram } from "lucide-react";
+import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
@@ -137,6 +137,117 @@ export default function Home() {
               <p className="text-muted-foreground">
                 Powered by Gemini 2.0 to deliver more relevant and accurate search results.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="min-h-screen bg-background flex items-center justify-center px-4 py-20">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+            How Tekir Works
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-12">
+            <div className="space-y-8">
+              <div className="flex items-start gap-4">
+                <Brain className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">AI-Powered Search</h3>
+                  <p className="text-muted-foreground">
+                    Our Gemini 2.0 integration analyzes queries in real-time to understand context and deliver precise results.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-4">
+                <Lock className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Privacy First</h3>
+                  <p className="text-muted-foreground">
+                    Zero logs, no tracking, and complete data anonymity ensure your searches remain private.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <Server className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Fast & Efficient</h3>
+                  <p className="text-muted-foreground">
+                    Distributed infrastructure ensures lightning-fast results from multiple sources.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <Code className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Open Source</h3>
+                  <p className="text-muted-foreground">
+                    Tekir is built and maintained by a passionate community of developers who believe in privacy-first technology and open-source principles.
+                  </p>
+                  </div>
+                  </div>
+            </div>
+
+            <div className="relative">
+              <div className="aspect-square rounded-2xl bg-muted/30 flex items-center justify-center">
+              <Image src="/tekir-down.png" alt="Tekir Illustration" width={300} height={300} className="opacity-100" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section className="min-h-screen bg-muted/30 flex items-center justify-center px-4 py-20">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+            About the Project
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6 mx-auto max-w-lg">
+              <div className="flex items-center gap-4 mb-8 justify-center">
+                <User className="w-12 h-12 text-primary" />
+                <h3 className="text-2xl font-semibold">Open Source Community</h3>
+              </div>
+              
+              <p className="text-muted-foreground mb-4">
+                Tekir is built and maintained by a passionate community of developers who believe in privacy-first technology and open-source principles.
+              </p>
+
+              <p className="text-muted-foreground">
+                Our mission is to create a transparent, efficient, and privacy-respecting search engine that serves the modern web without compromising user data.
+              </p>
+
+              <div className="flex items-center gap-4 mt-8 justify-center">
+                <a
+                  href="https://github.com/tekircik"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Github className="w-5 h-5" />
+                  <span>Join Us on GitHub</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+              <div className="aspect-square rounded-2xl bg-background p-8 flex items-center justify-center">
+                <Users className="w-20 h-20 text-primary opacity-50" />
+              </div>
+              <div className="aspect-square rounded-2xl bg-background p-8 flex items-center justify-center">
+                <Code className="w-20 h-20 text-primary opacity-50" />
+              </div>
+              <div className="aspect-square rounded-2xl bg-background p-8 flex items-center justify-center">
+                <Lock className="w-20 h-20 text-primary opacity-50" />
+              </div>
+              <div className="aspect-square rounded-2xl bg-background p-8 flex items-center justify-center">
+                <Brain className="w-20 h-20 text-primary opacity-50" />
+              </div>
             </div>
           </div>
         </div>
