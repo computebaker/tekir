@@ -46,9 +46,39 @@ export default function SearchPage() {
     }
   }, []);
 
-  // Effect for search results (dependent on query and searchEngine)
+  // Add this new function before the effects
+  const checkForBangs = (searchText: string) => {
+    const trimmed = searchText.trim();
+    if (trimmed.includes("!g")) {
+      const q = trimmed.replace("!g", "").trim();
+      window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+      return true;
+    } else if (trimmed.includes("!yt")) {
+      const q = trimmed.replace("!yt", "").trim();
+      window.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+      return true;
+    } else if (trimmed.includes("!d")) {
+      const q = trimmed.replace("!d", "").trim();
+      window.location.href = `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
+      return true;
+    } else if (trimmed.includes("!w")) {
+      const q = trimmed.replace("!w", "").trim();
+      window.location.href = `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}`;
+      return true;
+    } else if (trimmed.includes("!btt")) {
+      const q = trimmed.replace("!btt", "").trim();
+      window.location.href = `https://btt.community/search?q=${encodeURIComponent(q)}`;
+      return true;
+    }
+    return false;
+  };
+
+  // Modify the search results effect
   useEffect(() => {
     if (!query) return;
+    
+    // Check for bangs in the query parameter
+    if (checkForBangs(query)) return;
     
     const cachedSearch = sessionStorage.getItem(`search-${searchEngine}-${query}`);
     if (cachedSearch) {
@@ -110,32 +140,15 @@ export default function SearchPage() {
       .finally(() => setAiLoading(false));
   }}, [query, aiEnabled]);
 
+  // Modify the handleSearch function
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchInput.trim();
     if (trimmed) {
-      if (trimmed.includes("!g")) {
-        const q = trimmed.replace("!g", "").trim();
-        window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!yt")) {
-        const q = trimmed.replace("!yt", "").trim();
-        window.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!d")) {
-        const q = trimmed.replace("!d", "").trim();
-        window.location.href = `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!w")) {
-        const q = trimmed.replace("!w", "").trim();
-        window.location.href = `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!btt")) {
-        const q = trimmed.replace("!btt", "").trim();
-        window.location.href = `https://btt.community/search?q=${encodeURIComponent(q)}`;
-        return;
-      };
-      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+      // Check for bangs in the search input
+      if (!checkForBangs(trimmed)) {
+        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+      }
     }
   };
 
