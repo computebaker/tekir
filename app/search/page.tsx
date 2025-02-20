@@ -150,11 +150,11 @@ export default function SearchPage() {
       <main className="p-4 md:p-8">
         {/* Search Header */}
         <div className="max-w-5xl ml-0 md:ml-8 mb-8 relative">
-          <form onSubmit={handleSearch} className="flex items-center w-full max-w-2xl space-x-4">
+          <form onSubmit={handleSearch} className="flex items-center w-full space-x-4">
             <Link href="/">
               <Image src="/tekir.png" alt="Tekir Logo" width={40} height={40} />
             </Link>
-            <div className="relative w-full">
+            <div className="relative flex-1 min-w-0">
               <input
                 type="text"
                 value={searchInput}
@@ -169,33 +169,41 @@ export default function SearchPage() {
                 <Search className="w-5 h-5" />
               </button>
             </div>
-            {/* Desktop options */}
-            <div className="hidden md:flex items-center gap-4">
-              <div className="flex items-center gap-1">
+            {/* Remove inline desktop options */}
+            {/* Mobile menu toggle remains inside the form */}
+            <button 
+              type="button" 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </form>
+
+          {/* New desktop-only options block below the search bar */}
+          <div className="hidden md:flex flex-col mt-4">
+            <div className="flex items-center gap-4">
+              {/* Karakulak slider */}
+              <div className="flex items-center">
                 <span className="text-sm text-muted-foreground">Karakulak</span>
-                <div className="relative group">
-                  <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-3 py-1 text-xs bg-gray-700 text-white rounded shadow-lg opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 whitespace-nowrap">
-                    Karakulak is the modern AI assistant for Tekir Search. Powered by Gemini 2.0.
-                  </div>
+                <div className="relative ml-2">
+                  <input 
+                    type="checkbox" 
+                    id="toggleAi-desktop" 
+                    className="sr-only" 
+                    checked={aiEnabled} 
+                    onChange={toggleAiEnabled} 
+                  />
+                  <label 
+                    htmlFor="toggleAi-desktop" 
+                    className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
+                  ></label>
+                  <div 
+                    className={`absolute top-0 left-0 h-6 w-6 flex items-center justify-center bg-white rounded-full transition-transform duration-200 ease-in-out ${aiEnabled ? "translate-x-5" : ""}`}
+                  ></div>
                 </div>
-                <input
-                  type="checkbox"
-                  id="toggleAi"
-                  className="sr-only"
-                  checked={aiEnabled}
-                  onChange={toggleAiEnabled}
-                />
-                <label
-                  htmlFor="toggleAi"
-                  className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
-                ></label>
-                <div
-                  className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${
-                    aiEnabled ? "translate-x-5" : ""
-                  }`}
-                ></div>
               </div>
+              {/* Search engine selection */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Search engine:</span>
                 <button
@@ -226,67 +234,44 @@ export default function SearchPage() {
                 >
                   DuckDuckGo
                 </button>
-                <div className="relative group">
-                  <button
-                    type="button"
-                    disabled
-                    className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
-                  >
-                    Google
-                  </button>
-                  <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                    Google support has not been integrated. (yet :P)
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Mobile menu toggle */}
-            <button 
-              type="button" 
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
-            >
-              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </form>
-          {/* Mobile menu */}
-          {menuOpen && (
-            <div className="md:hidden mt-4 p-4 bg-background rounded shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Karakulak</span>
-                  <div className="relative group">
-                    <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-3 py-1 text-xs bg-gray-700 text-white rounded shadow-lg opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 whitespace-nowrap">
-                      Karakulak is the modern AI assistant for Tekir Search. Powered by Gemini 2.0.
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    id="toggleAi-mobile"
-                    className="sr-only"
-                    checked={aiEnabled}
-                    onChange={toggleAiEnabled}
-                  />
-                  <label
-                    htmlFor="toggleAi-mobile"
-                    className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
-                  ></label>
-                  <div
-                    className={`relative left-[-2.5rem] bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${
-                      aiEnabled ? "translate-x-5" : ""
-                    }`}
-                  ></div>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => setMenuOpen(false)}
-                  className="p-2 rounded-full hover:bg-muted transition-colors"
+                <button
+                  type="button"
+                  disabled
+                  className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
                 >
-                  <X className="w-5 h-5" />
+                  Google
                 </button>
               </div>
-              <div className="flex items-center gap-2">
+            </div>
+          </div>
+          {/* Reintroduced mobile menu block */}
+          {menuOpen && (
+            <div className="md:hidden mt-4 p-4 bg-background rounded shadow-lg">
+              <div className="flex items-center gap-1 relative">
+                <div className="relative group">
+
+                </div>
+                <input 
+                  type="checkbox" 
+                  id="toggleAi-mobile" 
+                  className="sr-only" 
+                  checked={aiEnabled} 
+                  onChange={toggleAiEnabled} 
+                />
+                <label 
+                  htmlFor="toggleAi-mobile" 
+                  className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
+                ></label>
+                {/* Updated mobile slider ball */}
+                <div
+                  className={`absolute left-0 top-0 h-6 w-6 flex items-center justify-center bg-white rounded-full transition-transform duration-200 ease-in-out ${
+                    aiEnabled ? "translate-x-5" : ""
+                  }`}
+                ></div>
+                <span className="text-sm text-muted-foreground">Karakulak</span>
+
+              </div>
+              <div className="flex items-center gap-2 mt-4">
                 <span className="text-sm text-muted-foreground">Search engine:</span>
                 <button
                   type="button"
