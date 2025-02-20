@@ -37,66 +37,77 @@ export default function SearchPage() {
     }
   }, []);
 
+  // Add effect to load stored search engine option on mount
   useEffect(() => {
-    const fetchResults = async () => {
-      if (!query) return;
-      
-      // Check for cached data in sessionStorage
-      const cached = sessionStorage.getItem(`search-${searchEngine}-${query}`);
-      if (cached) {
-        const { results: cachedResults, aiResponse: cachedAi } = JSON.parse(cached);
-        setResults(cachedResults);
-        setAiResponse(cachedAi);
-        return;
-      }
-      
-      setLoading(true);
-      if (aiEnabled) setAiLoading(true);
-      else setAiResponse(null);
+    const storedEngine = localStorage.getItem("searchEngine");
+    if (storedEngine) {
+      setSearchEngine(storedEngine);
+    }
+  }, []);
 
-      let searchData: SearchResult[] = [];
-      // Fetch regular search results.
-      try {
-        const response = await fetch(
-          `https://searchapi.tekir.co/api?q=${encodeURIComponent(query)}&source=${searchEngine}`
-        );
-        searchData = await response.json();
+  // Effect for search results (dependent on query and searchEngine)
+  useEffect(() => {
+    if (!query) return;
+    
+    const cachedSearch = sessionStorage.getItem(`search-${searchEngine}-${query}`);
+    if (cachedSearch) {
+      const { results: cachedResults } = JSON.parse(cachedSearch);
+      setResults(cachedResults);
+      // continue to update search results even if cached for new search engine
+    }
+    
+    setLoading(true);
+    fetch(
+      `https://searchapi.tekir.co/api?q=${encodeURIComponent(query)}&source=${searchEngine}`
+    )
+      .then((response) => response.json())
+      .then((searchData) => {
         setResults(searchData);
-        // Cache search results without AI response first.
-        sessionStorage.setItem(`search-${searchEngine}-${query}`, JSON.stringify({ results: searchData, aiResponse: null }));
-      } catch (error) {
-        console.error("Search failed:", error);
-      } finally {
-        setLoading(false);
-      }
+        sessionStorage.setItem(
+          `search-${searchEngine}-${query}`,
+          JSON.stringify({ results: searchData })
+        );
+      })
+      .catch((error) => console.error("Search failed:", error))
+      .finally(() => setLoading(false));
+  }, [query, searchEngine]);
 
-      // Fetch AI response only if enabled.
-      if (aiEnabled) {
-        try {
-          const aiRes = await fetch("https://searchai.tekir.co/gemini", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              message: query.replace(/%20/g, " "),
-            }),
-          });
-          const aiData = await aiRes.json();
-          const aiResult = aiData.result.trim();
-          setAiResponse(aiResult);
-          // Update cache with the AI response.
-          sessionStorage.setItem(`search-${query}`, JSON.stringify({ results: searchData, aiResponse: aiResult }));
-        } catch (error) {
-          console.error("AI response failed:", error);
-        } finally {
-          setAiLoading(false);
-        }
-      }
-    };
-
-    fetchResults();
-  }, [query, aiEnabled, searchEngine]);
+  // Effect for AI results (dependent on query and aiEnabled only)
+  useEffect(() => {
+    if (!query) return;
+    
+    // If Karakulak is disabled, clear AI response and do not send request.
+    if (!aiEnabled) {
+      setAiResponse(null);
+      return;
+    }
+    
+    const cachedAi = sessionStorage.getItem(`ai-${query}`);
+    if (cachedAi) {
+      setAiResponse(JSON.parse(cachedAi));
+      return;
+    }
+    
+    setAiLoading(true);
+    if (localStorage.getItem("karakulakEnabled") === "false") {
+  return;
+} else {
+      fetch("https://searchai.tekir.co/gemini", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: query.replace(/%20/g, " ") }),
+    })
+      .then((res) => res.json())
+      .then((aiData) => {
+        const aiResult = aiData.result.trim();
+        setAiResponse(aiResult);
+        sessionStorage.setItem(`ai-${query}`, JSON.stringify(aiResult));
+      })
+      .catch((error) => console.error("AI response failed:", error))
+      .finally(() => setAiLoading(false));
+  }}, [query, aiEnabled]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +199,10 @@ export default function SearchPage() {
             <span className="text-sm text-muted-foreground">Search engine:</span>
             <button
               type="button"
-              onClick={() => setSearchEngine("brave")}
+              onClick={() => {
+                setSearchEngine("brave");
+                localStorage.setItem("searchEngine", "brave");
+              }}
               className={`px-3 py-1 rounded-full text-sm font-medium ${
                 searchEngine === "brave"
                   ? "bg-blue-500 text-white"
@@ -199,7 +213,10 @@ export default function SearchPage() {
             </button>
             <button
               type="button"
-              onClick={() => setSearchEngine("duck")}
+              onClick={() => {
+                setSearchEngine("duck");
+                localStorage.setItem("searchEngine", "duck");
+              }}
               className={`px-3 py-1 rounded-full text-sm font-medium ${
                 searchEngine === "duck"
                   ? "bg-blue-500 text-white"
