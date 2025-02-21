@@ -22,6 +22,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <div id="global-tag">
           <script defer src="https://telemetry.tekir.co/script.js" data-website-id="71b0a4f4-071d-4e5f-a39f-203dbfa92d5c"></script>
+          <link rel="search" type="application/opensearchdescription+xml" title="Tekir" href="/opensearch.xml" />
           </div>
           {children}
         </ThemeProvider>
