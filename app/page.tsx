@@ -57,7 +57,11 @@ export default function Home() {
         const q = trimmed.replace("!btt", "").trim();
         window.location.href = `https://btt.community/search?q=${encodeURIComponent(q)}`;
         return;
-      };
+      } else if (trimmed.includes("!a")) {
+        const q = trimmed.replace("!a", "").trim();
+        window.location.href = `https://artadosearch.com/search?i=${encodeURIComponent(q)}`;
+        return;
+      }
       router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     }
   };

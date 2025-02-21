@@ -52,23 +52,27 @@ export default function SearchPage() {
     if (trimmed.includes("!g")) {
       const q = trimmed.replace("!g", "").trim();
       window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
-      return true;
+      return;
     } else if (trimmed.includes("!yt")) {
       const q = trimmed.replace("!yt", "").trim();
       window.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
-      return true;
+      return;
     } else if (trimmed.includes("!d")) {
       const q = trimmed.replace("!d", "").trim();
       window.location.href = `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
-      return true;
+      return;
     } else if (trimmed.includes("!w")) {
       const q = trimmed.replace("!w", "").trim();
       window.location.href = `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}`;
-      return true;
+      return;
     } else if (trimmed.includes("!btt")) {
       const q = trimmed.replace("!btt", "").trim();
       window.location.href = `https://btt.community/search?q=${encodeURIComponent(q)}`;
-      return true;
+      return;
+    } else if (trimmed.includes("!a")) {
+      const q = trimmed.replace("!a", "").trim();
+      window.location.href = `https://artadosearch.com/search?i=${encodeURIComponent(q)}`;
+      return;
     }
     return false;
   };
