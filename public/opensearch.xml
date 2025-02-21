@@ -1,7 +1,7 @@
 <OpenSearchDescription>
 <ShortName>Tekir</ShortName>
 <Description>Tekir is a privacy-focused metasearch engine.</Description>
-<Image height="256" width="256" type="image/png">/favicon.ico</Image>
+<Image height="256" width="256" type="image/ico">/favicon.ico</Image>
 <Url type="text/html" method="get" template="https://tekir.co/?q={searchTerms}"/>
 <InputEncoding>UTF-8</InputEncoding>
 <Language>en-US</Language>
