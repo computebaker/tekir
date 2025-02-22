@@ -392,7 +392,7 @@ export default function SearchPage() {
                     onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                    Choose a model
+                    {aiModel === 'llama' ? 'Llama 3.1 7B' : 'Gemini 2.0 Flash'}
                     <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
@@ -407,8 +407,8 @@ export default function SearchPage() {
                         >
                           <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
                           <div className="flex flex-col items-start">
-                            <span className="font-medium">Llama</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Slow, open source</span>
+                            <span className="font-medium">Llama 3.1 7B</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">A powerful and open-source model by Meta</span>
                           </div>
                         </button>
                         
@@ -420,8 +420,8 @@ export default function SearchPage() {
                         >
                           <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
                           <div className="flex flex-col items-start">
-                            <span className="font-medium">Gemini</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Fast, proprietary</span>
+                            <span className="font-medium">Gemini 2.0 Flash</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">A fast and intelligent model by Google</span>
                           </div>
                         </button>
                       </div>
