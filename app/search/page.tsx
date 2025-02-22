@@ -392,10 +392,19 @@ export default function SearchPage() {
                     onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                    {aiModel === 'llama' ? 'Llama 3.1 7B' : 'Gemini 2.0 Flash'}
+                    {aiModel === 'llama' ? (
+                      <>
+                        <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
+                        Llama 3.1 7B
+                      </>
+                    ) : (
+                      <>
+                        <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
+                        Gemini 2.0 Flash
+                      </>
+                    )}
                     <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  
                   {modelDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
                       <div className="p-1">
@@ -431,7 +440,7 @@ export default function SearchPage() {
               </div>
               
               {/* Rest of the AI response box content */}
-              <p className="text-blue-800 dark:text-blue-100 mb-3">{aiResponse}</p>
+              <p className="text-left text-blue-800 dark:text-blue-100 mb-3">{aiResponse}</p>
               <p className="text-sm text-blue-600/70 dark:text-blue-300/70">
                 Auto-generated based on online sources. May contain inaccuracies.
               </p>
