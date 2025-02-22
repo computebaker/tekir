@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Info, Menu, X } from "lucide-react";
+import { Search, Cat, Instagram, Github, Info, Menu, X, ChevronDown } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -29,6 +29,8 @@ export default function SearchPage() {
   const [aiEnabled, setAiEnabled] = useState(true);
   const [searchEngine, setSearchEngine] = useState("brave");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [aiModel, setAiModel] = useState("gemini"); // Add this
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false); // Add this
 
   // Read the AI preference from localStorage on mount.
   useEffect(() => {
@@ -43,6 +45,14 @@ export default function SearchPage() {
     const storedEngine = localStorage.getItem("searchEngine");
     if (storedEngine) {
       setSearchEngine(storedEngine);
+    }
+  }, []);
+
+  // Add effect to load stored model preference
+  useEffect(() => {
+    const storedModel = localStorage.getItem("aiModel");
+    if (storedModel) {
+      setAiModel(storedModel);
     }
   }, []);
 
@@ -127,7 +137,7 @@ export default function SearchPage() {
     if (localStorage.getItem("karakulakEnabled") === "false") {
   return;
 } else {
-      fetch("https://searchai.tekir.co/gemini", {
+      fetch("https://searchai.tekir.co/" + aiModel, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -142,7 +152,14 @@ export default function SearchPage() {
       })
       .catch((error) => console.error("AI response failed:", error))
       .finally(() => setAiLoading(false));
-  }}, [query, aiEnabled]);
+  }}, [query, aiEnabled, aiModel]);
+
+  // Add the model selection function
+  const handleModelChange = (model: string) => {
+    setAiModel(model);
+    setModelDropdownOpen(false);
+    localStorage.setItem("aiModel", model);
+  };
 
   // Modify the handleSearch function
   const handleSearch = (e: React.FormEvent) => {
@@ -355,15 +372,62 @@ export default function SearchPage() {
             </div>
           ) : aiResponse ? (
             <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-              <div className="flex items-center mb-4">
-                <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                  Karakulak AI
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
-                    BETA
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
+                    Karakulak AI
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
+                      BETA
+                    </span>
                   </span>
-                </span>
+                </div>
+                
+                {/* Model Selection Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Choose a model
+                    <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {modelDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                      <div className="p-1">
+                        <button
+                          onClick={() => handleModelChange('llama')}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                            aiModel === 'llama' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                          }`}
+                        >
+                          <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">Llama</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Slow, open source</span>
+                          </div>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleModelChange('gemini')}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                            aiModel === 'gemini' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                          }`}
+                        >
+                          <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">Gemini</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Fast, proprietary</span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              {/* Rest of the AI response box content */}
               <p className="text-blue-800 dark:text-blue-100 mb-3">{aiResponse}</p>
               <p className="text-sm text-blue-600/70 dark:text-blue-300/70">
                 Auto-generated based on online sources. May contain inaccuracies.
