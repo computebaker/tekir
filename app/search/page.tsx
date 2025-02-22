@@ -117,17 +117,18 @@ export default function SearchPage() {
       .finally(() => setLoading(false));
   }, [query, searchEngine]);
 
-  // Effect for AI results (dependent on query and aiEnabled only)
+  // Modify the AI effect
   useEffect(() => {
     if (!query) return;
     
-    // If Karakulak is disabled, clear AI response and do not send request.
     if (!aiEnabled) {
       setAiResponse(null);
       return;
     }
     
-    const cachedAi = sessionStorage.getItem(`ai-${query}`);
+    // Update cache key to include model name
+    const cacheKey = `ai-${query}-${aiModel}`;
+    const cachedAi = sessionStorage.getItem(cacheKey);
     if (cachedAi) {
       setAiResponse(JSON.parse(cachedAi));
       return;
@@ -135,24 +136,26 @@ export default function SearchPage() {
     
     setAiLoading(true);
     if (localStorage.getItem("karakulakEnabled") === "false") {
-  return;
-} else {
+      return;
+    } else {
       fetch("https://searchai.tekir.co/" + aiModel, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: query.replace(/%20/g, " ") }),
-    })
-      .then((res) => res.json())
-      .then((aiData) => {
-        const aiResult = aiData.result.trim();
-        setAiResponse(aiResult);
-        sessionStorage.setItem(`ai-${query}`, JSON.stringify(aiResult));
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: query.replace(/%20/g, " ") }),
       })
-      .catch((error) => console.error("AI response failed:", error))
-      .finally(() => setAiLoading(false));
-  }}, [query, aiEnabled, aiModel]);
+        .then((res) => res.json())
+        .then((aiData) => {
+          const aiResult = aiData.result.trim();
+          setAiResponse(aiResult);
+          // Store with model-specific cache key
+          sessionStorage.setItem(cacheKey, JSON.stringify(aiResult));
+        })
+        .catch((error) => console.error("AI response failed:", error))
+        .finally(() => setAiLoading(false));
+    }
+  }, [query, aiEnabled, aiModel]);
 
   // Add the model selection function
   const handleModelChange = (model: string) => {
