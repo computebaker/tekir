@@ -16,6 +16,10 @@ interface SearchResult {
   source: string;
 }
 
+interface Suggestion {
+  query: string;
+}
+
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -31,6 +35,9 @@ export default function SearchPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [aiModel, setAiModel] = useState("gemini"); // Add this
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false); // Add this
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   // Read the AI preference from localStorage on mount.
   useEffect(() => {
@@ -182,6 +189,73 @@ export default function SearchPage() {
     localStorage.setItem("karakulakEnabled", newValue.toString());
   };
 
+  // Modify the autocomplete effect
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchInput.trim().length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      // Check cache first
+      const cacheKey = `autocomplete-${searchInput.trim().toLowerCase()}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        setSuggestions(JSON.parse(cached));
+        return;
+      }
+
+      try {
+        const response = await fetch('https://autocomplete.tekir.co/brave', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: searchInput }),
+        });
+        const data = await response.json();
+        setSuggestions(data);
+        // Cache the results
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      } catch (error) {
+        console.error('Failed to fetch suggestions:', error);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 200);
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        if (selectedIndex >= 0) {
+          e.preventDefault();
+          const selected = suggestions[selectedIndex];
+          setSearchInput(selected.query);
+          router.push(`/search?q=${encodeURIComponent(selected.query)}`);
+          setShowSuggestions(false);
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        break;
+    }
+  };
+
   return (
     <div className="min-h-screen relative pb-20">
       <main className="p-4 md:p-8">
@@ -195,7 +269,12 @@ export default function SearchPage() {
               <input
                 type="text"
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setShowSuggestions(true)}
                 placeholder="Search anything..."
                 className="w-full px-4 py-2 pr-8 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
               />
@@ -205,6 +284,31 @@ export default function SearchPage() {
               >
                 <Search className="w-5 h-5" />
               </button>
+              
+              {/* Autocomplete dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={suggestion.query}
+                      onClick={() => {
+                        setSearchInput(suggestion.query);
+                        router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+                        setShowSuggestions(false);
+                      }}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
+                        index === selectedIndex ? 'bg-muted' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-muted-foreground" />
+                        <span>{suggestion.query}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {/* Remove inline desktop options */}
             {/* Mobile menu toggle remains inside the form */}

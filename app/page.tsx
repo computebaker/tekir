@@ -6,9 +6,16 @@ import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
 
+interface Suggestion {
+  query: string;
+}
+
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
 
   useEffect(() => {
@@ -66,6 +73,71 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchQuery.trim().length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      // Check cache first
+      const cacheKey = `autocomplete-${searchQuery.trim().toLowerCase()}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        setSuggestions(JSON.parse(cached));
+        return;
+      }
+
+      try {
+        const response = await fetch('https://autocomplete.tekir.co/brave', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: searchQuery }),
+        });
+        const data = await response.json();
+        setSuggestions(data);
+        // Cache the results
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      } catch (error) {
+        console.error('Failed to fetch suggestions:', error);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 200);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        if (selectedIndex >= 0) {
+          e.preventDefault();
+          const selected = suggestions[selectedIndex];
+          setSearchQuery(selected.query);
+          router.push(`/search?q=${encodeURIComponent(selected.query)}`);
+          setShowSuggestions(false);
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        break;
+    }
+  };
+
   return (
     <main className="min-h-[200vh] relative">
       {/* Hero Section */}
@@ -81,7 +153,12 @@ export default function Home() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setShowSuggestions(true)}
               placeholder="What's on your mind?"
               className="w-full px-6 py-4 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
             />
@@ -91,6 +168,31 @@ export default function Home() {
             >
               <Search className="w-5 h-5" />
             </button>
+
+            {/* Autocomplete dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={suggestion.query}
+                    onClick={() => {
+                      setSearchQuery(suggestion.query);
+                      router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+                      setShowSuggestions(false);
+                    }}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
+                      index === selectedIndex ? 'bg-muted' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Search className="w-4 h-4 text-muted-foreground" />
+                      <span>{suggestion.query}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </form>
 
           {/* Scroll Button */}
