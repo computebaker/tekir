@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users } from "lucide-react";
+import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
@@ -194,6 +194,11 @@ export default function Home() {
               </div>
             )}
           </form>
+
+          {/* Alert Box */}
+          <div className="w-full max-w-xl mx-auto px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm">
+            DuckDuckGo search is currently down due to technical restrictions.
+          </div>
 
           {/* Scroll Button */}
           <button
