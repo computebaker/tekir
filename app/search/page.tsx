@@ -395,17 +395,14 @@ export default function SearchPage() {
                     {aiModel === 'llama' ? (
                       <>
                         <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
-                        Llama 3.1 7B
                       </>
                     ) : aiModel === 'mistral' ? (
                       <>
                         <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
-                        Mistral 7B
                       </>
                     ) : (
                       <>
                         <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
-                        Gemini 2.0 Flash
                       </>
                     )}
                     <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
