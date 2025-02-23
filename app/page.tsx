@@ -194,12 +194,6 @@ export default function Home() {
               </div>
             )}
           </form>
-
-          {/* Alert Box */}
-          <div className="w-full max-w-xl mx-auto px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm">
-            DuckDuckGo search is currently down due to technical restrictions.
-          </div>
-
           {/* Scroll Button */}
           <button
             onClick={scrollToFeatures}
