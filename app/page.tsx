@@ -145,7 +145,7 @@ export default function Home() {
         <div className="w-full max-w-3xl space-y-8 text-center">
           {/* Logo */}
             <div className="flex justify-center">
-              <Image src="/tekir.png" alt="Tekir logo" width={200} height={66} />
+              <Image src="/tekir.png" alt="Tekir logo" width={200} height={66} loading="eager" />
             </div>
 
           {/* Search Bar */}
