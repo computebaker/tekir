@@ -191,13 +191,13 @@ export default function SearchPage() {
             <Link href="/">
               <Image src="/tekir.png" alt="Tekir Logo" width={40} height={40} />
             </Link>
-            <div className="relative flex-1 min-w-0">
+            <div className="relative flex-1 min-w-0 max-w-3xl mx-auto">
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search anything..."
-                className="w-full px-6 py-3 pr-10 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
+                className="w-full px-4 py-2 pr-8 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
               />
               <button 
                 type="submit"
