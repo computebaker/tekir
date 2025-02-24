@@ -38,6 +38,9 @@ export default function SearchPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [autocompleteSource, setAutocompleteSource] = useState(() => 
+    typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
+  );
 
   // Read the AI preference from localStorage on mount.
   useEffect(() => {
@@ -198,7 +201,7 @@ export default function SearchPage() {
       }
 
       // Check cache first
-      const cacheKey = `autocomplete-${searchInput.trim().toLowerCase()}`;
+      const cacheKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         setSuggestions(JSON.parse(cached));
@@ -206,7 +209,7 @@ export default function SearchPage() {
       }
 
       try {
-        const response = await fetch('https://autocomplete.tekir.co/brave', {
+        const response = await fetch(`https://autocomplete.tekir.co/${autocompleteSource}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -224,7 +227,7 @@ export default function SearchPage() {
 
     const timeoutId = setTimeout(fetchSuggestions, 200);
     return () => clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [searchInput, autocompleteSource]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -383,6 +386,39 @@ export default function SearchPage() {
                   Google
                 </button>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Autocomplete:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSource = 'brave';
+                    setAutocompleteSource(newSource);
+                    localStorage.setItem('autocompleteSource', newSource);
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    autocompleteSource === "brave"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  Brave
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSource = 'duck';
+                    setAutocompleteSource(newSource);
+                    localStorage.setItem('autocompleteSource', newSource);
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    autocompleteSource === "duck"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  DuckDuckGo
+                </button>
+              </div>
             </div>
           </div>
           {/* Reintroduced mobile menu block */}
@@ -448,6 +484,39 @@ export default function SearchPage() {
                   className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
                 >
                   Google
+                </button>
+              </div>
+              <div className="flex items-center gap-2 mt-4">
+                <span className="text-sm text-muted-foreground">Autocomplete:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSource = 'brave';
+                    setAutocompleteSource(newSource);
+                    localStorage.setItem('autocompleteSource', newSource);
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    autocompleteSource === "brave"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  Brave
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSource = 'duck';
+                    setAutocompleteSource(newSource);
+                    localStorage.setItem('autocompleteSource', newSource);
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    autocompleteSource === "duck"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  DuckDuckGo
                 </button>
               </div>
             </div>
@@ -612,7 +681,7 @@ export default function SearchPage() {
       </main>
 
       {/* Footer */}
-      <footer className="absolute bottom-0 w-full py-4 px-6 border-t border-border bg-background">
+      <footer className="absolute bottom-0 w-full py-4 px-6 border-t border-border bg-background"></footer>
         <div className="max-w-5xl ml-0 md:ml-8 flex justify-between items-center">
           <p className="text-sm text-muted-foreground">
             🇹🇷 Tekir was made in Turkiye!
@@ -639,7 +708,6 @@ export default function SearchPage() {
             </a>
           </div>
         </div>
-      </footer>
-    </div>
+      </div>
   );
 }

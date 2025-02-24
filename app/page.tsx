@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users, AlertTriangle } from "lucide-react";
+import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users, TextCursorInput } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
@@ -17,6 +17,9 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
+  const [autocompleteSource, setAutocompleteSource] = useState(() => 
+    typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -81,7 +84,7 @@ export default function Home() {
       }
 
       // Check cache first
-      const cacheKey = `autocomplete-${searchQuery.trim().toLowerCase()}`;
+      const cacheKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         setSuggestions(JSON.parse(cached));
@@ -89,7 +92,7 @@ export default function Home() {
       }
 
       try {
-        const response = await fetch('https://autocomplete.tekir.co/brave', {
+        const response = await fetch(`https://autocomplete.tekir.co/${autocompleteSource}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -107,7 +110,7 @@ export default function Home() {
 
     const timeoutId = setTimeout(fetchSuggestions, 200);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, autocompleteSource]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions) return;
@@ -162,6 +165,21 @@ export default function Home() {
               placeholder="What's on your mind?"
               className="w-full px-6 py-4 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
             />
+            <div className="absolute right-14 top-1/2 -translate-y-1/2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const newSource = autocompleteSource === 'brave' ? 'duck' : 'brave';
+                  setAutocompleteSource(newSource);
+                  localStorage.setItem('autocompleteSource', newSource);
+                }}
+                className="px-3 py-2 rounded-lg text-sm font-medium border border-border hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <span>{autocompleteSource === 'brave' ? 'Brave' : 'DuckDuckGo'}</span>
+                <TextCursorInput className="w-4 h-4" />
+              </button>
+            </div>
             <button 
               type="submit"
               className="absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-muted transition-colors"
