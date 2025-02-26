@@ -16,6 +16,10 @@ interface SearchResult {
   source: string;
 }
 
+interface Suggestion {
+  query: string;
+}
+
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -31,6 +35,12 @@ export default function SearchPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [aiModel, setAiModel] = useState("gemini"); // Add this
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false); // Add this
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [autocompleteSource, setAutocompleteSource] = useState(() => 
+    typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
+  );
 
   // Read the AI preference from localStorage on mount.
   useEffect(() => {
@@ -94,6 +104,10 @@ export default function SearchPage() {
     } else if (trimmed.includes("!b")) {
       const q = trimmed.replace("!b", "").trim();
       window.location.href = `https://www.bing.com/search?q=${encodeURIComponent(q)}`;
+      return;
+    } else if (trimmed.includes("!yahoo")) {
+      const q = trimmed.replace("!yahoo", "").trim();
+      window.location.href = `https://search.yahoo.com/search?p=${encodeURIComponent(q)}`;
       return;
     }
     return false;
@@ -194,9 +208,86 @@ export default function SearchPage() {
     localStorage.setItem("karakulakEnabled", newValue.toString());
   };
 
+  // Modify the autocomplete effect to handle the new format
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchInput.trim().length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      // Check cache first
+      const cacheKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        setSuggestions(JSON.parse(cached));
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://autocomplete.tekir.co/${autocompleteSource}?q=${searchInput}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        const data = await response.json();
+        
+        // Process new response format
+        if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
+          // Convert the array of strings to array of objects with query property
+          const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
+          setSuggestions(processedSuggestions);
+          // Cache the processed results
+          sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
+        } else {
+          // Fallback for old format or unexpected data
+          console.warn('Unexpected suggestion format:', data);
+          setSuggestions([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch suggestions:', error);
+        setSuggestions([]);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 200);
+    return () => clearTimeout(timeoutId);
+  }, [searchInput, autocompleteSource]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        if (selectedIndex >= 0) {
+          e.preventDefault();
+          const selected = suggestions[selectedIndex];
+          setSearchInput(selected.query);
+          router.push(`/search?q=${encodeURIComponent(selected.query)}`);
+          setShowSuggestions(false);
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        break;
+    }
+  };
+
   return (
-    <div className="min-h-screen relative pb-20">
-      <main className="p-4 md:p-8">
+    <div className="min-h-screen flex flex-col">
+      <main className="p-4 md:p-8 flex-grow">
         {/* Search Header */}
         <div className="max-w-5xl ml-0 md:ml-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full space-x-4">
@@ -207,7 +298,12 @@ export default function SearchPage() {
               <input
                 type="text"
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setShowSuggestions(true)}
                 placeholder="Search anything..."
                 className="w-full px-4 py-2 pr-8 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
               />
@@ -217,6 +313,31 @@ export default function SearchPage() {
               >
                 <Search className="w-5 h-5" />
               </button>
+              
+              {/* Autocomplete dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={suggestion.query}
+                      onClick={() => {
+                        setSearchInput(suggestion.query);
+                        router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+                        setShowSuggestions(false);
+                      }}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
+                        index === selectedIndex ? 'bg-muted' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-muted-foreground" />
+                        <span>{suggestion.query}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {/* Remove inline desktop options */}
             {/* Mobile menu toggle remains inside the form */}
@@ -291,6 +412,39 @@ export default function SearchPage() {
                   Google
                 </button>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Autocomplete:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSource = 'brave';
+                    setAutocompleteSource(newSource);
+                    localStorage.setItem('autocompleteSource', newSource);
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    autocompleteSource === "brave"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  Brave
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSource = 'duck';
+                    setAutocompleteSource(newSource);
+                    localStorage.setItem('autocompleteSource', newSource);
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    autocompleteSource === "duck"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  DuckDuckGo
+                </button>
+              </div>
             </div>
           </div>
           {/* Reintroduced mobile menu block */}
@@ -356,6 +510,39 @@ export default function SearchPage() {
                   className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
                 >
                   Google
+                </button>
+              </div>
+              <div className="flex items-center gap-2 mt-4">
+                <span className="text-sm text-muted-foreground">Autocomplete:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSource = 'brave';
+                    setAutocompleteSource(newSource);
+                    localStorage.setItem('autocompleteSource', newSource);
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    autocompleteSource === "brave"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  Brave
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSource = 'duck';
+                    setAutocompleteSource(newSource);
+                    localStorage.setItem('autocompleteSource', newSource);
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    autocompleteSource === "duck"
+                      ? "bg-blue-500 text-white"
+                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  DuckDuckGo
                 </button>
               </div>
             </div>
@@ -520,12 +707,12 @@ export default function SearchPage() {
       </main>
 
       {/* Footer */}
-      <footer className="absolute bottom-0 w-full py-4 px-6 border-t border-border bg-background">
-        <div className="max-w-5xl ml-0 md:ml-8 flex justify-between items-center">
+      <footer className="w-full py-4 px-6 border-t border-border bg-background mt-auto">
+        <div className="max-w-5xl mx-auto flex justify-start items-start">
           <p className="text-sm text-muted-foreground">
             🇹🇷 Tekir was made in Turkiye!
           </p>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-start space-x-4">
             <ThemeToggle />
             <a
               href="https://instagram.com/tekirsearch"

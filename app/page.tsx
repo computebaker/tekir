@@ -1,15 +1,25 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users } from "lucide-react";
+import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users, TextCursorInput } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
 
+interface Suggestion {
+  query: string;
+}
+
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
+  const [autocompleteSource, setAutocompleteSource] = useState(() => 
+    typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -73,8 +83,87 @@ export default function Home() {
         const q = trimmed.replace("!b", "").trim();
         window.location.href = `https://www.bing.com/search?q=${encodeURIComponent(q)}`;
         return;
+      } else if (trimmed.includes("!yahoo")) {
+        const q = trimmed.replace("!yahoo", "").trim();
+        window.location.href = `https://search.yahoo.com/search?p=${encodeURIComponent(q)}`;
+        return;
       }
       router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    }
+  };
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchQuery.trim().length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      // Check cache first
+      const cacheKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        setSuggestions(JSON.parse(cached));
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://autocomplete.tekir.co/${autocompleteSource}?q=${searchQuery}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        const data = await response.json();
+        
+        // Process new response format
+        if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
+          // Convert the array of strings to array of objects with query property
+          const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
+          setSuggestions(processedSuggestions);
+          // Cache the processed results
+          sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
+        } else {
+          // Fallback for old format or unexpected data
+          console.warn('Unexpected suggestion format:', data);
+          setSuggestions([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch suggestions:', error);
+        setSuggestions([]);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 200);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, autocompleteSource]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        if (selectedIndex >= 0) {
+          e.preventDefault();
+          const selected = suggestions[selectedIndex];
+          setSearchQuery(selected.query);
+          router.push(`/search?q=${encodeURIComponent(selected.query)}`);
+          setShowSuggestions(false);
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        break;
     }
   };
 
@@ -85,7 +174,7 @@ export default function Home() {
         <div className="w-full max-w-3xl space-y-8 text-center">
           {/* Logo */}
             <div className="flex justify-center">
-              <Image src="/tekir.png" alt="Tekir logo" width={200} height={66} />
+              <Image src="/tekir.png" alt="Tekir logo" width={200} height={66} loading="eager" />
             </div>
 
           {/* Search Bar */}
@@ -93,18 +182,62 @@ export default function Home() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setShowSuggestions(true)}
               placeholder="What's on your mind?"
               className="w-full px-6 py-4 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
             />
+            <div className="absolute right-14 top-1/2 -translate-y-1/2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const newSource = autocompleteSource === 'brave' ? 'duck' : 'brave';
+                  setAutocompleteSource(newSource);
+                  localStorage.setItem('autocompleteSource', newSource);
+                }}
+                className="px-3 py-2 rounded-lg text-sm font-medium border border-border hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <span>{autocompleteSource === 'brave' ? 'Brave' : 'DuckDuckGo'}</span>
+                <TextCursorInput className="w-4 h-4" />
+              </button>
+            </div>
             <button 
               type="submit"
               className="absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-muted transition-colors"
             >
               <Search className="w-5 h-5" />
             </button>
-          </form>
 
+            {/* Autocomplete dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={suggestion.query}
+                    onClick={() => {
+                      setSearchQuery(suggestion.query);
+                      router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+                      setShowSuggestions(false);
+                    }}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
+                      index === selectedIndex ? 'bg-muted' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Search className="w-4 h-4 text-muted-foreground" />
+                      <span>{suggestion.query}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </form>
           {/* Scroll Button */}
           <button
             onClick={scrollToFeatures}
@@ -151,7 +284,7 @@ export default function Home() {
               <Sparkles className="w-10 h-10 mb-4 text-primary" />
               <h3 className="text-xl font-semibold mb-2">AI Enhanced</h3>
               <p className="text-muted-foreground">
-                Powered by Gemini 2.0 to deliver more relevant and accurate search results.
+                Powered by Gemini 2.0 and many other AIs to deliver more relevant and accurate search results.
               </p>
             </div>
           </div>
