@@ -93,6 +93,18 @@ export default function SearchPage() {
       const q = trimmed.replace("!a", "").trim();
       window.location.href = `https://artadosearch.com/search?i=${encodeURIComponent(q)}`;
       return;
+    } else if (trimmed.includes("!y")) {
+      const q = trimmed.replace("!y", "").trim();
+      window.location.href = `https://yandex.com/search/?text=${encodeURIComponent(q)}`;
+      return;
+    } else if (trimmed.includes("!ask")) {
+      const q = trimmed.replace("!ask", "").trim();
+      window.location.href = `https://www.ask.com/web?q=${encodeURIComponent(q)}`;
+      return;
+    } else if (trimmed.includes("!b")) {
+      const q = trimmed.replace("!b", "").trim();
+      window.location.href = `https://www.bing.com/search?q=${encodeURIComponent(q)}`;
+      return;
     }
     return false;
   };
