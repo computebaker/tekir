@@ -192,7 +192,7 @@ export default function SearchPage() {
     localStorage.setItem("karakulakEnabled", newValue.toString());
   };
 
-  // Modify the autocomplete effect
+  // Modify the autocomplete effect to handle the new format
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (searchInput.trim().length < 2) {
@@ -209,19 +209,29 @@ export default function SearchPage() {
       }
 
       try {
-        const response = await fetch(`https://autocomplete.tekir.co/${autocompleteSource}`, {
-          method: 'POST',
+        const response = await fetch(`https://autocomplete.tekir.co/${autocompleteSource}?q=${searchInput}`, {
+          method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: searchInput }),
+          }
         });
         const data = await response.json();
-        setSuggestions(data);
-        // Cache the results
-        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+        
+        // Process new response format
+        if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
+          // Convert the array of strings to array of objects with query property
+          const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
+          setSuggestions(processedSuggestions);
+          // Cache the processed results
+          sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
+        } else {
+          // Fallback for old format or unexpected data
+          console.warn('Unexpected suggestion format:', data);
+          setSuggestions([]);
+        }
       } catch (error) {
         console.error('Failed to fetch suggestions:', error);
+        setSuggestions([]);
       }
     };
 
