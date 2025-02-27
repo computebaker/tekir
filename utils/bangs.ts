@@ -40,7 +40,7 @@ export async function prefetchBangs(): Promise<void> {
  */
 async function refreshBangsCache(): Promise<void> {
   try {
-    const response = await fetch('/bangs.json');
+    const response = await fetch('https://bang.lat/bangs.json');
     if (!response.ok) {
       throw new Error(`Failed to fetch bangs: ${response.statusText}`);
     }
