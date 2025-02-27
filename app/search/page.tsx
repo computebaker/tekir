@@ -296,13 +296,6 @@ export default function SearchPage() {
                 <Search className="w-5 h-5" />
               </button>
               
-              {/* Bang notification */}
-              {hasBang && (
-                <div className="absolute w-full text-center mt-1 text-sm text-blue-600 dark:text-blue-400 font-medium">
-                  Bangs by bang.lat — the fastest bang resolver.
-                </div>
-              )}
-              
               {/* Autocomplete dropdown */}
               {showSuggestions && suggestions.length > 0 && (
                 <div className={`absolute w-full mt-2 ${hasBang ? 'mt-6' : 'mt-2'} py-2 bg-background rounded-lg border border-border shadow-lg z-50`}>

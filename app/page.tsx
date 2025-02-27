@@ -193,7 +193,7 @@ export default function Home() {
             {/* Bang notification */}
             {hasBang && (
               <div className="absolute w-full text-center mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
-                Bangs by bang.lat — the fastest bang resolver.
+                <a href="https://bangs.lat"> Bangs by bang.lat — the fastest bang resolver. </a>
               </div>
             )}
 
