@@ -6,7 +6,7 @@ import { Search, Cat, Instagram, Github, Info, Menu, X, ChevronDown } from "luci
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { set } from "date-fns";
+import { handleBangRedirect } from "@/utils/bangs";
 
 interface SearchResult {
   title: string;
@@ -41,6 +41,7 @@ export default function SearchPage() {
   const [autocompleteSource, setAutocompleteSource] = useState(() => 
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
+  const [hasBang, setHasBang] = useState(false);
 
   // Read the AI preference from localStorage on mount.
   useEffect(() => {
@@ -66,77 +67,49 @@ export default function SearchPage() {
     }
   }, []);
 
-  // Add this new function before the effects
-  const checkForBangs = (searchText: string) => {
-    const trimmed = searchText.trim();
-    if (trimmed.includes("!g")) {
-      const q = trimmed.replace("!g", "").trim();
-      window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
-      return;
-    } else if (trimmed.includes("!yt")) {
-      const q = trimmed.replace("!yt", "").trim();
-      window.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
-      return;
-    } else if (trimmed.includes("!d")) {
-      const q = trimmed.replace("!d", "").trim();
-      window.location.href = `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
-      return;
-    } else if (trimmed.includes("!w")) {
-      const q = trimmed.replace("!w", "").trim();
-      window.location.href = `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}`;
-      return;
-    } else if (trimmed.includes("!btt")) {
-      const q = trimmed.replace("!btt", "").trim();
-      window.location.href = `https://btt.community/search?q=${encodeURIComponent(q)}`;
-      return;
-    } else if (trimmed.includes("!a")) {
-      const q = trimmed.replace("!a", "").trim();
-      window.location.href = `https://artadosearch.com/search?i=${encodeURIComponent(q)}`;
-      return;
-    } else if (trimmed.includes("!y")) {
-      const q = trimmed.replace("!y", "").trim();
-      window.location.href = `https://yandex.com/search/?text=${encodeURIComponent(q)}`;
-      return;
-    } else if (trimmed.includes("!ask")) {
-      const q = trimmed.replace("!ask", "").trim();
-      window.location.href = `https://www.ask.com/web?q=${encodeURIComponent(q)}`;
-      return;
-    } else if (trimmed.includes("!b")) {
-      const q = trimmed.replace("!b", "").trim();
-      window.location.href = `https://www.bing.com/search?q=${encodeURIComponent(q)}`;
-      return;
-    }
-    return false;
-  };
+  // Replace the checkForBangs function with our new bang handling
+  useEffect(() => {
+    const checkQueryForBangs = async () => {
+      if (!query) return;
+      await handleBangRedirect(query);
+    };
+    checkQueryForBangs();
+  }, [query]);
 
   // Modify the search results effect
   useEffect(() => {
     if (!query) return;
     
-    // Check for bangs in the query parameter
-    if (checkForBangs(query)) return;
-    
-    const cachedSearch = sessionStorage.getItem(`search-${searchEngine}-${query}`);
-    if (cachedSearch) {
-      const { results: cachedResults } = JSON.parse(cachedSearch);
-      setResults(cachedResults);
-      // continue to update search results even if cached for new search engine
-    }
-    
-    setLoading(true);
-    fetch(
-      `https://searchapi.tekir.co/api?q=${encodeURIComponent(query)}&source=${searchEngine}`
-    )
-      .then((response) => response.json())
-      .then((searchData) => {
-        setResults(searchData);
-        sessionStorage.setItem(
-          `search-${searchEngine}-${query}`,
-          JSON.stringify({ results: searchData })
-        );
-      })
-      .catch((error) => console.error("Search failed:", error))
-      .finally(() => setLoading(false));
+    // Replace the call to checkForBangs with handleBangRedirect
+    // We'll use an async IIFE (Immediately Invoked Function Expression)
+    (async () => {
+      // Try to handle as a bang command first - if it succeeds, stop processing
+      const isRedirected = await handleBangRedirect(query);
+      if (isRedirected) return;
+      
+      // Continue with normal search if no bang redirect happened
+      const cachedSearch = sessionStorage.getItem(`search-${searchEngine}-${query}`);
+      if (cachedSearch) {
+        const { results: cachedResults } = JSON.parse(cachedSearch);
+        setResults(cachedResults);
+        // continue to update search results even if cached for new search engine
+      }
+      
+      setLoading(true);
+      fetch(
+        `https://searchapi.tekir.co/api?q=${encodeURIComponent(query)}&source=${searchEngine}`
+      )
+        .then((response) => response.json())
+        .then((searchData) => {
+          setResults(searchData);
+          sessionStorage.setItem(
+            `search-${searchEngine}-${query}`,
+            JSON.stringify({ results: searchData })
+          );
+        })
+        .catch((error) => console.error("Search failed:", error))
+        .finally(() => setLoading(false));
+    })();
   }, [query, searchEngine]);
 
   // Modify the AI effect
@@ -187,12 +160,14 @@ export default function SearchPage() {
   };
 
   // Modify the handleSearch function
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchInput.trim();
     if (trimmed) {
-      // Check for bangs in the search input
-      if (!checkForBangs(trimmed)) {
+      // Try to handle as a bang command first
+      const redirected = await handleBangRedirect(trimmed);
+      if (!redirected) {
+        // No bang matched, redirect to normal search
         router.push(`/search?q=${encodeURIComponent(trimmed)}`);
       }
     }
@@ -281,6 +256,17 @@ export default function SearchPage() {
     }
   };
 
+  // Helper function to detect if input contains a bang
+  const checkForBang = (input: string): boolean => {
+    // Check for bang pattern (! followed by letters)
+    return /(?:^|\s)![a-z]+/.test(input.toLowerCase());
+  };
+  
+  // Update bang detection when search input changes
+  useEffect(() => {
+    setHasBang(checkForBang(searchInput));
+  }, [searchInput]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">
@@ -310,9 +296,16 @@ export default function SearchPage() {
                 <Search className="w-5 h-5" />
               </button>
               
+              {/* Bang notification */}
+              {hasBang && (
+                <div className="absolute w-full text-center mt-1 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                  Bangs by bang.lat — the fastest bang resolver.
+                </div>
+              )}
+              
               {/* Autocomplete dropdown */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50">
+                <div className={`absolute w-full mt-2 ${hasBang ? 'mt-6' : 'mt-2'} py-2 bg-background rounded-lg border border-border shadow-lg z-50`}>
                   {suggestions.map((suggestion, index) => (
                     <button
                       key={suggestion.query}

@@ -5,6 +5,7 @@ import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Bra
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
+import { handleBangRedirect } from "@/utils/bangs";
 
 interface Suggestion {
   query: string;
@@ -20,6 +21,18 @@ export default function Home() {
   const [autocompleteSource, setAutocompleteSource] = useState(() => 
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
+  const [hasBang, setHasBang] = useState(false);
+  
+  // Helper function to detect if input contains a bang
+  const checkForBang = (input: string): boolean => {
+    // Check for bang pattern (! followed by letters)
+    return /(?:^|\s)![a-z]+/.test(input.toLowerCase());
+  };
+  
+  // Update bang detection when search input changes
+  useEffect(() => {
+    setHasBang(checkForBang(searchQuery));
+  }, [searchQuery]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -43,48 +56,16 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchQuery.trim();
     if (trimmed) {
-      if (trimmed.includes("!g")) {
-        const q = trimmed.replace("!g", "").trim();
-        window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!yt")) {
-        const q = trimmed.replace("!yt", "").trim();
-        window.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!d")) {
-        const q = trimmed.replace("!d", "").trim();
-        window.location.href = `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!w")) {
-        const q = trimmed.replace("!w", "").trim();
-        window.location.href = `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!btt")) {
-        const q = trimmed.replace("!btt", "").trim();
-        window.location.href = `https://btt.community/search?q=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!a")) {
-        const q = trimmed.replace("!a", "").trim();
-        window.location.href = `https://artadosearch.com/search?i=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!y")) {
-        const q = trimmed.replace("!y", "").trim();
-        window.location.href = `https://yandex.com/search/?text=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!ask")) {
-        const q = trimmed.replace("!ask", "").trim();
-        window.location.href = `https://www.ask.com/web?q=${encodeURIComponent(q)}`;
-        return;
-      } else if (trimmed.includes("!b")) {
-        const q = trimmed.replace("!b", "").trim();
-        window.location.href = `https://www.bing.com/search?q=${encodeURIComponent(q)}`;
-        return;
+      // Try to handle as a bang command first
+      const redirected = await handleBangRedirect(trimmed);
+      if (!redirected) {
+        // No bang matched, redirect to normal search
+        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
       }
-      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     }
   };
 
@@ -208,6 +189,13 @@ export default function Home() {
             >
               <Search className="w-5 h-5" />
             </button>
+            
+            {/* Bang notification */}
+            {hasBang && (
+              <div className="absolute w-full text-center mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                Bangs by bang.lat — the fastest bang resolver.
+              </div>
+            )}
 
             {/* Autocomplete dropdown */}
             {showSuggestions && suggestions.length > 0 && (
