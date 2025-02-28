@@ -144,6 +144,11 @@ export default function Home() {
     }
   };
 
+  // Set the document title for the homepage
+  useEffect(() => {
+    document.title = "Tekir - The capable search engine";
+  }, []);
+
   return (
     <main className="min-h-[200vh] relative">
       {/* Hero Section */}

@@ -267,6 +267,15 @@ export default function SearchPage() {
     setHasBang(checkForBang(searchInput));
   }, [searchInput]);
 
+  // Add effect to update document title based on search query
+  useEffect(() => {
+    if (query) {
+      document.title = `${query} - Tekir`;
+    } else {
+      document.title = "Tekir";
+    }
+  }, [query]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">

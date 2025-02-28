@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Tekir - The Capable Search Engine for the Modern Web</title>
+        {/* Remove the static title as we'll set it dynamically */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="description" content="Tekir is a fast, open-source, and privacy-focused search engine." />
         <link rel="icon" href="/favicon.ico" />
