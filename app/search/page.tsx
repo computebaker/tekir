@@ -280,7 +280,7 @@ export default function SearchPage() {
     <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">
         {/* Search Header */}
-        <div className="max-w-5xl ml-0 md:ml-8 mb-8 relative">
+        <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full space-x-4">
             <Link href="/">
               <Image src="/tekir.png" alt="Tekir Logo" width={40} height={40} />
@@ -541,7 +541,7 @@ export default function SearchPage() {
         </div>
 
         {/* Search Results */}
-        <div className="max-w-3xl ml-0 md:ml-8">
+        <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8">
           {query && (
             <p className="text-muted-foreground mb-6">
               Showing results for: <span className="font-medium text-foreground">{query}</span>
@@ -699,7 +699,7 @@ export default function SearchPage() {
 
       {/* Footer */}
       <footer className="w-full py-4 px-6 border-t border-border bg-background mt-auto">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
           <p className="text-sm text-muted-foreground">
             🇹🇷 Tekir was made in Turkiye!
           </p>
