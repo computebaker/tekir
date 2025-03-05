@@ -1,10 +1,11 @@
 "use client";
 
+import { useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Info, Menu, X, ChevronDown } from "lucide-react";
+import { Search, Cat, Instagram, Github, Menu, X, ChevronDown } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { handleBangRedirect } from "@/utils/bangs";
 
@@ -42,6 +43,10 @@ export default function SearchPage() {
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
   const [hasBang, setHasBang] = useState(false);
+
+  // Refs for click-outside detection
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
 
   // Read the AI preference from localStorage on mount.
   useEffect(() => {
@@ -276,6 +281,33 @@ export default function SearchPage() {
     }
   }, [query]);
 
+  // Click outside handler for suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Handle suggestions dropdown
+      if (suggestionsRef.current && 
+          !suggestionsRef.current.contains(event.target as Node) && 
+          showSuggestions) {
+        setShowSuggestions(false);
+      }
+      
+      // Handle model dropdown
+      if (modelDropdownRef.current && 
+          !modelDropdownRef.current.contains(event.target as Node) && 
+          modelDropdownOpen) {
+        setModelDropdownOpen(false);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions, modelDropdownOpen]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">
@@ -307,7 +339,10 @@ export default function SearchPage() {
               
               {/* Autocomplete dropdown */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className={`absolute w-full mt-2 ${hasBang ? 'mt-6' : 'mt-2'} py-2 bg-background rounded-lg border border-border shadow-lg z-50`}>
+                <div 
+                  ref={suggestionsRef}
+                  className={`absolute w-full mt-2 ${hasBang ? 'mt-6' : 'mt-2'} py-2 bg-background rounded-lg border border-border shadow-lg z-50`}
+                >
                   {suggestions.map((suggestion, index) => (
                     <button
                       key={suggestion.query}
@@ -577,7 +612,7 @@ export default function SearchPage() {
                 </div>
                 
                 {/* Model Selection Dropdown */}
-                <div className="relative">
+                <div className="relative" ref={modelDropdownRef}>
                   <button
                     onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

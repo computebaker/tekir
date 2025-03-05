@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users, TextCursorInput } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -149,6 +149,28 @@ export default function Home() {
     document.title = "Tekir - The capable search engine";
   }, []);
 
+  // Ref for click-outside detection
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  
+  // Click outside handler for suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionsRef.current && 
+          !suggestionsRef.current.contains(event.target as Node) && 
+          showSuggestions) {
+        setShowSuggestions(false);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions]);
+
   return (
     <main className="min-h-[200vh] relative">
       {/* Hero Section */}
@@ -204,7 +226,10 @@ export default function Home() {
 
             {/* Autocomplete dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50">
+              <div 
+                ref={suggestionsRef}
+                className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50"
+              >
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={suggestion.query}
