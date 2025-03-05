@@ -22,6 +22,8 @@ export default function Home() {
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
   const [hasBang, setHasBang] = useState(false);
+  const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
+  const autocompleteDropdownRef = useRef<HTMLDivElement>(null);
   
   // Helper function to detect if input contains a bang
   const checkForBang = (input: string): boolean => {
@@ -160,6 +162,11 @@ export default function Home() {
           showSuggestions) {
         setShowSuggestions(false);
       }
+      if (autocompleteDropdownRef.current && 
+          !autocompleteDropdownRef.current.contains(event.target as Node) && 
+          autocompleteDropdownOpen) {
+        setAutocompleteDropdownOpen(false);
+      }
     };
 
     // Add event listener
@@ -169,7 +176,7 @@ export default function Home() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showSuggestions]);
+  }, [showSuggestions, autocompleteDropdownOpen]);
 
   return (
     <main className="min-h-[200vh] relative">
@@ -193,22 +200,66 @@ export default function Home() {
               onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
               placeholder="What's on your mind?"
-              className="w-full px-6 py-4 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
+              className="w-full px-6 py-4 pr-20 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
             />
-            <div className="absolute right-14 top-1/2 -translate-y-1/2">
+            <div className="absolute right-14 top-1/2 -translate-y-1/2" ref={autocompleteDropdownRef}>
               <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
-                  const newSource = autocompleteSource === 'brave' ? 'duck' : 'brave';
-                  setAutocompleteSource(newSource);
-                  localStorage.setItem('autocompleteSource', newSource);
+                  setAutocompleteDropdownOpen(!autocompleteDropdownOpen);
                 }}
                 className="px-3 py-2 rounded-lg text-sm font-medium border border-border hover:bg-muted transition-colors flex items-center gap-2"
               >
                 <span>{autocompleteSource === 'brave' ? 'Brave' : 'DuckDuckGo'}</span>
-                <TextCursorInput className="w-4 h-4" />
+                <ChevronDown className={`w-4 h-4 transition-transform ${autocompleteDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
+              
+              {autocompleteDropdownOpen && (
+                <div className="absolute right-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-50">
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSource = 'brave';
+                        setAutocompleteSource(newSource);
+                        localStorage.setItem('autocompleteSource', newSource);
+                        setAutocompleteDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        autocompleteSource === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
+                      }`}
+                    >
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        {autocompleteSource === "brave" && (
+                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                        )}
+                      </div>
+                      <span>Brave</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSource = 'duck';
+                        setAutocompleteSource(newSource);
+                        localStorage.setItem('autocompleteSource', newSource);
+                        setAutocompleteDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        autocompleteSource === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
+                      }`}
+                    >
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        {autocompleteSource === "duck" && (
+                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                        )}
+                      </div>
+                      <span>DuckDuckGo</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <button 
               type="submit"

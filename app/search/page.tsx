@@ -47,6 +47,12 @@ export default function SearchPage() {
   // Refs for click-outside detection
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const autocompleteDropdownRef = useRef<HTMLDivElement>(null);
+  const searchEngineDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Add state for dropdowns visibility
+  const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
+  const [searchEngineDropdownOpen, setSearchEngineDropdownOpen] = useState(false);
 
   // Read the AI preference from localStorage on mount.
   useEffect(() => {
@@ -297,6 +303,20 @@ export default function SearchPage() {
           modelDropdownOpen) {
         setModelDropdownOpen(false);
       }
+
+      // Autocomplete dropdown
+      if (autocompleteDropdownRef.current && 
+          !autocompleteDropdownRef.current.contains(event.target as Node) && 
+          autocompleteDropdownOpen) {
+        setAutocompleteDropdownOpen(false);
+      }
+      
+      // Search engine dropdown
+      if (searchEngineDropdownRef.current && 
+          !searchEngineDropdownRef.current.contains(event.target as Node) && 
+          searchEngineDropdownOpen) {
+        setSearchEngineDropdownOpen(false);
+      }
     };
 
     // Add event listener
@@ -306,7 +326,7 @@ export default function SearchPage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showSuggestions, modelDropdownOpen]);
+  }, [showSuggestions, modelDropdownOpen, autocompleteDropdownOpen, searchEngineDropdownOpen]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -402,80 +422,137 @@ export default function SearchPage() {
               {/* Search engine selection */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Search engine:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchEngine("brave");
-                    localStorage.setItem("searchEngine", "brave");
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    searchEngine === "brave"
-                      ? "bg-blue-500 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  Brave
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchEngine("duck");
-                    localStorage.setItem("searchEngine", "duck");
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    searchEngine === "duck"
-                      ? "bg-blue-500 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  DuckDuckGo
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
-                >
-                  Google
-                </button>
+                <div ref={searchEngineDropdownRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setSearchEngineDropdownOpen(!searchEngineDropdownOpen)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center gap-2"
+                  >
+                    <span>{searchEngine === "brave" ? "Brave" : searchEngine === "duck" ? "DuckDuckGo" : "Google"}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${searchEngineDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {searchEngineDropdownOpen && (
+                    <div className="absolute left-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchEngine("brave");
+                            localStorage.setItem("searchEngine", "brave");
+                            setSearchEngineDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            searchEngine === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
+                          }`}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center">
+                            {searchEngine === "brave" && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </div>
+                          <span>Brave</span>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchEngine("duck");
+                            localStorage.setItem("searchEngine", "duck");
+                            setSearchEngineDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            searchEngine === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
+                          }`}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center">
+                            {searchEngine === "duck" && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </div>
+                          <span>DuckDuckGo</span>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
+                        >
+                          <div className="w-4 h-4"></div>
+                          <span>Google (soon)</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              {/* Autocomplete dropdown */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Autocomplete:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newSource = 'brave';
-                    setAutocompleteSource(newSource);
-                    localStorage.setItem('autocompleteSource', newSource);
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    autocompleteSource === "brave"
-                      ? "bg-blue-500 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  Brave
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newSource = 'duck';
-                    setAutocompleteSource(newSource);
-                    localStorage.setItem('autocompleteSource', newSource);
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    autocompleteSource === "duck"
-                      ? "bg-blue-500 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  DuckDuckGo
-                </button>
+                <div ref={autocompleteDropdownRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setAutocompleteDropdownOpen(!autocompleteDropdownOpen)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center gap-2"
+                  >
+                    <span>{autocompleteSource === "brave" ? "Brave" : "DuckDuckGo"}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${autocompleteDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {autocompleteDropdownOpen && (
+                    <div className="absolute left-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSource = 'brave';
+                            setAutocompleteSource(newSource);
+                            localStorage.setItem('autocompleteSource', newSource);
+                            setAutocompleteDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            autocompleteSource === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
+                          }`}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center">
+                            {autocompleteSource === "brave" && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </div>
+                          <span>Brave</span>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSource = 'duck';
+                            setAutocompleteSource(newSource);
+                            localStorage.setItem('autocompleteSource', newSource);
+                            setAutocompleteDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            autocompleteSource === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
+                          }`}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center">
+                            {autocompleteSource === "duck" && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </div>
+                          <span>DuckDuckGo</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-          {/* Reintroduced mobile menu block */}
+          {/* Reintroduced mobile menu block - modified for better sizing */}
           {menuOpen && (
             <div className="md:hidden mt-4 p-4 bg-background rounded shadow-lg">
+              {/* Karakulak toggle - unchanged */}
               <div className="flex items-center gap-1 relative">
                 <div className="relative group">
 
@@ -500,76 +577,134 @@ export default function SearchPage() {
                 <span className="text-sm text-muted-foreground">Karakulak</span>
 
               </div>
-              <div className="flex items-center gap-2 mt-4">
-                <span className="text-sm text-muted-foreground">Search engine:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchEngine("brave");
-                    localStorage.setItem("searchEngine", "brave");
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    searchEngine === "brave"
-                      ? "bg-blue-500 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  Brave
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchEngine("duck");
-                    localStorage.setItem("searchEngine", "duck");
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    searchEngine === "duck"
-                      ? "bg-blue-500 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  DuckDuckGo
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-500 border border-gray-300 cursor-not-allowed"
-                >
-                  Google
-                </button>
+              
+              {/* Search engine dropdown for mobile - modified sizing */}
+              <div className="mt-4">
+                <span className="text-sm text-muted-foreground block mb-2">Search engine:</span>
+                <div className="inline-block relative" ref={searchEngineDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setSearchEngineDropdownOpen(!searchEngineDropdownOpen)}
+                    className="px-3 py-2 rounded-lg text-sm font-medium bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center gap-2"
+                  >
+                    <span>{searchEngine === "brave" ? "Brave" : searchEngine === "duck" ? "DuckDuckGo" : "Google"}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${searchEngineDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {searchEngineDropdownOpen && (
+                    <div className="absolute left-0 mt-1 min-w-full whitespace-nowrap rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchEngine("brave");
+                            localStorage.setItem("searchEngine", "brave");
+                            setSearchEngineDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            searchEngine === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
+                          }`}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center">
+                            {searchEngine === "brave" && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </div>
+                          <span>Brave</span>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchEngine("duck");
+                            localStorage.setItem("searchEngine", "duck");
+                            setSearchEngineDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            searchEngine === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
+                          }`}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center">
+                            {searchEngine === "duck" && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </div>
+                          <span>DuckDuckGo</span>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
+                        >
+                          <div className="w-4 h-4"></div>
+                          <span>Google (soon)</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2 mt-4">
-                <span className="text-sm text-muted-foreground">Autocomplete:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newSource = 'brave';
-                    setAutocompleteSource(newSource);
-                    localStorage.setItem('autocompleteSource', newSource);
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    autocompleteSource === "brave"
-                      ? "bg-blue-500 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  Brave
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newSource = 'duck';
-                    setAutocompleteSource(newSource);
-                    localStorage.setItem('autocompleteSource', newSource);
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    autocompleteSource === "duck"
-                      ? "bg-blue-500 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  DuckDuckGo
-                </button>
+              
+              {/* Autocomplete dropdown for mobile - modified sizing */}
+              <div className="mt-4">
+                <span className="text-sm text-muted-foreground block mb-2">Autocomplete:</span>
+                <div className="inline-block relative" ref={autocompleteDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setAutocompleteDropdownOpen(!autocompleteDropdownOpen)}
+                    className="px-3 py-2 rounded-lg text-sm font-medium bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center gap-2"
+                  >
+                    <span>{autocompleteSource === "brave" ? "Brave" : "DuckDuckGo"}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${autocompleteDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {autocompleteDropdownOpen && (
+                    <div className="absolute left-0 mt-1 min-w-full whitespace-nowrap rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSource = 'brave';
+                            setAutocompleteSource(newSource);
+                            localStorage.setItem('autocompleteSource', newSource);
+                            setAutocompleteDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            autocompleteSource === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
+                          }`}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center">
+                            {autocompleteSource === "brave" && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </div>
+                          <span>Brave</span>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSource = 'duck';
+                            setAutocompleteSource(newSource);
+                            localStorage.setItem('autocompleteSource', newSource);
+                            setAutocompleteDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            autocompleteSource === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
+                          }`}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center">
+                            {autocompleteSource === "duck" && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            )}
+                          </div>
+                          <span>DuckDuckGo</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
