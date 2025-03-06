@@ -337,7 +337,7 @@ export default function SearchPage() {
             <Link href="/">
               <Image src="/tekir.png" alt="Tekir Logo" width={40} height={40} />
             </Link>
-            <div className="relative flex-1 min-w-0 max-w-3xl mx-auto">
+            <div className="relative flex-1 min-w-0">
               <input
                 type="text"
                 value={searchInput}
@@ -385,8 +385,6 @@ export default function SearchPage() {
                 </div>
               )}
             </div>
-            {/* Remove inline desktop options */}
-            {/* Mobile menu toggle remains inside the form */}
             <button 
               type="button" 
               onClick={() => setMenuOpen(!menuOpen)}
