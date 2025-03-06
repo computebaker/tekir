@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users, TextCursorInput } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -470,9 +471,17 @@ export default function Home() {
       {/* Footer */}
       <footer className="absolute bottom-0 w-full py-4 px-6 border-t border-border bg-background">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <p className="text-sm text-muted-foreground">
-            🇹🇷 Tekir was made in Turkiye!
-          </p>
+          <div className="flex items-center space-x-4">
+            <p className="text-sm text-muted-foreground">
+              🇹🇷 Tekir was made in Turkiye!
+            </p>
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Terms
+            </Link>
+          </div>
           <div className="flex items-center space-x-4">
             <ThemeToggle />
             <a

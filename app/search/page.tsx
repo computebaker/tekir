@@ -870,9 +870,17 @@ export default function SearchPage() {
       {/* Footer */}
       <footer className="w-full py-4 px-6 border-t border-border bg-background mt-auto">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <p className="text-sm text-muted-foreground">
-            🇹🇷 Tekir was made in Turkiye!
-          </p>
+          <div className="flex items-center space-x-4">
+            <p className="text-sm text-muted-foreground">
+              🇹🇷 Tekir was made in Turkiye!
+            </p>
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Terms
+            </Link>
+          </div>
           <div className="flex items-center space-x-4">
             <ThemeToggle />
             <a
