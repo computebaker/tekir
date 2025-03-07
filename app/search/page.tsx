@@ -144,22 +144,42 @@ export default function SearchPage() {
     if (localStorage.getItem("karakulakEnabled") === "false") {
       return;
     } else {
-      fetch("https://searchai.tekir.co/" + aiModel, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: query.replace(/%20/g, " ") }),
-      })
-        .then((res) => res.json())
-        .then((aiData) => {
+      // New function to make AI request with fallback
+      const makeAIRequest = async (model: string, isRetry: boolean = false) => {
+        try {
+          const res = await fetch("https://searchai.tekir.co/" + model, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ message: query.replace(/%20/g, " ") }),
+          });
+          
+          if (!res.ok) {
+            throw new Error(`API returned status ${res.status}`);
+          }
+          
+          const aiData = await res.json();
           const aiResult = aiData.result.trim();
           setAiResponse(aiResult);
-          // Store with model-specific cache key
           sessionStorage.setItem(cacheKey, JSON.stringify(aiResult));
-        })
-        .catch((error) => console.error("AI response failed:", error))
-        .finally(() => setAiLoading(false));
+          setAiLoading(false);
+        } catch (error) {
+          console.error(`AI response failed for model ${model}:`, error);
+          
+          // If this wasn't already a retry and the model isn't gemini, try with gemini
+          if (!isRetry && model !== "gemini") {
+            console.log("Falling back to Gemini model");
+            makeAIRequest("gemini", true);
+          } else {
+            // If we're already using gemini or this was a retry, just set loading to false
+            setAiLoading(false);
+          }
+        }
+      };
+      
+      // Start with the selected model
+      makeAIRequest(aiModel);
     }
   }, [query, aiEnabled, aiModel]);
 
