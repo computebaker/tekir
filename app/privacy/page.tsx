@@ -81,7 +81,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-2xl font-semibold mb-3">Contact Us</h2>
             <p>If you have any questions about this policy, please contact us at:</p>
-            <p className="mt-2">Email: <a href="mailto:support@tekir.co">support@tekir.com</a></p>
+            <p className="mt-2">Email: <a href="mailto:support@tekir.co">support@tekir.co</a></p>
           </section>
         </div>
       </div>
