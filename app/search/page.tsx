@@ -475,7 +475,6 @@ export default function SearchPage() {
                         router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
                         setShowSuggestions(false);
                       }}
-                      onMouseEnter={() => setSelectedIndex(index)}
                       className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
                         index === selectedIndex ? 'bg-muted' : ''
                       }`}
