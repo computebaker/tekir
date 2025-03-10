@@ -25,6 +25,7 @@ export default function Home() {
   const [hasBang, setHasBang] = useState(false);
   const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
   const autocompleteDropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Helper function to detect if input contains a bang
   const checkForBang = (input: string): boolean => {
@@ -179,6 +180,23 @@ export default function Home() {
     };
   }, [showSuggestions, autocompleteDropdownOpen]);
 
+  // Global keydown listener to auto-focus search input and capture typing
+  useEffect(() => {
+    const handleGlobalKeydown = (ev: KeyboardEvent) => {
+      if (document.activeElement !== searchInputRef.current) {
+        searchInputRef.current?.focus();
+        if (ev.key === "Backspace") {
+          setSearchQuery(prev => prev.slice(0, -1));
+        } else if (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+          setSearchQuery(prev => prev + ev.key);
+        }
+        ev.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeydown);
+    return () => window.removeEventListener('keydown', handleGlobalKeydown);
+  }, []);
+
   return (
     <main className="min-h-[200vh] relative">
       {/* Hero Section */}
@@ -192,6 +210,7 @@ export default function Home() {
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="relative w-full">
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => {
