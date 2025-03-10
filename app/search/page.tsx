@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Menu, X, ChevronDown } from "lucide-react";
+import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { handleBangRedirect } from "@/utils/bangs";
 
@@ -19,6 +18,18 @@ interface SearchResult {
 
 interface Suggestion {
   query: string;
+}
+
+// Add Wikipedia interface definitions
+interface WikipediaData {
+  title: string;
+  extract: string;
+  thumbnail?: {
+    source: string;
+    width: number;
+    height: number;
+  };
+  pageUrl: string;
 }
 
 export default function SearchPage() {
@@ -43,6 +54,12 @@ export default function SearchPage() {
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
   const [hasBang, setHasBang] = useState(false);
+  
+  // Add Wikipedia state
+  const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
+  const [wikiLoading, setWikiLoading] = useState(false);
+  // Add state for mobile expand/collapse
+  const [wikiExpanded, setWikiExpanded] = useState(false);
 
   // Refs for click-outside detection
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -347,6 +364,73 @@ export default function SearchPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showSuggestions, modelDropdownOpen, autocompleteDropdownOpen, searchEngineDropdownOpen]);
+
+  // Add effect to fetch Wikipedia data
+  useEffect(() => {
+    if (!query || query.trim().length < 2) {
+      setWikiData(null);
+      return;
+    }
+
+    const fetchWikipediaData = async () => {
+      // Check cache first
+      const cacheKey = `wiki-${query.trim().toLowerCase()}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        setWikiData(JSON.parse(cached));
+        return;
+      }
+
+      setWikiLoading(true);
+      try {
+        // First, search for Wikipedia articles that match the query
+        const searchUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=${encodeURIComponent(
+          query
+        )}&format=json&utf8=1`;
+        
+        const searchResponse = await fetch(searchUrl);
+        const searchData = await searchResponse.json();
+        
+        if (searchData.query?.search?.length > 0) {
+          const topResult = searchData.query.search[0];
+          const pageTitle = topResult.title;
+          
+          // Then, get more detailed information about the top result
+          const detailsUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+          const detailsResponse = await fetch(detailsUrl);
+          const details = await detailsResponse.json();
+          
+          if (details.type === "standard" || details.type === "disambiguation") {
+            const wikipediaData: WikipediaData = {
+              title: details.title,
+              extract: details.extract,
+              pageUrl: details.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(details.title)}`,
+              ...(details.thumbnail && { thumbnail: details.thumbnail })
+            };
+            
+            setWikiData(wikipediaData);
+            sessionStorage.setItem(cacheKey, JSON.stringify(wikipediaData));
+          } else {
+            setWikiData(null);
+          }
+        } else {
+          setWikiData(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch Wikipedia data:", error);
+        setWikiData(null);
+      } finally {
+        setWikiLoading(false);
+      }
+    };
+    
+    // Don't fetch Wikipedia data if we have a bang command
+    if (!hasBang) {
+      fetchWikipediaData();
+    } else {
+      setWikiData(null);
+    }
+  }, [query, hasBang]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -728,160 +812,272 @@ export default function SearchPage() {
           )}
         </div>
 
-        {/* Search Results */}
-        <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8">
+        {/* Main content with responsive layout */}
+        <div className="max-w-6xl w-full md:ml-8 relative">
           {query && (
-            <p className="text-muted-foreground mb-6">
+            <p className="text-muted-foreground mb-6 md:w-4/5 xl:w-2/3">
               Showing results for: <span className="font-medium text-foreground">{query}</span>
             </p>
           )}
 
-          {/* AI Response Box */}
-          {aiEnabled && (aiLoading ? (
-            <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 animate-pulse">
-              <div className="flex items-center mb-4">
-                <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                  Karakulak AI
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
-                    BETA
-                  </span>
-                </span>
-              </div>
-              <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2"></div>
-            </div>
-          ) : aiResponse ? (
-            <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                    Karakulak AI
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
-                      BETA
+          {/* Desktop layout with Wikipedia on the right */}
+          <div className="flex flex-col md:flex-row md:gap-8">
+            {/* Left column with AI response and search results */}
+            <div className="flex-1 md:w-4/5 xl:w-2/3">
+              {/* AI Response Box */}
+              {aiEnabled && (aiLoading ? (
+                <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 animate-pulse">
+                  <div className="flex items-center mb-4">
+                    <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
+                      Karakulak AI
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
+                        BETA
+                      </span>
                     </span>
-                  </span>
+                  </div>
+                  <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2"></div>
                 </div>
-                
-                {/* Model Selection Dropdown */}
-                <div className="relative" ref={modelDropdownRef}>
-                  <button
-                    onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    {aiModel === 'llama' ? (
-                      <>
-                        <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
-                      </>
-                    ) : aiModel === 'mistral' ? (
-                      <>
-                        <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
-                      </>
-                    ) : (
-                      <>
-                        <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
-                      </>
-                    )}
-                    <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {modelDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
-                      <div className="p-1">
-                        <button
-                          onClick={() => handleModelChange('llama')}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                            aiModel === 'llama' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                          }`}
-                        >
-                          <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium">Llama 3.1 7B</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A powerful and open-source model by Meta</span>
-                          </div>
-                        </button>
-                        
-                        <button
-                          onClick={() => handleModelChange('gemini')}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                            aiModel === 'gemini' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                          }`}
-                        >
-                          <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium">Gemini 2.0 Flash</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A fast and intelligent model by Google</span>
-                          </div>
-                        </button>
+              ) : aiResponse ? (
+                <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
+                        Karakulak AI
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
+                          BETA
+                        </span>
+                      </span>
+                    </div>
+                    
+                    {/* Model Selection Dropdown */}
+                    <div className="relative" ref={modelDropdownRef}>
+                      <button
+                        onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {aiModel === 'llama' ? (
+                          <>
+                            <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
+                          </>
+                        ) : aiModel === 'mistral' ? (
+                          <>
+                            <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
+                          </>
+                        ) : (
+                          <>
+                            <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
+                          </>
+                        )}
+                        <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {modelDropdownOpen && (
+                        <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                          <div className="p-1">
+                            <button
+                              onClick={() => handleModelChange('llama')}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                aiModel === 'llama' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                              }`}
+                            >
+                              <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">Llama 3.1 7B</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A powerful and open-source model by Meta</span>
+                              </div>
+                            </button>
+                            
+                            <button
+                              onClick={() => handleModelChange('gemini')}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                aiModel === 'gemini' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                              }`}
+                            >
+                              <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">Gemini 2.0 Flash</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A fast and intelligent model by Google</span>
+                              </div>
+                            </button>
 
-                        <button
-                          onClick={() => handleModelChange('mistral')}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                            aiModel === 'mistral' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                          }`}
-                        >
-                          <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium">Mistral Nemo</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A lightweight and efficient model by Mistral AI</span>
+                            <button
+                              onClick={() => handleModelChange('mistral')}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                aiModel === 'mistral' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                              }`}
+                            >
+                              <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">Mistral Nemo</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A lightweight and efficient model by Mistral AI</span>
+                              </div>
+                            </button>
                           </div>
-                        </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Rest of the AI response box content */}
+                  <p className="text-left text-blue-800 dark:text-blue-100 mb-3">{aiResponse}</p>
+                  <p className="text-sm text-blue-600/70 dark:text-blue-300/70">
+                    Auto-generated based on online sources. May contain inaccuracies.
+                  </p>
+                </div>
+              ) : null)}
+              
+              {/* Mobile Wikipedia Info Box (collapsible) */}
+                <div className="md:hidden">
+                {wikiLoading ? (
+                  <div className="mb-8 p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                  <div className="flex items-center mb-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3"></div>
+                  </div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+                  </div>
+                ) : wikiData ? (
+                  <div className="mb-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
+                  {/* Header with expand/collapse button */}
+                  <button 
+                    onClick={() => setWikiExpanded(!wikiExpanded)}
+                    className="w-full flex items-center justify-between p-4 text-left"
+                  >
+                    <div className="flex items-center">
+                    <span className="font-medium">From Wikipedia: {wikiData.title}</span>
+                    </div>
+                    <ChevronDown className={`w-5 h-5 transition-transform ${wikiExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {/* Collapsible content */}
+                  {wikiExpanded && (
+                    <div className="p-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    {wikiData.thumbnail && (
+                      <div className="float-right ml-4 mb-2">
+                      <div className="relative w-32 h-32 overflow-hidden rounded-lg">
+                        <Image 
+                        src={wikiData.thumbnail.source} 
+                        alt={wikiData.title}
+                        className="object-cover"
+                        fill
+                        sizes="128px"
+                        />
+                      </div>
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                      {wikiData.extract}
+                    </p>
+                    <a 
+                      href={wikiData.pageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Learn more
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    </div>
+                  )}
+                  </div>
+                ) : null}
+                </div>
+
+              {/* Search Results */}
+              {loading ? (
+                // Loading skeleton
+                <div className="space-y-8">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-muted rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : results.length > 0 ? (
+                <div className="space-y-8">
+                  {results.map((result, index) => (
+                    <div key={index} className="space-y-2">
+                      <a
+                        href={result.url}
+                        target="_self"
+                        rel="noopener noreferrer"
+                        className="block group"
+                      >
+                        <p className="text-sm text-muted-foreground mb-1">
+                          {result.displayUrl}
+                        </p>
+                        <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
+                          {result.title}
+                        </h2>
+                        <p className="text-muted-foreground">
+                          {result.description}
+                        </p>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              ) : query ? (
+                <div className="text-center text-muted-foreground">
+                  No results found for your search
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  Enter a search term to see results
+                </div>
+              )}
+            </div>
+            
+            {/* Desktop Wikipedia Info Box (right sidebar) */}
+            <div className="hidden md:block md:w-1/3">
+              {wikiLoading ? (
+                <div className="p-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                  <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
+                  <div className="w-full h-40 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full mb-2"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-5/6 mb-2"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
+                </div>
+              ) : wikiData ? (
+                <div className="p-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md">
+                  <h3 className="text-xl font-semibold mb-4">{wikiData.title}</h3>
+                  
+                  {wikiData.thumbnail && (
+                    <div className="mb-4 w-full">
+                      <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg">
+                        <Image 
+                          src={wikiData.thumbnail.source} 
+                          alt={wikiData.title}
+                          className="object-cover"
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                        />
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-              
-              {/* Rest of the AI response box content */}
-              <p className="text-left text-blue-800 dark:text-blue-100 mb-3">{aiResponse}</p>
-              <p className="text-sm text-blue-600/70 dark:text-blue-300/70">
-                Auto-generated based on online sources. May contain inaccuracies.
-              </p>
-            </div>
-          ) : null)}
-
-          {loading ? (
-            // Loading skeleton
-            <div className="space-y-8">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </div>
-              ))}
-            </div>
-          ) : results.length > 0 ? (
-            <div className="space-y-8">
-              {results.map((result, index) => (
-                <div key={index} className="space-y-2">
-                  <a
-                    href={result.url}
-                    target="_self"
-                    rel="noopener noreferrer"
-                    className="block group"
-                  >
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {result.displayUrl}
+                  
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {wikiData.extract}
                     </p>
-                    <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                      {result.title}
-                    </h2>
-                    <p className="text-muted-foreground">
-                      {result.description}
-                    </p>
-                  </a>
+                  </div>
+                  
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <span>Source: </span>
+                    <a 
+                      href={wikiData.pageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Wikipedia
+                    </a>
+                  </div>
                 </div>
-              ))}
+              ) : null}
             </div>
-          ) : query ? (
-            <div className="text-center text-muted-foreground">
-              No results found for your search
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground">
-              Enter a search term to see results
-            </div>
-          )}
+          </div>
         </div>
       </main>
 
