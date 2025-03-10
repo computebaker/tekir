@@ -1,4 +1,4 @@
-let bangsCache: Record<string, {name: string, url: string}> | null = null;
+let bangsCache: Record<string, {name: string, url: string, main?: string}> | null = null;
 const BANGS_CACHE_KEY = 'tekir_bangs_cache';
 const BANGS_CACHE_EXPIRY_KEY = 'tekir_bangs_cache_expiry';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 1 week in milliseconds
@@ -115,9 +115,14 @@ export async function handleBangRedirect(query: string): Promise<boolean> {
   const bang = bangsCache ? bangsCache[bangCommand] : undefined;
   
   if (bang) {
-    const encodedTerms = encodeURIComponent(searchTerms);
-    const redirectUrl = bang.url.replace('{search}', encodedTerms);
-    window.location.href = redirectUrl;
+    if (searchTerms === "" && bang.main) {
+      // If only a bang command is typed, redirect to the main URL
+      window.location.href = bang.main;
+    } else {
+      const encodedTerms = encodeURIComponent(searchTerms);
+      const redirectUrl = bang.url.replace('{search}', encodedTerms);
+      window.location.href = redirectUrl;
+    }
     return true;
   }
   
