@@ -61,6 +61,7 @@ export default function Home() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false); // Hide suggestions when form is submitted
     const trimmed = searchQuery.trim();
     if (trimmed) {
       // Try to handle as a bang command first
@@ -138,6 +139,9 @@ export default function Home() {
           const selected = suggestions[selectedIndex];
           setSearchQuery(selected.query);
           router.push(`/search?q=${encodeURIComponent(selected.query)}`);
+          setShowSuggestions(false);
+        } else {
+          // Even if no suggestion is selected, hide the dropdown on Enter
           setShowSuggestions(false);
         }
         break;

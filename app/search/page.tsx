@@ -210,6 +210,7 @@ export default function SearchPage() {
   // Modify the handleSearch function
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false); // Hide suggestions when form is submitted
     const trimmed = searchInput.trim();
     if (trimmed) {
       // Try to handle as a bang command first
@@ -277,7 +278,7 @@ export default function SearchPage() {
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions) return;
-
+  
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -295,6 +296,9 @@ export default function SearchPage() {
           const selected = suggestions[selectedIndex];
           setSearchInput(selected.query);
           router.push(`/search?q=${encodeURIComponent(selected.query)}`);
+          setShowSuggestions(false);
+        } else {
+          // Even if no suggestion is selected, hide the dropdown on Enter
           setShowSuggestions(false);
         }
         break;
