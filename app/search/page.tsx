@@ -538,7 +538,7 @@ export default function SearchPage() {
                   </button>
                   
                   {searchEngineDropdownOpen && (
-                    <div className="absolute left-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                    <div className="absolute left-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
                       <div className="py-1">
                         <button
                           type="button"
@@ -606,7 +606,7 @@ export default function SearchPage() {
                   </button>
                   
                   {autocompleteDropdownOpen && (
-                    <div className="absolute left-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                    <div className="absolute left-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
                       <div className="py-1">
                         <button
                           type="button"
@@ -697,7 +697,7 @@ export default function SearchPage() {
                   </button>
                   
                   {searchEngineDropdownOpen && (
-                    <div className="absolute left-0 mt-1 min-w-full whitespace-nowrap rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                    <div className="absolute left-0 mt-1 min-w-full whitespace-nowrap rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
                       <div className="py-1">
                         <button
                           type="button"
@@ -765,7 +765,7 @@ export default function SearchPage() {
                   </button>
                   
                   {autocompleteDropdownOpen && (
-                    <div className="absolute left-0 mt-1 min-w-full whitespace-nowrap rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                    <div className="absolute left-0 mt-1 min-w-full whitespace-nowrap rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
                       <div className="py-1">
                         <button
                           type="button"
@@ -877,7 +877,7 @@ export default function SearchPage() {
                         <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {modelDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                        <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
                           <div className="p-1">
                             <button
                               onClick={() => handleModelChange('llama')}
@@ -934,14 +934,14 @@ export default function SearchPage() {
               {/* Mobile Wikipedia Info Box (collapsible) */}
                 <div className="md:hidden">
                 {wikiLoading ? (
-                  <div className="mb-8 p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                  <div className="mb-8 p-4 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
                   <div className="flex items-center mb-3">
                     <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3"></div>
                   </div>
                   <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
                   </div>
                 ) : wikiData ? (
-                  <div className="mb-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
+                  <div className="mb-8 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
                   {/* Header with expand/collapse button */}
                   <button 
                     onClick={() => setWikiExpanded(!wikiExpanded)}
@@ -1035,7 +1035,7 @@ export default function SearchPage() {
             {/* Desktop Wikipedia Info Box (right sidebar) */}
             <div className="hidden md:block md:w-1/3">
               {wikiLoading ? (
-                <div className="p-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
                   <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
                   <div className="w-full h-40 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
                   <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full mb-2"></div>
@@ -1043,7 +1043,7 @@ export default function SearchPage() {
                   <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
                 </div>
               ) : wikiData ? (
-                <div className="p-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md">
+                <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md">
                   <h3 className="text-xl font-semibold mb-4">{wikiData.title}</h3>
                   
                   {wikiData.thumbnail && (
