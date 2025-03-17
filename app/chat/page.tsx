@@ -111,6 +111,125 @@ export default function ChatPage() {
       icon: "/meta.png"
     }
   ];
+  
+  // Add a new useEffect to handle query parameters
+  useEffect(() => {
+    // Check if window is available (client-side)
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const queryInput = searchParams.get('q');
+      
+      if (queryInput && !isLoading) {
+        // Create a new chat if none exists
+        const newChat: ChatSession = {
+          id: Date.now().toString(),
+          model: defaultModel,
+          messages: [],
+          createdAt: Date.now(),
+          locked: false,
+        };
+        
+        const updatedChats = [...chats, newChat];
+        saveChats(updatedChats);
+        
+        // Don't set input in the text field
+        // Instead directly create and send the user message
+        const userMessage: Message = { role: "user", content: queryInput };
+        const updatedChat = { 
+          ...newChat, 
+          messages: [userMessage],
+          locked: true,  // Lock chat since this is the first message
+        };
+        
+        const updatedChatsWithMessage = updatedChats.map(chat => 
+          chat.id === newChat.id ? updatedChat : chat
+        );
+        saveChats(updatedChatsWithMessage);
+        setCurrentChatId(newChat.id);
+        
+        // Remove the query parameter from URL without refreshing
+        window.history.replaceState({}, '', '/chat');
+        
+        // Send the message to API
+        setIsLoading(true);
+        setError(null);
+        
+        // Create a function to handle the API call (similar to handleSendMessage but without UI updates)
+        (async () => {
+          try {
+            // Add placeholder for assistant's reply
+            const placeholder: Message = { role: "assistant", content: "" };
+            const chatWithPlaceholder = {
+              ...updatedChat,
+              messages: [...updatedChat.messages, placeholder],
+            };
+            const updatedChatsPlaceholder = updatedChatsWithMessage.map(chat =>
+              chat.id === newChat.id ? chatWithPlaceholder : chat
+            );
+            saveChats(updatedChatsPlaceholder);
+            
+            const response = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: chatWithPlaceholder.messages,
+                model: updatedChat.model.id 
+              })
+            });
+            
+            if (response.status === 429) {
+              const errorData = await response.json();
+              throw new Error(`Rate limit exceeded: ${errorData.message}`);
+            }
+            if (!response.ok) {
+              throw new Error(`API request failed with status ${response.status}`);
+            }
+            if (!response.body) {
+              throw new Error("Response body is null");
+            }
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let done = false;
+            let assistantResponse = "";
+            while (!done) {
+              const { value, done: doneReading } = await reader.read();
+              done = doneReading;
+              if (value) {
+                const chunk = decoder.decode(value, { stream: true });
+                assistantResponse += chunk;
+                setChats(prevChats =>
+                  prevChats.map(chat => {
+                    if(chat.id === newChat.id) {
+                      const newMessages = [...chat.messages];
+                      newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
+                      return { ...chat, messages: newMessages };
+                    }
+                    return chat;
+                  })
+                );
+              }
+            }
+          } catch (err) {
+            console.error("Error sending message:", err);
+            setError(err instanceof Error ? err.message : "Failed to send message");
+            // Remove the placeholder on error without removing old messages
+            setChats(prevChats =>
+              prevChats.map(chat => {
+                if (chat.id === newChat.id) {
+                  return { ...chat, messages: chat.messages.slice(0, chat.messages.length - 1) };
+                }
+                return chat;
+              })
+            );
+          } finally {
+            setIsLoading(false);
+          }
+        })();
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chats.length]); // Run only when chats length changes to prevent infinite loops
 
   // Auto-resize textarea based on content
   useEffect(() => {
