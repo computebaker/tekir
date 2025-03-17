@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
       })),
       stream: true,
       temperature: 0.7,
-      max_tokens: 2000
+      max_tokens: 10000
     });
 
     // Convert the response to a readable stream with correct headers
