@@ -2,7 +2,8 @@ import { OpenAI } from 'openai';
 import { NextRequest } from 'next/server';
 import { headers } from 'next/headers';
 
-export const dynamic = "force-static";
+// Change from force-static to force-dynamic
+export const dynamic = "force-dynamic";
 
 // Initialize OpenAI SDK with OpenRouter API
 const openai = new OpenAI({
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Map to OpenRouter model ID
-    const openRouterModel = modelMapping[model] || modelMapping['gpt-4o-mini']; // Default fallback
+    const openRouterModel = modelMapping[model] || modelMapping['llama-3-1-80b']; // Default to llama
 
     // Start the OpenAI completion
     const response = await openai.chat.completions.create({
