@@ -5,6 +5,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useEffect } from 'react';
 import { prefetchBangs } from '@/utils/bangs';
 
+// Add KaTeX CSS
+import 'katex/dist/katex.min.css';
+
 export default function RootLayout({
   children,
 }: {
