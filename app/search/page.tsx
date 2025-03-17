@@ -837,6 +837,9 @@ export default function SearchPage() {
                       <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
                         BETA
                       </span>
+                      <Link href="/chat" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                        Try Tekir Chat →
+                      </Link>
                     </span>
                   </div>
                   <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
@@ -852,6 +855,9 @@ export default function SearchPage() {
                         <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
                           BETA
                         </span>
+                        <Link href="/chat" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                          Try Tekir Chat →
+                        </Link>
                       </span>
                     </div>
                     
