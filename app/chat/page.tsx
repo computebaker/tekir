@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Send, Bot, ChevronDown, User, FileCode, Instagram, Github, MoreVertical, Edit, Trash, Plus, ArrowRight } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Bot, ChevronDown, User, FileCode, MoreVertical, Edit, Trash, Plus, ArrowRight } from "lucide-react";
 import { MarkdownMessage } from "@/components/markdown-message";
 
 interface Message {
@@ -48,6 +47,7 @@ export default function ChatPage() {
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
+  // Add a state variable for mobile menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function ChatPage() {
       setChats(arr); // load stored chats
       setCurrentChatId(arr.length ? arr[arr.length - 1].id : "");
     } else {
-      // Do not auto-create a chat; initialize with empty array.
+      // Don't auto-create a chat; just initialize with empty array
       setChats([]);
     }
   }, []);
@@ -98,12 +98,6 @@ export default function ChatPage() {
   };
 
   const models: ModelOption[] = [
-    {
-      id: "deepseek-r1",
-      name: "Deepseek R1",
-      description: "Powerful multilingual reasoning model",
-      icon: "/deepseek.png"
-    },
     {
       id: "gpt-4o-mini",
       name: "GPT-4o mini",
@@ -366,6 +360,54 @@ const handleSendMessage = async (e: React.FormEvent) => {
     }
   };
 
+  // Helper function to categorize a chat by its creation date
+  const getChatDateCategory = (timestamp: number): string => {
+    const now = new Date();
+    const chatDate = new Date(timestamp);
+    
+    // Today: same day
+    if (chatDate.toDateString() === now.toDateString()) {
+      return "Today";
+    }
+    
+    // Last 7 days: within the last week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(now.getDate() - 7);
+    if (chatDate >= oneWeekAgo) {
+      return "Last 7 days";
+    }
+    
+    // Last 30 days: within the last month
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setDate(now.getDate() - 30);
+    if (chatDate >= oneMonthAgo) {
+      return "Last 30 days";
+    }
+    
+    // Anything older
+    return "Older";
+  };
+  
+  // Function to group chats by date category
+  const getChatsByDateCategory = () => {
+    const chatsByCategory: Record<string, ChatSession[]> = {
+      "Today": [],
+      "Last 7 days": [],
+      "Last 30 days": [],
+      "Older": []
+    };
+    
+    // Sort chats by date from newest to oldest before categorizing
+    const sortedChats = [...chats].sort((a, b) => b.createdAt - a.createdAt);
+    
+    for (const chat of sortedChats) {
+      const category = getChatDateCategory(chat.createdAt);
+      chatsByCategory[category].push(chat);
+    }
+    
+    return chatsByCategory;
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Header moved to the top, spanning full width */}
@@ -380,7 +422,7 @@ const handleSendMessage = async (e: React.FormEvent) => {
               className="md:hidden block p-2 rounded focus:outline-none"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {/* Using a simple hamburger icon */}
+              {/* Simple hamburger icon */}
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
@@ -440,47 +482,60 @@ const handleSendMessage = async (e: React.FormEvent) => {
       {/* Add padding-top to account for the fixed header */}
       <div className="flex w-full mt-[61px]">
         {/* Wrap aside with conditional visibility for mobile */}
-        <div className={`${mobileMenuOpen ? "block" : "hidden"} md:block`}>
-          <aside className="w-64 border-r border-border p-4">
+        <div className={`${mobileMenuOpen ? "block fixed md:static z-20 bg-background h-[calc(100vh-61px)]" : "hidden"} md:block border-r border-border`}>
+          <aside className="w-64 h-full p-4 overflow-y-auto">
             <button
-              onClick={handleNewChat}
+              onClick={() => {
+                handleNewChat();
+                setMobileMenuOpen(false); // Close mobile menu after creating a new chat
+              }}
               className="w-full mb-4 px-3 py-2 rounded bg-primary text-primary-foreground flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>New Chat</span>
             </button>
-            <div className="space-y-2">
-              {chats.slice().reverse().map(chat => {
-                // Use custom title if available, otherwise default to first message
-                const title = chat.customTitle || (chat.messages.length > 0
-                  ? chat.messages[0].role === "user" 
-                    ? chat.messages[0].content 
-                    : "Untitled Chat"
-                  : "Untitled Chat");
-                
-                return (
-                  <button
-                    key={chat.id}
-                    onClick={() => setCurrentChatId(chat.id)}
-                    onContextMenu={(e) => handleContextMenu(e, chat.id)}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-muted ${chat.id === currentChatId ? "bg-muted" : ""} group flex items-center justify-between`}
-                  >
-                    {/* Truncate long titles */}
-                    <span className="truncate flex-grow">{title.length > 20 ? title.substring(0, 20) + "..." : title}</span>
-                    
-                    {/* Menu button (always visible on mobile, visible on hover for desktop) */}
-                    <button
-                      className="p-1 opacity-0 group-hover:opacity-100 focus:opacity-100 md:block hidden"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleContextMenu(e, chat.id);
-                      }}
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </button>
-                );
-              })}
+            
+            {/* Updated chat list with date categories */}
+            <div className="space-y-6">
+              {Object.entries(getChatsByDateCategory()).map(([category, categoryChats]) => 
+                categoryChats.length > 0 ? (
+                  <div key={category}>
+                    <h3 className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-2 px-1">{category}</h3>
+                    <div className="space-y-1">
+                      {categoryChats.map(chat => {
+                        const title = chat.customTitle || (chat.messages.length > 0
+                          ? chat.messages[0].role === "user" 
+                            ? chat.messages[0].content 
+                            : "Untitled Chat"
+                          : "Untitled Chat");
+                        
+                        return (
+                          <button
+                            key={chat.id}
+                            onClick={() => {
+                              setCurrentChatId(chat.id);
+                              setMobileMenuOpen(false);
+                            }}
+                            onContextMenu={(e) => handleContextMenu(e, chat.id)}
+                            className={`w-full text-left px-3 py-2 rounded hover:bg-muted ${chat.id === currentChatId ? "bg-muted" : ""} group flex items-center justify-between`}
+                          >
+                            <span className="truncate flex-grow">{title.length > 20 ? title.substring(0, 20) + "..." : title}</span>
+                            <button
+                              className="p-1 opacity-0 group-hover:opacity-100 focus:opacity-100 md:block hidden"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleContextMenu(e, chat.id);
+                              }}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null
+              )}
             </div>
 
             {/* Context Menu */}
@@ -548,16 +603,30 @@ const handleSendMessage = async (e: React.FormEvent) => {
           {/* Main chat area - adjust the height calculation to remove extra space */}
           <main className="flex flex-col h-[calc(100vh-61px)] max-w-5xl mx-auto w-full p-4 md:p-8">
             {chats.length === 0 ? (
-              // Instruct user to create a new chat
-              <div className="flex-grow flex items-center justify-center text-center">
-                <p className="text-muted-foreground">No chats available. Please click "New Chat" to begin.</p>
+              // Updated welcome screen for users with no chats
+              <div className="flex-grow overflow-y-auto flex flex-col items-center justify-center text-center p-8">
+                <Image src="/tekir.png" alt="Tekir Logo" width={80} height={80} className="mb-4" />
+                <h2 className="text-3xl font-bold mb-3">Welcome to Tekir Chat</h2>
+                <p className="text-muted-foreground max-w-lg mb-6">
+                  The open source, fast and privacy focused AI chatbot app that runs right in your browser.
+                </p>
+                <div className="bg-primary/5 rounded-lg p-6 max-w-md border border-border">
+                  <p className="mb-4">Start your conversation by creating a new chat</p>
+                  <button
+                    onClick={handleNewChat}
+                    className="px-4 py-2 rounded bg-primary text-primary-foreground flex items-center justify-center gap-2 mx-auto"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>New Chat</span>
+                  </button>
+                </div>
               </div>
             ) : currentChat && currentChat.messages.length === 0 ? (
-              // Once chat is created without messages, show recommendations with custom icon and text.
-              <div className="flex-grow flex flex-col items-center justify-center text-center space-y-4">
-                <Image src="/tekir-down.png" alt="How can I help you?" width={48} height={48} />
+              // Updated empty chat screen with tekir-down.png icon
+              <div className="flex-grow flex flex-col items-center justify-center text-center space-y-6">
+                <Image src="/tekir-down.png" alt="Tekir AI" width={60} height={60} />
                 <h2 className="text-2xl font-bold">How can I help you?</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
                   {["Tell me about quantum computing", 
                     "Write a poem about the night sky", 
                     "Explain how blockchain works",
@@ -578,60 +647,107 @@ const handleSendMessage = async (e: React.FormEvent) => {
                 </div>
               </div>
             ) : currentChat ? (
-              <div className="flex-grow overflow-y-auto mb-4 space-y-6 pr-1">
-                {currentChat.messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
+              currentChat.messages.length === 0 ? (
+                <div className="flex-grow flex items-center justify-center text-center">
+                  <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
+                </div>
+              ) : (
+                <div className="flex-grow overflow-y-auto mb-4 space-y-6 pr-1">
+                  {currentChat.messages.map((message, index) => (
                     <div
-                      className={`max-w-[80%] md:max-w-[70%] rounded-lg p-4 ${ message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted" }`}
+                      key={index}
+                      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      <div className="flex items-center mb-2">
-                        <div className="p-1.5 rounded-full bg-background/10">
-                          {message.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                      <div
+                        className={`max-w-[80%] md:max-w-[70%] rounded-lg p-4 ${ message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted" }`}
+                      >
+                        <div className="flex items-center mb-2">
+                          <div className="p-1.5 rounded-full bg-background/10">
+                            {message.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                          </div>
+                          <div className="ml-2 font-medium">
+                            {message.role === "user" ? "You" : "Tekir AI"}
+                          </div>
                         </div>
-                        <div className="ml-2 font-medium">
-                          {message.role === "user" ? "You" : "Tekir AI"}
-                        </div>
-                      </div>
-                      {message.content ? (
-                        <MarkdownMessage 
-                          content={message.role === "assistant" 
-                            ? escapeInlineMath(message.content) 
-                            : message.content} 
-                          className={message.role === "user" ? "text-primary-foreground" : ""} 
-                        />
-                      ) : (message.role === "assistant" && isLoading && (
-                        <span className="inline-block w-5 h-5 relative">
-                          <span className="absolute inset-0 flex items-center justify-center">
-                            <span className="animate-ping absolute h-3 w-3 rounded-full bg-gray-400 opacity-75"></span>
-                            <span className="relative rounded-full h-2 w-2 bg-gray-500"></span>
+                        {message.content ? (
+                          <MarkdownMessage 
+                            content={message.role === "assistant" 
+                              ? escapeInlineMath(message.content) 
+                              : message.content} 
+                            className={message.role === "user" ? "text-primary-foreground" : ""} 
+                          />
+                        ) : (message.role === "assistant" && isLoading && (
+                          <span className="inline-block w-5 h-5 relative">
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              <span className="animate-ping absolute h-3 w-3 rounded-full bg-gray-400 opacity-75"></span>
+                              <span className="relative rounded-full h-2 w-2 bg-gray-500"></span>
+                            </span>
                           </span>
-                        </span>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {error && (
-                  <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 text-sm">
-                    Error: {error}. Please try again.
-                  </div>
-                )}
-                <div ref={endOfMessagesRef} />
-              </div>
+                  ))}
+                  {error && (
+                    <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 text-sm">
+                      Error: {error}. Please try again.
+                    </div>
+                  )}
+                  <div ref={endOfMessagesRef} />
+                </div>
+              )
             ) : (
-              // Fallback welcome screen (should not occur)
+              // Welcome screen gets overflow-y-auto to scroll if needed
               <div className="flex-grow overflow-y-auto flex flex-col items-center justify-center text-center p-8">
                 <Bot className="h-12 w-12 text-primary mb-4" />
                 <h2 className="text-2xl font-bold mb-2">Welcome to Tekir Chat</h2>
                 <p className="text-muted-foreground max-w-md mb-8">
                   Chat with advanced AI models in your browser. Ask questions, get information, or just have a conversation.
                 </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl mb-8">
+                  {["Tell me about quantum computing", 
+                    "Write a poem about the night sky", 
+                    "Explain how blockchain works",
+                    "Explain the open source world"].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => {
+                        setInput(suggestion);
+                        if (inputRef.current) {
+                          inputRef.current.focus();
+                        }
+                      }}
+                      className="p-3 rounded-lg border border-border bg-background hover:bg-muted text-sm text-left"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Add Markdown examples */}
+                <div className="border border-border rounded-lg p-4 max-w-2xl w-full">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileCode className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold">Markdown & LaTeX Support</h3>
+                  </div>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    This chat supports Markdown formatting and LaTeX equations. Try these examples:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-left">
+                    <div className="p-2 bg-muted rounded">
+                      <code className="block mb-1"># Heading 1</code>
+                      <code className="block mb-1">**Bold text**</code>
+                      <code className="block">- Bullet list</code>
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <code className="block mb-1">```python<br/>print("Hello")<br/>```</code>
+                      <code className="block">$E = mc^2$</code>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Input form with reduced bottom spacing */}
+            {/* Input form with disabled state when no chat is selected */}
             <div className="mt-auto border-t border-border pt-2 pb-0">
               <form onSubmit={handleSendMessage} className="relative">
                 <textarea
@@ -639,14 +755,14 @@ const handleSendMessage = async (e: React.FormEvent) => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type a message..."
+                  placeholder={currentChat ? "Type a message..." : "Create a new chat to start messaging"}
                   className="w-full p-4 pr-12 rounded-lg border border-border bg-background resize-none min-h-[56px] max-h-[120px] focus:outline-none focus:ring-2 focus:ring-primary/20"
                   rows={1}
-                  disabled={!currentChat || isLoading}  // <-- disable when no chat is chosen
+                  disabled={isLoading || !currentChat}
                 />
                 <button
                   type="submit"
-                  disabled={!input.trim() || isLoading || !currentChat}  // <-- also disable send button
+                  disabled={!input.trim() || isLoading || !currentChat}
                   className={`absolute right-3 bottom-3 p-0 w-9 h-9 rounded-full transition-all duration-200 flex items-center justify-center ${
                     input.trim() && !isLoading && currentChat
                       ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md hover:shadow-lg hover:scale-105 active:scale-95 focus:ring-2 focus:ring-primary/40 focus:outline-none"
