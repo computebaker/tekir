@@ -31,7 +31,7 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 // Rate limit settings
-const RATE_LIMIT_MAX = 10; // 10 messages
+const RATE_LIMIT_MAX = 60; // 60 messages
 const RATE_LIMIT_WINDOW_HOURS = 12; // per 12 hours
 const RATE_LIMIT_WINDOW_MS = RATE_LIMIT_WINDOW_HOURS * 60 * 60 * 1000;
 
