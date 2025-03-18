@@ -198,16 +198,17 @@ export default function ChatPage() {
               if (value) {
                 const chunk = decoder.decode(value, { stream: true });
                 assistantResponse += chunk;
-                setChats(prevChats =>
-                  prevChats.map(chat => {
-                    if(chat.id === newChat.id) {
-                      const newMessages = [...chat.messages];
-                      newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
-                      return { ...chat, messages: newMessages };
-                    }
-                    return chat;
-                  })
-                );
+                
+                // Update both state and localStorage
+                const updatedChats = chats.map(chat => {
+                  if (chat.id === newChat.id) {
+                    const newMessages = [...chat.messages];
+                    newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
+                    return { ...chat, messages: newMessages };
+                  }
+                  return chat;
+                });
+                saveChats(updatedChats); // This updates both state and localStorage
               }
             }
           } catch (err) {
@@ -370,16 +371,17 @@ const handleSendMessage = async (e: React.FormEvent) => {
       if (value) {
         const chunk = decoder.decode(value, { stream: true });
         assistantResponse += chunk;
-        setChats(prevChats =>
-          prevChats.map(chat => {
-            if(chat.id === currentChat.id) {
-              const newMessages = [...chat.messages];
-              newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
-              return { ...chat, messages: newMessages };
-            }
-            return chat;
-          })
-        );
+        
+        // Update both state and localStorage with each chunk
+        const updatedChats = chats.map(chat => {
+          if(chat.id === currentChat.id) {
+            const newMessages = [...chat.messages];
+            newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
+            return { ...chat, messages: newMessages };
+          }
+          return chat;
+        });
+        saveChats(updatedChats); // This updates both state and localStorage
       }
     }
   } catch (err) {
