@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink } from "lucide-react";
+import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -435,6 +435,24 @@ export default function SearchPage() {
       setWikiData(null);
     }
   }, [query, hasBang]);
+
+  const [followUpQuestion, setFollowUpQuestion] = useState("");
+
+  // Add a handler for the follow-up question
+  const handleFollowUpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followUpQuestion.trim()) return;
+
+    // Create parameters for the chat page with original query, AI response, and follow-up
+    const chatParams = new URLSearchParams({
+      originalQuery: query,
+      aiResponse: aiResponse || "",
+      followUp: followUpQuestion
+    });
+
+    // Redirect to the chat page with these parameters
+    router.push(`/chat?${chatParams.toString()}`);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -931,9 +949,30 @@ export default function SearchPage() {
                   
                   {/* Rest of the AI response box content */}
                   <p className="text-left text-blue-800 dark:text-blue-100 mb-3">{aiResponse}</p>
-                  <p className="text-sm text-blue-600/70 dark:text-blue-300/70">
+                  <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
                     Auto-generated based on online sources. May contain inaccuracies.
                   </p>
+                  
+                  {/* Follow-up question component */}
+                  <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={followUpQuestion}
+                        onChange={(e) => setFollowUpQuestion(e.target.value)}
+                        placeholder="Ask a follow-up question..."
+                        className="flex-1 px-3 py-2 rounded-md border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!followUpQuestion.trim()}
+                        className="p-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Ask follow-up question"
+                      >
+                        <ArrowRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </form>
                 </div>
               ) : null)}
               

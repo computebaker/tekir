@@ -245,6 +245,132 @@ export default function ChatPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chats.length]); // Run only when chats length changes to prevent infinite loops
 
+  // Add a useEffect to handle the follow-up question scenario from search
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const originalQuery = searchParams.get('originalQuery');
+      const aiResponse = searchParams.get('aiResponse');
+      const followUp = searchParams.get('followUp');
+      
+      // If we have all parameters needed for the follow-up scenario
+      if (originalQuery && aiResponse && followUp && !isLoading) {
+        // Merge with older chats from localStorage
+        const storedChats = localStorage.getItem("tekirChats");
+        const oldChats: ChatSession[] = storedChats ? JSON.parse(storedChats) : [];
+        
+        // Create a new chat with history
+        const newChat: ChatSession = {
+          id: Date.now().toString(),
+          model: defaultModel,
+          messages: [
+            { role: "user", content: originalQuery },
+            { role: "assistant", content: aiResponse },
+            { role: "user", content: followUp },
+          ],
+          createdAt: Date.now(),
+          locked: true,  // Lock chat since we're pre-populating it
+        };
+        
+        const updatedChats = [...oldChats, newChat];
+        saveChats(updatedChats);
+        setCurrentChatId(newChat.id);
+        
+        // Remove query params without refreshing
+        window.history.replaceState({}, '', '/chat');
+        setIsLoading(true);
+        setError(null);
+        
+        // Send the follow-up question to the API
+        (async () => {
+          try {
+            // Add placeholder for assistant's reply to the follow-up question
+            const placeholder: Message = { role: "assistant", content: "" };
+            const chatWithPlaceholder = {
+              ...newChat,
+              messages: [...newChat.messages, placeholder],
+            };
+            const updatedChatsPlaceholder = updatedChats.map(chat =>
+              chat.id === newChat.id ? chatWithPlaceholder : chat
+            );
+            saveChats(updatedChatsPlaceholder);
+            
+            const response = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: chatWithPlaceholder.messages,
+                model: newChat.model.id 
+              })
+            });
+            
+            if (response.status === 429) {
+              const errorData = await response.json();
+              throw new Error(`Rate limit exceeded: ${errorData.message}`);
+            }
+            if (!response.ok) {
+              throw new Error(`API request failed with status ${response.status}`);
+            }
+            if (!response.body) {
+              throw new Error("Response body is null");
+            }
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let done = false;
+            let assistantResponse = "";
+            while (!done) {
+              const { value, done: doneReading } = await reader.read();
+              done = doneReading;
+              if (value) {
+                const chunk = decoder.decode(value, { stream: true });
+                assistantResponse += chunk;
+                setChats(prevChats =>
+                  prevChats.map(chat => {
+                    if(chat.id === newChat.id) {
+                      const newMessages = [...chat.messages];
+                      newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
+                      return { ...chat, messages: newMessages };
+                    }
+                    return chat;
+                  })
+                );
+              }
+            }
+            // After streaming completes, update and save final chat state
+            setChats(prevChats => {
+              const finalChats = prevChats.map(chat => {
+                if(chat.id === newChat.id) {
+                  const finalMessages = [...chat.messages];
+                  finalMessages[finalMessages.length - 1] = { role: "assistant", content: assistantResponse };
+                  return { ...chat, messages: finalMessages };
+                }
+                return chat;
+              });
+              localStorage.setItem("tekirChats", JSON.stringify(finalChats));
+              return finalChats;
+            });
+          } catch (err) {
+            console.error("Error sending message:", err);
+            setError(err instanceof Error ? err.message : "Failed to send message");
+            // Remove the placeholder on error without removing old messages
+            setChats(prevChats =>
+              prevChats.map(chat => {
+                if (chat.id === newChat.id) {
+                  return { ...chat, messages: chat.messages.slice(0, chat.messages.length - 1) };
+                }
+                return chat;
+              })
+            );
+          } finally {
+            setIsLoading(false);
+          }
+        })();
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on component mount
+
   // Auto-resize textarea based on content
   useEffect(() => {
     if (inputRef.current) {
