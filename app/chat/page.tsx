@@ -120,7 +120,11 @@ export default function ChatPage() {
       const queryInput = searchParams.get('q');
       
       if (queryInput && !isLoading) {
-        // Create a new chat if none exists
+        // Merge with older chats from localStorage
+        const storedChats = localStorage.getItem("tekirChats");
+        const oldChats: ChatSession[] = storedChats ? JSON.parse(storedChats) : [];
+        
+        // Create a new chat
         const newChat: ChatSession = {
           id: Date.now().toString(),
           model: defaultModel,
@@ -129,11 +133,10 @@ export default function ChatPage() {
           locked: false,
         };
         
-        const updatedChats = [...chats, newChat];
+        const updatedChats = [...oldChats, newChat];
         saveChats(updatedChats);
         
-        // Don't set input in the text field
-        // Instead directly create and send the user message
+        // Don't set input in the text field; directly create and send the user message
         const userMessage: Message = { role: "user", content: queryInput };
         const updatedChat = { 
           ...newChat, 
@@ -147,14 +150,12 @@ export default function ChatPage() {
         saveChats(updatedChatsWithMessage);
         setCurrentChatId(newChat.id);
         
-        // Remove the query parameter from URL without refreshing
+        // Remove query param without refreshing and call API...
         window.history.replaceState({}, '', '/chat');
-        
-        // Send the message to API
         setIsLoading(true);
         setError(null);
         
-        // Create a function to handle the API call (similar to handleSendMessage but without UI updates)
+        // ...existing API call logic...
         (async () => {
           try {
             // Add placeholder for assistant's reply
