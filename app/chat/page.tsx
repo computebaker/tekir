@@ -874,7 +874,7 @@ const handleSendMessage = async (e: React.FormEvent) => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={currentChat ? "Type a message..." : "Create a new chat to start messaging"}
+                  placeholder={currentChat ? "Type a message..." : "Create a new chat to start"}
                   className="w-full p-4 pr-12 rounded-lg border border-border bg-background resize-none min-h-[56px] max-h-[120px] focus:outline-none focus:ring-2 focus:ring-primary/20"
                   rows={1}
                   disabled={isLoading || !currentChat}
