@@ -198,19 +198,31 @@ export default function ChatPage() {
               if (value) {
                 const chunk = decoder.decode(value, { stream: true });
                 assistantResponse += chunk;
-                
-                // Update both state and localStorage
-                const updatedChats = chats.map(chat => {
-                  if (chat.id === newChat.id) {
-                    const newMessages = [...chat.messages];
-                    newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
-                    return { ...chat, messages: newMessages };
-                  }
-                  return chat;
-                });
-                saveChats(updatedChats); // This updates both state and localStorage
+                setChats(prevChats =>
+                  prevChats.map(chat => {
+                    if(chat.id === newChat.id) {
+                      const newMessages = [...chat.messages];
+                      newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
+                      return { ...chat, messages: newMessages };
+                    }
+                    return chat;
+                  })
+                );
               }
             }
+            // After streaming completes, update and save final chat state
+            setChats(prevChats => {
+              const finalChats = prevChats.map(chat => {
+                if(chat.id === newChat.id) {
+                  const finalMessages = [...chat.messages];
+                  finalMessages[finalMessages.length - 1] = { role: "assistant", content: assistantResponse };
+                  return { ...chat, messages: finalMessages };
+                }
+                return chat;
+              });
+              localStorage.setItem("tekirChats", JSON.stringify(finalChats));
+              return finalChats;
+            });
           } catch (err) {
             console.error("Error sending message:", err);
             setError(err instanceof Error ? err.message : "Failed to send message");
@@ -371,19 +383,31 @@ const handleSendMessage = async (e: React.FormEvent) => {
       if (value) {
         const chunk = decoder.decode(value, { stream: true });
         assistantResponse += chunk;
-        
-        // Update both state and localStorage with each chunk
-        const updatedChats = chats.map(chat => {
-          if(chat.id === currentChat.id) {
-            const newMessages = [...chat.messages];
-            newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
-            return { ...chat, messages: newMessages };
-          }
-          return chat;
-        });
-        saveChats(updatedChats); // This updates both state and localStorage
+        setChats(prevChats =>
+          prevChats.map(chat => {
+            if(chat.id === currentChat.id) {
+              const newMessages = [...chat.messages];
+              newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
+              return { ...chat, messages: newMessages };
+            }
+            return chat;
+          })
+        );
       }
     }
+    // After streaming completes, update and save final chat state
+    setChats(prevChats => {
+      const finalChats = prevChats.map(chat => {
+        if(chat.id === currentChat.id) {
+          const finalMessages = [...chat.messages];
+          finalMessages[finalMessages.length - 1] = { role: "assistant", content: assistantResponse };
+          return { ...chat, messages: finalMessages };
+        }
+        return chat;
+      });
+      localStorage.setItem("tekirChats", JSON.stringify(finalChats));
+      return finalChats;
+    });
   } catch (err) {
     console.error("Error sending message:", err);
     setError(err instanceof Error ? err.message : "Failed to send message");
