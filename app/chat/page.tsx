@@ -777,7 +777,7 @@ const handleSendMessage = async (e: React.FormEvent) => {
                   handleNewChat();
                   setMobileMenuOpen(false);
                 }}
-                className="flex-1 px-3 py-2 rounded bg-primary text-primary-foreground flex items-center justify-center gap-2"
+                className="flex-1 px-3 py-2 h-10 rounded bg-primary text-primary-foreground flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 <span>New Chat</span>
@@ -787,7 +787,7 @@ const handleSendMessage = async (e: React.FormEvent) => {
               {chats.length > 0 && (
                 <button
                   onClick={() => setShowDeleteAllConfirm(true)}
-                  className="px-3 py-2 rounded bg-red-500 hover:bg-red-600 text-white flex items-center justify-center"
+                  className="px-3 h-10 rounded bg-red-500 hover:bg-red-600 text-white flex items-center justify-center"
                   title="Delete all chats"
                 >
                   <Flame className="w-4 h-4" />
