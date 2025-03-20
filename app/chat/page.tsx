@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bot, ChevronDown, User, FileCode, MoreVertical, Edit, Trash, Plus, ArrowRight } from "lucide-react";
+import { Bot, ChevronDown, User, FileCode, MoreVertical, Edit, Trash, Plus, ArrowRight, Flame } from "lucide-react";
 import { MarkdownMessage } from "@/components/markdown-message";
 
 interface Message {
@@ -49,6 +49,9 @@ export default function ChatPage() {
 
   // Add a state variable for mobile menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+
+  // Add new state for delete confirmation popup
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState<boolean>(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("tekirChats");
@@ -680,6 +683,17 @@ const handleSendMessage = async (e: React.FormEvent) => {
     return chatsByCategory;
   };
 
+  // Function to handle deleting all chats
+  const deleteAllChats = () => {
+    // Clear localStorage
+    localStorage.removeItem("tekirChats");
+    // Reset state
+    setChats([]);
+    setCurrentChatId("");
+    // Hide confirmation popup
+    setShowDeleteAllConfirm(false);
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Header moved to the top, spanning full width */}
@@ -755,20 +769,34 @@ const handleSendMessage = async (e: React.FormEvent) => {
       <div className="flex w-full mt-[61px]">
         {/* Wrap aside with conditional visibility for mobile */}
         <div className={`${mobileMenuOpen ? "block fixed md:static z-20 bg-background h-[calc(100vh-61px)]" : "hidden"} md:block border-r border-border`}>
-          <aside className="w-64 h-full p-4 overflow-y-auto">
-            <button
-              onClick={() => {
-                handleNewChat();
-                setMobileMenuOpen(false); // Close mobile menu after creating a new chat
-              }}
-              className="w-full mb-4 px-3 py-2 rounded bg-primary text-primary-foreground flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>New Chat</span>
-            </button>
+          <aside className="w-64 h-full p-4 overflow-y-auto flex flex-col">
+            {/* Top section with New Chat and Delete All buttons */}
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => {
+                  handleNewChat();
+                  setMobileMenuOpen(false);
+                }}
+                className="flex-1 px-3 py-2 rounded bg-primary text-primary-foreground flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Chat</span>
+              </button>
+              
+              {/* Delete All button */}
+              {chats.length > 0 && (
+                <button
+                  onClick={() => setShowDeleteAllConfirm(true)}
+                  className="px-3 py-2 rounded bg-red-500 hover:bg-red-600 text-white flex items-center justify-center"
+                  title="Delete all chats"
+                >
+                  <Flame className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             
             {/* Updated chat list with date categories */}
-            <div className="space-y-6">
+            <div className="space-y-6 flex-grow">
               {Object.entries(getChatsByDateCategory()).map(([category, categoryChats]) => 
                 categoryChats.length > 0 ? (
                   <div key={category}>
@@ -866,6 +894,33 @@ const handleSendMessage = async (e: React.FormEvent) => {
                     </button>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Delete All Confirmation Popup */}
+            {showDeleteAllConfirm && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full">
+                  <h3 className="text-lg font-semibold mb-2">Delete all chats?</h3>
+                  <p className="text-muted-foreground mb-6">
+                    This action cannot be undone. All your conversation history will be permanently removed.
+                  </p>
+                  <div className="flex justify-end gap-3">
+                    <button 
+                      onClick={() => setShowDeleteAllConfirm(false)}
+                      className="px-4 py-2 rounded border border-border bg-background hover:bg-muted transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={deleteAllChats}
+                      className="px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 transition-colors"
+                    >
+                      <Flame className="w-4 h-4" />
+                      Delete All
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </aside>
