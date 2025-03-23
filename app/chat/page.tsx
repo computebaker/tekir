@@ -110,8 +110,14 @@ export default function ChatPage() {
     {
       id: "llama-3-1-80b",
       name: "Llama 3.1 80B",
-      description: "Meta's largest open-source model",
+      description: "Meta's best open-source model",
       icon: "/meta.png"
+    },
+    {
+      id: "gemini-2.0-flash",
+      name: "Gemini 2.0 Flash",
+      description: "Google's most capable model",
+      icon: "/google.png"
     }
   ];
   
