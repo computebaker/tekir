@@ -125,7 +125,7 @@ export default function SearchPage() {
       
       setLoading(true);
       fetch(
-        `https://searchapi.tekir.co/api?q=${encodeURIComponent(query)}&source=${searchEngine}`
+        `/api/pars/${searchEngine}?q=${encodeURIComponent(query)}`
       )
         .then((response) => response.json())
         .then((searchData) => {
