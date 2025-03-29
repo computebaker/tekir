@@ -196,14 +196,14 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-[200vh] relative">
+    <main className="min-h-[100vh] relative">
       {/* Hero Section */}
-      <section className="min-h-screen flex flex-col items-center justify-center px-4 relative">
+      <section className="h-screen flex flex-col items-center justify-center px-4 relative">
         <div className="w-full max-w-3xl space-y-8 text-center">
           {/* Logo */}
-            <div className="flex justify-center">
-              <Image src="/tekir.png" alt="Tekir logo" width={200} height={66} loading="eager" />
-            </div>
+          <div className="flex justify-center">
+            <Image src="/tekir.png" alt="Tekir logo" width={200} height={66} loading="eager" />
+          </div>
 
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="relative w-full">
