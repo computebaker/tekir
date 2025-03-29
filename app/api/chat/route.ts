@@ -18,7 +18,7 @@ const openai = new OpenAI({
 // Define model mapping for OpenRouter
 const modelMapping: Record<string, string> = {
   'gpt-4o-mini': 'openai/gpt-4o-mini',
-  'llama-3-1-80b': 'meta-llama/llama-3.3-70b-instruct:free',
+  'llama-3-1-80b': 'meta-llama/llama-3.3-70b-instruct',
   'gemini-2.0-flash': 'google/gemini-2.0-flash-001'
 };
 

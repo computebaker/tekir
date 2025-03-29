@@ -164,12 +164,12 @@ export default function SearchPage() {
       // New function to make AI request with fallback
       const makeAIRequest = async (model: string, isRetry: boolean = false) => {
         try {
-          const res = await fetch("https://searchai.tekir.co/" + model, {
+          const res = await fetch(`/api/karakulak/${model}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ message: query.replace(/%20/g, " ") }),
+            body: JSON.stringify({ message: query }),
           });
           
           if (!res.ok) {
@@ -177,7 +177,7 @@ export default function SearchPage() {
           }
           
           const aiData = await res.json();
-          const aiResult = aiData.result.trim();
+          const aiResult = aiData.answer.trim();
           setAiResponse(aiResult);
           sessionStorage.setItem(cacheKey, JSON.stringify(aiResult));
           setAiLoading(false);
