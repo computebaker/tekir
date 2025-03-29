@@ -17,7 +17,8 @@ async function brave(query: string, count: number = 4) {
     try {
         const response = await fetch(url, { headers, referrerPolicy: 'no-referrer' });
         if (!response.ok) {
-            throw new Error(`Error: ${response.status} ${response.statusText || 'unknown error'}`);
+            const errorBody = await response.text();
+            throw new Error(`Error: ${response.status} ${response.statusText || 'unknown error'} - ${errorBody}`);
         }
         const data = await response.json();
         
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
             default:
                 return NextResponse.json({ error: `Provider '${provider}' is not supported` }, { status: 404 });
         }
-        return NextResponse.json({ answer });
+        return NextResponse.json(answer);
     } catch (error: any) {
         console.error('Error in Autocomplete API:', error);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
