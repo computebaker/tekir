@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users } from "lucide-react";
+import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users, MessageCircleMore } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
@@ -261,207 +261,27 @@ export default function Home() {
               </div>
             )}
           </form>
-          {/* Scroll Button */}
-          <button
-            onClick={scrollToFeatures}
-            className={`absolute bottom-12 left-1/2 -translate-x-1/2 p-4 rounded-full transition-all duration-300 hover:bg-muted ${
-              isScrolled ? "opacity-0" : "opacity-100"
-            }`}
-          >
-            <ChevronDown className="w-6 h-6 animate-bounce" />
-          </button>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section
-        id="features"
-        className="min-h-screen bg-muted/30 flex items-center justify-center px-4 py-20"
-      >
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-            The capable search engine for the modern web.
-          </h2>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Open Source Card */}
-            <div className="bg-background p-8 rounded-2xl shadow-lg">
-              <Database className="w-10 h-10 mb-4 text-primary" />
-              <h3 className="text-xl font-semibold mb-2">Open Source</h3>
-              <p className="text-muted-foreground">
-                Fully transparent and community-driven. Our code is open for everyone.
-              </p>
+            <div className="flex items-center justify-center gap-3 mt-4 text-muted-foreground mx-auto">
+            <Link href="/about" className="hover:text-foreground transition-colors">
+              <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              <span className="font-medium">Your searches, private.</span>
+              </div>
+            </Link>
+            
+            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
+            
+            <Link href="/chat" className="hover:text-foreground transition-colors">
+              <div className="flex items-center gap-2">
+              <MessageCircleMore className="w-4 h-4" />
+              <span className="font-medium">AI Chat</span>
+              </div>
+            </Link>
             </div>
-
-            {/* No Logs Card */}
-            <div className="bg-background p-8 rounded-2xl shadow-lg">
-              <Shield className="w-10 h-10 mb-4 text-primary" />
-              <h3 className="text-xl font-semibold mb-2">No Logs Policy</h3>
-              <p className="text-muted-foreground">
-                We don't track, store, or collect any of your personal data. Your privacy is our priority.
-              </p>
-            </div>
-
-            {/* AI Enhanced Card */}
-            <div className="bg-background p-8 rounded-2xl shadow-lg">
-              <Sparkles className="w-10 h-10 mb-4 text-primary" />
-              <h3 className="text-xl font-semibold mb-2">AI Enhanced</h3>
-              <p className="text-muted-foreground">
-                Powered by Gemini 2.0 to deliver more relevant and accurate search results.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="min-h-screen bg-background flex items-center justify-center px-4 py-20">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-            How Tekir Works
-          </h2>
           
-          <div className="grid md:grid-cols-2 gap-12">
-            <div className="space-y-8">
-              <div className="flex items-start gap-4">
-                <Brain className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">AI-Powered Search</h3>
-                  <p className="text-muted-foreground">
-                    Our Gemini 2.0 integration analyzes queries in real-time to understand context and deliver precise results.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <Lock className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">Privacy First</h3>
-                  <p className="text-muted-foreground">
-                    Zero logs, no tracking, and complete data anonymity ensure your searches remain private.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <Server className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">Fast & Efficient</h3>
-                  <p className="text-muted-foreground">
-                    Distributed infrastructure ensures lightning-fast results from multiple sources.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <Code className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">Open Source</h3>
-                  <p className="text-muted-foreground">
-                    Tekir is built and maintained by a passionate community of developers who believe in privacy-first technology and open-source principles.
-                  </p>
-                  </div>
-                  </div>
-            </div>
-
-            <div className="relative">
-              <div className="aspect-square rounded-2xl bg-muted/30 flex items-center justify-center">
-              <Image src="/tekir-down.png" alt="Tekir Illustration" width={300} height={300} className="opacity-100" />
-              </div>
-            </div>
           </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="min-h-screen bg-muted/30 flex items-center justify-center px-4 py-20">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-            About the Project
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6 mx-auto max-w-lg">
-              <div className="flex items-center gap-4 mb-8 justify-center">
-                <User className="w-12 h-12 text-primary" />
-                <h3 className="text-2xl font-semibold">Open Source Community</h3>
-              </div>
-              
-              <p className="text-muted-foreground mb-4">
-                Tekir is built and maintained by a passionate community of developers who believe in privacy-first technology and open-source principles.
-              </p>
-
-              <p className="text-muted-foreground">
-                Our mission is to create a transparent, efficient, and privacy-respecting search engine that serves the modern web without compromising user data.
-              </p>
-
-              <div className="flex items-center gap-4 mt-8 justify-center">
-                <a
-                  href="https://github.com/tekircik"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  <Github className="w-5 h-5" />
-                  <span>Join Us on GitHub</span>
-                </a>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-              <div className="aspect-square rounded-2xl bg-background p-8 flex items-center justify-center">
-                <Users className="w-20 h-20 text-primary opacity-50" />
-              </div>
-              <div className="aspect-square rounded-2xl bg-background p-8 flex items-center justify-center">
-                <Code className="w-20 h-20 text-primary opacity-50" />
-              </div>
-              <div className="aspect-square rounded-2xl bg-background p-8 flex items-center justify-center">
-                <Lock className="w-20 h-20 text-primary opacity-50" />
-              </div>
-              <div className="aspect-square rounded-2xl bg-background p-8 flex items-center justify-center">
-                <Brain className="w-20 h-20 text-primary opacity-50" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="absolute bottom-0 w-full py-4 px-6 border-t border-border bg-background">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <p className="text-sm text-muted-foreground">
-              🇹🇷 Tekir was made in Turkiye!
-            </p>
-            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Privacy
-            </Link>
-            <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Terms
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-            <a
-              href="https://instagram.com/tekirsearch"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-primary transition-colors"
-              aria-label="Instagram"
-            >
-              <Instagram className="w-5 h-5" />
-            </a>
-            <a
-              href="https://github.com/tekircik"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-primary transition-colors"
-              aria-label="GitHub"
-            >
-              <Github className="w-5 h-5" />
-            </a>
-          </div>
-        </div>
-      </footer>
-    </main>
+          </section>
+        </main>
   );
 }

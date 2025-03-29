@@ -51,6 +51,7 @@
     "encoding": "^0.1.13",
     "eslint": "8.49.0",
     "eslint-config-next": "13.5.1",
+    "framer-motion": "^12.6.2",
     "input-otp": "^1.2.4",
     "katex": "^0.16.9",
     "lucide-react": "^0.446.0",
