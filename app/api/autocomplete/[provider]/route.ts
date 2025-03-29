@@ -15,9 +15,9 @@ async function brave(query: string, count: number = 4) {
     };
 
     try {
-        const response = await fetch(url, { headers });
+        const response = await fetch(url, { headers, referrerPolicy: 'no-referrer' });
         if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
+            throw new Error(`Error: ${response.status} ${response.statusText || 'unknown error'}`);
         }
         const data = await response.json();
         
@@ -46,9 +46,9 @@ async function duck(query: string, count: number = 8) {
     };
 
     try {
-        const response = await fetch(url, { headers });
+        const response = await fetch(url, { headers, referrerPolicy: 'no-referrer' });
         if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
+            throw new Error(`Error: ${response.status} ${response.statusText || 'unknown error'}`);
         }
         const data = await response.json();
         
