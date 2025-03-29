@@ -11,7 +11,7 @@ async function brave(query: string, count: number = 4) {
     const headers = {
         "Accept": "application/json",
         "Accept-Encoding": "gzip",
-        "X-Subscription-Token": process.env.BRAVE_API_KEY || '',
+        "X-Subscription-Token": process.env.BRAVE_AUTOCOMPLETE_KEY || '',
     };
 
     try {
