@@ -20,7 +20,7 @@ const generationConfig = {
   max_tokens: 300,
 };
 
-export async function gemini(message: string): Promise<string> {
+async function gemini(message: string): Promise<string> {
   const now = Date.now();
   const cached = cache.get(`gemini-${message}`);
   if (cached && now - cached.timestamp < CACHE_TTL) {
@@ -49,7 +49,7 @@ export async function gemini(message: string): Promise<string> {
   return answer ?? "Sorry, I can't help you with that.";
 }
 
-export async function llama(message: string): Promise<string> {
+async function llama(message: string): Promise<string> {
   const now = Date.now();
   const cached = cache.get(`llama-${message}`);
   if (cached && now - cached.timestamp < CACHE_TTL) {
@@ -78,7 +78,7 @@ export async function llama(message: string): Promise<string> {
   return answer ?? "Sorry, I can't help you with that.";
 }
 
-export async function mistral(message: string): Promise<string> {
+async function mistral(message: string): Promise<string> {
   const now = Date.now();
   const cached = cache.get(`mistral-${message}`);
   if (cached && now - cached.timestamp < CACHE_TTL) {
