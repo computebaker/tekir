@@ -161,7 +161,6 @@ export default function SearchPage() {
     if (localStorage.getItem("karakulakEnabled") === "false") {
       return;
     } else {
-      // New function to make AI request with fallback
       const makeAIRequest = async (model: string, isRetry: boolean = false) => {
         try {
           const res = await fetch(`/api/karakulak/${model}`, {
