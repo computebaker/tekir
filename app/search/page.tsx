@@ -244,7 +244,7 @@ export default function SearchPage() {
       }
 
       try {
-        const response = await fetch(`https://autocomplete.tekir.co/${autocompleteSource}?q=${searchInput}`, {
+        const response = await fetch(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchInput)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

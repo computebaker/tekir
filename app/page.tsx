@@ -89,7 +89,7 @@ export default function Home() {
       }
 
       try {
-        const response = await fetch(`https://autocomplete.tekir.co/${autocompleteSource}?q=${searchQuery}`, {
+        const response = await fetch(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchQuery)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
