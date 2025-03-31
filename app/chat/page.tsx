@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Bot, ChevronDown, User, FileCode, MoreVertical, Edit, Trash, Plus, ArrowRight, Flame } from "lucide-react";
 import { MarkdownMessage } from "@/components/markdown-message";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface Message {
   role: "user" | "assistant";
@@ -33,8 +34,8 @@ export default function ChatPage() {
   // Remove: const [messages, setMessages] = useState<Message[]>([]);
   // Remove: const [selectedModel, setSelectedModel] = useState<ModelOption>(...);
 
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [chats, setChats] = useState<ChatSession[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string>("");
 
@@ -120,19 +121,19 @@ export default function ChatPage() {
       icon: "/google.png"
     }
   ];
-  
+
   // Add a new useEffect to handle query parameters
   useEffect(() => {
     // Check if window is available (client-side)
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const queryInput = searchParams.get('q');
-      
+
       if (queryInput && !isLoading) {
         // Merge with older chats from localStorage
         const storedChats = localStorage.getItem("tekirChats");
         const oldChats: ChatSession[] = storedChats ? JSON.parse(storedChats) : [];
-        
+
         // Create a new chat
         const newChat: ChatSession = {
           id: Date.now().toString(),
@@ -141,29 +142,29 @@ export default function ChatPage() {
           createdAt: Date.now(),
           locked: false,
         };
-        
+
         const updatedChats = [...oldChats, newChat];
         saveChats(updatedChats);
-        
+
         // Don't set input in the text field; directly create and send the user message
         const userMessage: Message = { role: "user", content: queryInput };
-        const updatedChat = { 
-          ...newChat, 
+        const updatedChat = {
+          ...newChat,
           messages: [userMessage],
           locked: true,  // Lock chat since this is the first message
         };
-        
-        const updatedChatsWithMessage = updatedChats.map(chat => 
+
+        const updatedChatsWithMessage = updatedChats.map(chat =>
           chat.id === newChat.id ? updatedChat : chat
         );
         saveChats(updatedChatsWithMessage);
         setCurrentChatId(newChat.id);
-        
+
         // Remove query param without refreshing and call API...
         window.history.replaceState({}, '', '/chat');
         setIsLoading(true);
         setError(null);
-        
+
         // ...existing API call logic...
         (async () => {
           try {
@@ -177,16 +178,16 @@ export default function ChatPage() {
               chat.id === newChat.id ? chatWithPlaceholder : chat
             );
             saveChats(updatedChatsPlaceholder);
-            
+
             const response = await fetch("/api/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 messages: chatWithPlaceholder.messages,
-                model: updatedChat.model.id 
+                model: updatedChat.model.id
               })
             });
-            
+
             if (response.status === 429) {
               const errorData = await response.json();
               throw new Error(`Rate limit exceeded: ${errorData.message}`);
@@ -197,7 +198,7 @@ export default function ChatPage() {
             if (!response.body) {
               throw new Error("Response body is null");
             }
-            
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let done = false;
@@ -210,7 +211,7 @@ export default function ChatPage() {
                 assistantResponse += chunk;
                 setChats(prevChats =>
                   prevChats.map(chat => {
-                    if(chat.id === newChat.id) {
+                    if (chat.id === newChat.id) {
                       const newMessages = [...chat.messages];
                       newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
                       return { ...chat, messages: newMessages };
@@ -223,7 +224,7 @@ export default function ChatPage() {
             // After streaming completes, update and save final chat state
             setChats(prevChats => {
               const finalChats = prevChats.map(chat => {
-                if(chat.id === newChat.id) {
+                if (chat.id === newChat.id) {
                   const finalMessages = [...chat.messages];
                   finalMessages[finalMessages.length - 1] = { role: "assistant", content: assistantResponse };
                   return { ...chat, messages: finalMessages };
@@ -251,7 +252,7 @@ export default function ChatPage() {
         })();
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chats.length]); // Run only when chats length changes to prevent infinite loops
 
   // Add a useEffect to handle the follow-up question scenario from search
@@ -261,13 +262,13 @@ export default function ChatPage() {
       const originalQuery = searchParams.get('originalQuery');
       const aiResponse = searchParams.get('aiResponse');
       const followUp = searchParams.get('followUp');
-      
+
       // If we have all parameters needed for the follow-up scenario
       if (originalQuery && aiResponse && followUp && !isLoading) {
         // Merge with older chats from localStorage
         const storedChats = localStorage.getItem("tekirChats");
         const oldChats: ChatSession[] = storedChats ? JSON.parse(storedChats) : [];
-        
+
         // Create a new chat with history
         const newChat: ChatSession = {
           id: Date.now().toString(),
@@ -280,16 +281,16 @@ export default function ChatPage() {
           createdAt: Date.now(),
           locked: true,  // Lock chat since we're pre-populating it
         };
-        
+
         const updatedChats = [...oldChats, newChat];
         saveChats(updatedChats);
         setCurrentChatId(newChat.id);
-        
+
         // Remove query params without refreshing
         window.history.replaceState({}, '', '/chat');
         setIsLoading(true);
         setError(null);
-        
+
         // Send the follow-up question to the API
         (async () => {
           try {
@@ -303,16 +304,16 @@ export default function ChatPage() {
               chat.id === newChat.id ? chatWithPlaceholder : chat
             );
             saveChats(updatedChatsPlaceholder);
-            
+
             const response = await fetch("/api/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 messages: chatWithPlaceholder.messages,
-                model: newChat.model.id 
+                model: newChat.model.id
               })
             });
-            
+
             if (response.status === 429) {
               const errorData = await response.json();
               throw new Error(`Rate limit exceeded: ${errorData.message}`);
@@ -323,7 +324,7 @@ export default function ChatPage() {
             if (!response.body) {
               throw new Error("Response body is null");
             }
-            
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let done = false;
@@ -336,7 +337,7 @@ export default function ChatPage() {
                 assistantResponse += chunk;
                 setChats(prevChats =>
                   prevChats.map(chat => {
-                    if(chat.id === newChat.id) {
+                    if (chat.id === newChat.id) {
                       const newMessages = [...chat.messages];
                       newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
                       return { ...chat, messages: newMessages };
@@ -349,7 +350,7 @@ export default function ChatPage() {
             // After streaming completes, update and save final chat state
             setChats(prevChats => {
               const finalChats = prevChats.map(chat => {
-                if(chat.id === newChat.id) {
+                if (chat.id === newChat.id) {
                   const finalMessages = [...chat.messages];
                   finalMessages[finalMessages.length - 1] = { role: "assistant", content: assistantResponse };
                   return { ...chat, messages: finalMessages };
@@ -377,7 +378,7 @@ export default function ChatPage() {
         })();
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on component mount
 
   // Auto-resize textarea based on content
@@ -391,16 +392,16 @@ export default function ChatPage() {
   // Handle clicks outside model dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (modelDropdownRef.current && 
-          !modelDropdownRef.current.contains(event.target as Node) && 
-          modelDropdownOpen) {
+      if (modelDropdownRef.current &&
+        !modelDropdownRef.current.contains(event.target as Node) &&
+        modelDropdownOpen) {
         setModelDropdownOpen(false);
       }
-      
+
       // Close context menu if open
-      if (contextMenuRef.current && 
-          !contextMenuRef.current.contains(event.target as Node) && 
-          contextMenuOpen) {
+      if (contextMenuRef.current &&
+        !contextMenuRef.current.contains(event.target as Node) &&
+        contextMenuOpen) {
         setContextMenuOpen(false);
       }
     };
@@ -437,129 +438,129 @@ export default function ChatPage() {
   };
 
   // Fix handleSendMessage to create a new chat if none exists
-const handleSendMessage = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!input.trim()) return;
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
 
-  // If no chat is selected, create a new one first
-  if (!currentChat) {
-    const newChat: ChatSession = {
-      id: Date.now().toString(),
-      model: defaultModel,
-      messages: [],
-      createdAt: Date.now(),
-      locked: false,
+    // If no chat is selected, create a new one first
+    if (!currentChat) {
+      const newChat: ChatSession = {
+        id: Date.now().toString(),
+        model: defaultModel,
+        messages: [],
+        createdAt: Date.now(),
+        locked: false,
+      };
+
+      const updatedChats = [...chats, newChat];
+      saveChats(updatedChats);
+      setCurrentChatId(newChat.id);
+
+      // Continue with sending the message by calling handleSendMessage again
+      // after the state has been updated
+      setTimeout(() => {
+        handleSendMessage(e);
+      }, 0);
+      return;
+    }
+
+    // Rest of the original function for sending a message
+    const userMessage: Message = { role: "user", content: input };
+    // Append user message and lock chat if it's the first prompt
+    const updatedChat = {
+      ...currentChat,
+      messages: [...currentChat.messages, userMessage],
+      locked: currentChat.messages.length === 0 ? true : currentChat.locked,
     };
-    
-    const updatedChats = [...chats, newChat];
+    const updatedChats = chats.map(chat => chat.id === currentChat.id ? updatedChat : chat);
     saveChats(updatedChats);
-    setCurrentChatId(newChat.id);
-    
-    // Continue with sending the message by calling handleSendMessage again
-    // after the state has been updated
-    setTimeout(() => {
-      handleSendMessage(e);
-    }, 0);
-    return;
-  }
-  
-  // Rest of the original function for sending a message
-  const userMessage: Message = { role: "user", content: input };
-  // Append user message and lock chat if it's the first prompt
-  const updatedChat = { 
-    ...currentChat, 
-    messages: [...currentChat.messages, userMessage],
-    locked: currentChat.messages.length === 0 ? true : currentChat.locked,
-  };
-  const updatedChats = chats.map(chat => chat.id === currentChat.id ? updatedChat : chat);
-  saveChats(updatedChats);
-  setInput("");
-  setIsLoading(true);
-  setError(null);
-  
-  try {
-    // Add placeholder for assistant's reply
-    const placeholder: Message = { role: "assistant", content: "" };
-    const chatWithPlaceholder = {
-      ...updatedChat,
-      messages: [...updatedChat.messages, placeholder],
-    };
-    const updatedChatsPlaceholder = chats.map(chat =>
-      chat.id === currentChat.id ? chatWithPlaceholder : chat
-    );
-    saveChats(updatedChatsPlaceholder);
-    
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: chatWithPlaceholder.messages,
-        model: updatedChat.model.id 
-      })
-    });
-    
-    if (response.status === 429) {
-      const errorData = await response.json();
-      throw new Error(`Rate limit exceeded: ${errorData.message}`);
-    }
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    if (!response.body) {
-      throw new Error("Response body is null");
-    }
-    
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
-    let assistantResponse = "";
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      if (value) {
-        const chunk = decoder.decode(value, { stream: true });
-        assistantResponse += chunk;
-        setChats(prevChats =>
-          prevChats.map(chat => {
-            if(chat.id === currentChat.id) {
-              const newMessages = [...chat.messages];
-              newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
-              return { ...chat, messages: newMessages };
-            }
-            return chat;
-          })
-        );
-      }
-    }
-    // After streaming completes, update and save final chat state
-    setChats(prevChats => {
-      const finalChats = prevChats.map(chat => {
-        if(chat.id === currentChat.id) {
-          const finalMessages = [...chat.messages];
-          finalMessages[finalMessages.length - 1] = { role: "assistant", content: assistantResponse };
-          return { ...chat, messages: finalMessages };
-        }
-        return chat;
+    setInput("");
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Add placeholder for assistant's reply
+      const placeholder: Message = { role: "assistant", content: "" };
+      const chatWithPlaceholder = {
+        ...updatedChat,
+        messages: [...updatedChat.messages, placeholder],
+      };
+      const updatedChatsPlaceholder = chats.map(chat =>
+        chat.id === currentChat.id ? chatWithPlaceholder : chat
+      );
+      saveChats(updatedChatsPlaceholder);
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: chatWithPlaceholder.messages,
+          model: updatedChat.model.id
+        })
       });
-      localStorage.setItem("tekirChats", JSON.stringify(finalChats));
-      return finalChats;
-    });
-  } catch (err) {
-    console.error("Error sending message:", err);
-    setError(err instanceof Error ? err.message : "Failed to send message");
-    // Remove the placeholder on error without removing old messages
-    setChats(prevChats =>
-      prevChats.map(chat => {
-        if (chat.id === currentChat.id) {
-          return { ...chat, messages: chat.messages.slice(0, chat.messages.length - 1) };
+
+      if (response.status === 429) {
+        const errorData = await response.json();
+        throw new Error(`Rate limit exceeded: ${errorData.message}`);
+      }
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let assistantResponse = "";
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          assistantResponse += chunk;
+          setChats(prevChats =>
+            prevChats.map(chat => {
+              if (chat.id === currentChat.id) {
+                const newMessages = [...chat.messages];
+                newMessages[newMessages.length - 1] = { role: "assistant", content: assistantResponse };
+                return { ...chat, messages: newMessages };
+              }
+              return chat;
+            })
+          );
         }
-        return chat;
-      })
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+      }
+      // After streaming completes, update and save final chat state
+      setChats(prevChats => {
+        const finalChats = prevChats.map(chat => {
+          if (chat.id === currentChat.id) {
+            const finalMessages = [...chat.messages];
+            finalMessages[finalMessages.length - 1] = { role: "assistant", content: assistantResponse };
+            return { ...chat, messages: finalMessages };
+          }
+          return chat;
+        });
+        localStorage.setItem("tekirChats", JSON.stringify(finalChats));
+        return finalChats;
+      });
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setError(err instanceof Error ? err.message : "Failed to send message");
+      // Remove the placeholder on error without removing old messages
+      setChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat.id === currentChat.id) {
+            return { ...chat, messages: chat.messages.slice(0, chat.messages.length - 1) };
+          }
+          return chat;
+        })
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle text input resize and submission
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -586,11 +587,11 @@ const handleSendMessage = async (e: React.FormEvent) => {
     if (chat) {
       // Get the first user message as default title or "Untitled Chat" if none
       const title = chat.messages.length > 0
-        ? chat.messages[0].role === "user" 
-          ? chat.messages[0].content 
+        ? chat.messages[0].role === "user"
+          ? chat.messages[0].content
           : "Untitled Chat"
         : "Untitled Chat";
-      
+
       setNewChatTitle(title);
       setContextMenuChatId(chatId);
       setContextMenuPosition({ x: e.clientX, y: e.clientY });
@@ -603,12 +604,12 @@ const handleSendMessage = async (e: React.FormEvent) => {
   const deleteChat = (chatId: string) => {
     const updatedChats = chats.filter(chat => chat.id !== chatId);
     saveChats(updatedChats);
-    
+
     // If we're deleting the current chat, switch to the most recent one
     if (chatId === currentChatId) {
       setCurrentChatId(updatedChats.length > 0 ? updatedChats[updatedChats.length - 1].id : "");
     }
-    
+
     setContextMenuOpen(false);
   };
 
@@ -619,9 +620,9 @@ const handleSendMessage = async (e: React.FormEvent) => {
 
   // Save the new chat title (store in custom title field)
   const saveNewTitle = () => {
-    const updatedChats = chats.map(chat => 
-      chat.id === contextMenuChatId 
-        ? { ...chat, customTitle: newChatTitle } 
+    const updatedChats = chats.map(chat =>
+      chat.id === contextMenuChatId
+        ? { ...chat, customTitle: newChatTitle }
         : chat
     );
     saveChats(updatedChats);
@@ -645,30 +646,30 @@ const handleSendMessage = async (e: React.FormEvent) => {
   const getChatDateCategory = (timestamp: number): string => {
     const now = new Date();
     const chatDate = new Date(timestamp);
-    
+
     // Today: same day
     if (chatDate.toDateString() === now.toDateString()) {
       return "Today";
     }
-    
+
     // Last 7 days: within the last week
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(now.getDate() - 7);
     if (chatDate >= oneWeekAgo) {
       return "Last 7 days";
     }
-    
+
     // Last 30 days: within the last month
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(now.getDate() - 30);
     if (chatDate >= oneMonthAgo) {
       return "Last 30 days";
     }
-    
+
     // Anything older
     return "Older";
   };
-  
+
   // Function to group chats by date category
   const getChatsByDateCategory = () => {
     const chatsByCategory: Record<string, ChatSession[]> = {
@@ -677,15 +678,15 @@ const handleSendMessage = async (e: React.FormEvent) => {
       "Last 30 days": [],
       "Older": []
     };
-    
+
     // Sort chats by date from newest to oldest before categorizing
     const sortedChats = [...chats].sort((a, b) => b.createdAt - a.createdAt);
-    
+
     for (const chat of sortedChats) {
       const category = getChatDateCategory(chat.createdAt);
       chatsByCategory[category].push(chat);
     }
-    
+
     return chatsByCategory;
   };
 
@@ -710,7 +711,7 @@ const handleSendMessage = async (e: React.FormEvent) => {
               <Image src="/tekir.png" alt="Tekir Logo" width={32} height={32} />
             </Link>
             {/* Mobile menu toggle button */}
-            <button 
+            <button
               className="md:hidden block p-2 rounded focus:outline-none"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
@@ -731,11 +732,11 @@ const handleSendMessage = async (e: React.FormEvent) => {
               }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background border border-border text-sm font-medium hover:bg-muted transition-colors ${currentChat?.locked ? "cursor-not-allowed opacity-50" : ""}`}
             >
-              <Image 
-                src={(currentChat?.model || defaultModel).icon} 
-                alt={(currentChat?.model || defaultModel).name} 
-                width={20} 
-                height={20} 
+              <Image
+                src={(currentChat?.model || defaultModel).icon}
+                alt={(currentChat?.model || defaultModel).name}
+                width={20}
+                height={20}
                 className="rounded"
               />
               <span>{(currentChat?.model || defaultModel).name}</span>
@@ -750,12 +751,12 @@ const handleSendMessage = async (e: React.FormEvent) => {
                       onClick={() => handleModelSelect(model)}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors ${(currentChat?.model || defaultModel).id === model.id ? 'bg-muted' : ''}`}
                     >
-                      <Image 
-                        src={model.icon} 
-                        alt={model.name} 
-                        width={20} 
-                        height={20} 
-                        className="rounded" 
+                      <Image
+                        src={model.icon}
+                        alt={model.name}
+                        width={20}
+                        height={20}
+                        className="rounded"
                       />
                       <div className="flex flex-col items-start">
                         <span className="font-medium">{model.name}</span>
@@ -770,25 +771,204 @@ const handleSendMessage = async (e: React.FormEvent) => {
           {/* Remove the duplicate model selector that was here */}
         </div>
       </header>
-      
+
       {/* Add padding-top to account for the fixed header */}
       <div className="flex w-full mt-[61px]">
         {/* Wrap aside with conditional visibility for mobile */}
-        <div className={`${mobileMenuOpen ? "block fixed md:static z-20 bg-background h-[calc(100vh-61px)]" : "hidden"} md:block border-r border-border`}>
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ x: -150, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -150, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed md:hidden z-20 bg-background h-[calc(100vh-61px)] border-r border-border"
+            >
+              <aside className="w-64 h-full p-4 overflow-y-auto flex flex-col">
+                {/* Top section with New Chat and Delete All buttons */}
+                <div className="flex items-center gap-2 mb-4">
+                  <button
+                    onClick={() => {
+                      handleNewChat();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex-1 px-3 py-2 h-10 rounded bg-primary text-primary-foreground flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>New Chat</span>
+                  </button>
+
+                  {/* Delete All button */}
+                  {chats.length > 0 && (
+                    <button
+                      onClick={() => setShowDeleteAllConfirm(true)}
+                      className="px-3 h-10 rounded bg-red-500 hover:bg-red-600 text-white flex items-center justify-center"
+                      title="Delete all chats"
+                    >
+                      <Flame className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Updated chat list with date categories */}
+                <div className="space-y-6 flex-grow">
+                  {Object.entries(getChatsByDateCategory()).map(([category, categoryChats]) =>
+                    categoryChats.length > 0 ? (
+                      <div key={category}>
+                        <h3 className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-2 px-1">{category}</h3>
+                        <div className="space-y-1">
+                          {categoryChats.map(chat => {
+                            const title = chat.customTitle || (chat.messages.length > 0
+                              ? chat.messages[0].role === "user"
+                                ? chat.messages[0].content
+                                : "Untitled Chat"
+                              : "Untitled Chat");
+
+                            return (
+                              <button
+                                key={chat.id}
+                                onClick={() => {
+                                  setCurrentChatId(chat.id);
+                                  setMobileMenuOpen(false);
+                                }}
+                                onContextMenu={(e) => handleContextMenu(e, chat.id)}
+                                className={`w-full text-left px-3 py-2 rounded hover:bg-muted ${chat.id === currentChatId ? "bg-muted" : ""} group flex items-center justify-between`}
+                              >
+                                <span className="truncate flex-grow">{title.length > 20 ? title.substring(0, 20) + "..." : title}</span>
+                                <button
+                                  className="p-1 opacity-0 group-hover:opacity-100 focus:opacity-100 md:block hidden"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleContextMenu(e, chat.id);
+                                  }}
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+                </div>
+
+                {/* Context Menu */}
+                <AnimatePresence>
+                  {contextMenuOpen && (
+                    <motion.div
+                      ref={contextMenuRef}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="fixed bg-background border border-border rounded-md shadow-md py-1 z-50"
+                      style={{
+                        top: contextMenuPosition.y,
+                        left: contextMenuPosition.x
+                      }}
+                    >
+                      {isRenaming ? (
+                        <div className="p-2 min-w-[180px]">
+                          <input
+                            ref={renameInputRef}
+                            type="text"
+                            value={newChatTitle}
+                            onChange={(e) => setNewChatTitle(e.target.value)}
+                            onKeyDown={handleRenameKeyDown}
+                            className="w-full px-2 py-1 text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary bg-background"
+                            placeholder="Enter chat name"
+                          />
+                          <div className="flex justify-end mt-2">
+                            <button
+                              onClick={() => setIsRenaming(false)}
+                              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground mr-2"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={saveNewTitle}
+                              className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              startRenaming();
+                            }}
+                            className="flex items-center w-full px-3 py-2 text-sm hover:bg-muted text-left"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Rename
+                          </button>
+                          <button
+                            onClick={() => deleteChat(contextMenuChatId)}
+                            className="flex items-center w-full px-3 py-2 text-sm hover:bg-muted text-red-500 text-left"
+                          >
+                            <Trash className="w-4 h-4 mr-2" />
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Delete All Confirmation Popup */}
+                <AnimatePresence>
+                  {showDeleteAllConfirm && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                    >
+                      <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full">
+                        <h3 className="text-lg font-semibold mb-2">Delete all chats?</h3>
+                        <p className="text-muted-foreground mb-6">
+                          This action cannot be undone. All your conversation history will be permanently removed.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                          <button
+                            onClick={() => setShowDeleteAllConfirm(false)}
+                            className="px-4 py-2 rounded border border-border bg-background hover:bg-muted transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={deleteAllChats}
+                            className="px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 transition-colors"
+                          >
+                            <Flame className="w-4 h-4" />
+                            Delete All
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </aside>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="hidden md:block z-20 bg-background h-[calc(100vh-61px)] border-r border-border">
           <aside className="w-64 h-full p-4 overflow-y-auto flex flex-col">
             {/* Top section with New Chat and Delete All buttons */}
             <div className="flex items-center gap-2 mb-4">
               <button
-                onClick={() => {
-                  handleNewChat();
-                  setMobileMenuOpen(false);
-                }}
+                onClick={handleNewChat}
                 className="flex-1 px-3 py-2 h-10 rounded bg-primary text-primary-foreground flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 <span>New Chat</span>
               </button>
-              
+
               {/* Delete All button */}
               {chats.length > 0 && (
                 <button
@@ -800,28 +980,25 @@ const handleSendMessage = async (e: React.FormEvent) => {
                 </button>
               )}
             </div>
-            
+
             {/* Updated chat list with date categories */}
             <div className="space-y-6 flex-grow">
-              {Object.entries(getChatsByDateCategory()).map(([category, categoryChats]) => 
+              {Object.entries(getChatsByDateCategory()).map(([category, categoryChats]) =>
                 categoryChats.length > 0 ? (
                   <div key={category}>
                     <h3 className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-2 px-1">{category}</h3>
                     <div className="space-y-1">
                       {categoryChats.map(chat => {
                         const title = chat.customTitle || (chat.messages.length > 0
-                          ? chat.messages[0].role === "user" 
-                            ? chat.messages[0].content 
+                          ? chat.messages[0].role === "user"
+                            ? chat.messages[0].content
                             : "Untitled Chat"
                           : "Untitled Chat");
-                        
+
                         return (
                           <button
                             key={chat.id}
-                            onClick={() => {
-                              setCurrentChatId(chat.id);
-                              setMobileMenuOpen(false);
-                            }}
+                            onClick={() => setCurrentChatId(chat.id)}
                             onContextMenu={(e) => handleContextMenu(e, chat.id)}
                             className={`w-full text-left px-3 py-2 rounded hover:bg-muted ${chat.id === currentChatId ? "bg-muted" : ""} group flex items-center justify-between`}
                           >
@@ -845,93 +1022,107 @@ const handleSendMessage = async (e: React.FormEvent) => {
             </div>
 
             {/* Context Menu */}
-            {contextMenuOpen && (
-              <div 
-                ref={contextMenuRef}
-                className="fixed bg-background border border-border rounded-md shadow-md py-1 z-50"
-                style={{ 
-                  top: contextMenuPosition.y, 
-                  left: contextMenuPosition.x 
-                }}
-              >
-                {isRenaming ? (
-                  <div className="p-2 min-w-[180px]">
-                    <input
-                      ref={renameInputRef}
-                      type="text"
-                      value={newChatTitle}
-                      onChange={(e) => setNewChatTitle(e.target.value)}
-                      onKeyDown={handleRenameKeyDown}
-                      className="w-full px-2 py-1 text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary bg-background"
-                      placeholder="Enter chat name"
-                    />
-                    <div className="flex justify-end mt-2">
-                      <button 
-                        onClick={() => setIsRenaming(false)} 
-                        className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground mr-2"
+            <AnimatePresence>
+              {contextMenuOpen && (
+                <motion.div
+                  ref={contextMenuRef}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed bg-background border border-border rounded-md shadow-md py-1 z-50"
+                  style={{
+                    top: contextMenuPosition.y,
+                    left: contextMenuPosition.x
+                  }}
+                >
+                  {isRenaming ? (
+                    <div className="p-2 min-w-[180px]">
+                      <input
+                        ref={renameInputRef}
+                        type="text"
+                        value={newChatTitle}
+                        onChange={(e) => setNewChatTitle(e.target.value)}
+                        onKeyDown={handleRenameKeyDown}
+                        className="w-full px-2 py-1 text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary bg-background"
+                        placeholder="Enter chat name"
+                      />
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={() => setIsRenaming(false)}
+                          className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground mr-2"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={saveNewTitle}
+                          className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          startRenaming();
+                        }}
+                        className="flex items-center w-full px-3 py-2 text-sm hover:bg-muted text-left"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Rename
+                      </button>
+                      <button
+                        onClick={() => deleteChat(contextMenuChatId)}
+                        className="flex items-center w-full px-3 py-2 text-sm hover:bg-muted text-red-500 text-left"
+                      >
+                        <Trash className="w-4 h-4 mr-2" />
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Delete All Confirmation Popup */}
+            <AnimatePresence>
+              {showDeleteAllConfirm && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                >
+                  <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full">
+                    <h3 className="text-lg font-semibold mb-2">Delete all chats?</h3>
+                    <p className="text-muted-foreground mb-6">
+                      This action cannot be undone. All your conversation history will be permanently removed.
+                    </p>
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={() => setShowDeleteAllConfirm(false)}
+                        className="px-4 py-2 rounded border border-border bg-background hover:bg-muted transition-colors"
                       >
                         Cancel
                       </button>
-                      <button 
-                        onClick={saveNewTitle} 
-                        className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded"
+                      <button
+                        onClick={deleteAllChats}
+                        className="px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 transition-colors"
                       >
-                        Save
+                        <Flame className="w-4 h-4" />
+                        Delete All
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        startRenaming();
-                      }}
-                      className="flex items-center w-full px-3 py-2 text-sm hover:bg-muted text-left"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Rename
-                    </button>
-                    <button
-                      onClick={() => deleteChat(contextMenuChatId)}
-                      className="flex items-center w-full px-3 py-2 text-sm hover:bg-muted text-red-500 text-left"
-                    >
-                      <Trash className="w-4 h-4 mr-2" />
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Delete All Confirmation Popup */}
-            {showDeleteAllConfirm && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full">
-                  <h3 className="text-lg font-semibold mb-2">Delete all chats?</h3>
-                  <p className="text-muted-foreground mb-6">
-                    This action cannot be undone. All your conversation history will be permanently removed.
-                  </p>
-                  <div className="flex justify-end gap-3">
-                    <button 
-                      onClick={() => setShowDeleteAllConfirm(false)}
-                      className="px-4 py-2 rounded border border-border bg-background hover:bg-muted transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      onClick={deleteAllChats}
-                      className="px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 transition-colors"
-                    >
-                      <Flame className="w-4 h-4" />
-                      Delete All
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </aside>
         </div>
-        
+
         <div className="flex-grow flex flex-col">
           {/* Main chat area - adjust the height calculation to remove extra space */}
           <main className="flex flex-col h-[calc(100vh-61px)] max-w-5xl mx-auto w-full p-4 md:p-8">
@@ -960,23 +1151,23 @@ const handleSendMessage = async (e: React.FormEvent) => {
                 <Image src="/tekir-down.png" alt="Tekir AI" width={60} height={60} />
                 <h2 className="text-2xl font-bold">How can I help you?</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
-                  {["Tell me about quantum computing", 
-                    "Write a poem about the night sky", 
+                  {["Tell me about quantum computing",
+                    "Write a poem about the night sky",
                     "Explain how blockchain works",
                     "Explain the open source world"].map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      onClick={() => {
-                        setInput(suggestion);
-                        if (inputRef.current) {
-                          inputRef.current.focus();
-                        }
-                      }}
-                      className="p-3 rounded-lg border border-border bg-background hover:bg-muted text-sm text-left"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+                      <button
+                        key={suggestion}
+                        onClick={() => {
+                          setInput(suggestion);
+                          if (inputRef.current) {
+                            inputRef.current.focus();
+                          }
+                        }}
+                        className="p-3 rounded-lg border border-border bg-background hover:bg-muted text-sm text-left"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
                 </div>
               </div>
             ) : currentChat ? (
@@ -992,7 +1183,7 @@ const handleSendMessage = async (e: React.FormEvent) => {
                       className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[80%] md:max-w-[70%] rounded-lg p-4 ${ message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted" }`}
+                        className={`max-w-[80%] md:max-w-[70%] rounded-lg p-4 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                       >
                         <div className="flex items-center mb-2">
                           <div className="p-1.5 rounded-full bg-background/10">
@@ -1003,11 +1194,11 @@ const handleSendMessage = async (e: React.FormEvent) => {
                           </div>
                         </div>
                         {message.content ? (
-                          <MarkdownMessage 
-                            content={message.role === "assistant" 
-                              ? escapeInlineMath(message.content) 
-                              : message.content} 
-                            className={message.role === "user" ? "text-primary-foreground" : ""} 
+                          <MarkdownMessage
+                            content={message.role === "assistant"
+                              ? escapeInlineMath(message.content)
+                              : message.content}
+                            className={message.role === "user" ? "text-primary-foreground" : ""}
                           />
                         ) : (message.role === "assistant" && isLoading && (
                           <span className="inline-block w-5 h-5 relative">
@@ -1037,25 +1228,25 @@ const handleSendMessage = async (e: React.FormEvent) => {
                   Chat with advanced AI models in your browser. Ask questions, get information, or just have a conversation.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl mb-8">
-                  {["Tell me about quantum computing", 
-                    "Write a poem about the night sky", 
+                  {["Tell me about quantum computing",
+                    "Write a poem about the night sky",
                     "Explain how blockchain works",
                     "Explain the open source world"].map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      onClick={() => {
-                        setInput(suggestion);
-                        if (inputRef.current) {
-                          inputRef.current.focus();
-                        }
-                      }}
-                      className="p-3 rounded-lg border border-border bg-background hover:bg-muted text-sm text-left"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+                      <button
+                        key={suggestion}
+                        onClick={() => {
+                          setInput(suggestion);
+                          if (inputRef.current) {
+                            inputRef.current.focus();
+                          }
+                        }}
+                        className="p-3 rounded-lg border border-border bg-background hover:bg-muted text-sm text-left"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
                 </div>
-                
+
                 {/* Add Markdown examples */}
                 <div className="border border-border rounded-lg p-4 max-w-2xl w-full">
                   <div className="flex items-center gap-2 mb-2">
@@ -1072,7 +1263,7 @@ const handleSendMessage = async (e: React.FormEvent) => {
                       <code className="block">- Bullet list</code>
                     </div>
                     <div className="p-2 bg-muted rounded">
-                      <code className="block mb-1">```python<br/>print("Hello")<br/>```</code>
+                      <code className="block mb-1">```python<br />print("Hello")<br />```</code>
                       <code className="block">$E = mc^2$</code>
                     </div>
                   </div>
