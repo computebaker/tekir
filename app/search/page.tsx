@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight } from "lucide-react";
+import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -509,6 +509,21 @@ export default function SearchPage() {
                 </div>
               )}
             </div>
+            {/* New icons placed right of search bar (desktop only) */}
+            <div className="hidden md:flex items-center gap-4">
+              <Link href="/about" className="group inline-flex items-center overflow-hidden transition-all duration-300">
+                <Lock className="w-5 h-5 text-muted-foreground" />
+                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] transition-all duration-300 ease-out">
+                  Your searches are private.
+                </span>
+              </Link>
+              <Link href="/chat" className="group inline-flex items-center overflow-hidden transition-all duration-300">
+                <MessageCircleMore className="w-5 h-5 text-muted-foreground" />
+                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] transition-all duration-300 ease-out">
+                  AI Chat
+                </span>
+              </Link>
+            </div>
             <button 
               type="button" 
               onClick={() => setMenuOpen(!menuOpen)}
@@ -663,12 +678,14 @@ export default function SearchPage() {
                             )}
                           </div>
                           <span>DuckDuckGo</span>
-                        </button>
+                        </button> 
                       </div>
                     </div>
                   )}
                 </div>
               </div>
+
+              
             </div>
           </div>
           {/* Reintroduced mobile menu block - modified for better sizing */}
