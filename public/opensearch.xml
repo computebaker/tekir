@@ -4,7 +4,7 @@
     <Description>Tekir is a privacy-focused metasearch engine.</Description>
     <Image height="256" width="256" type="image/ico">https://tekir.co/favicon.ico</Image>
     <Url type="text/html" method="get" template="https://tekir.co/search?q={searchTerms}"/>
-    <Url type="application/x-suggestions+json" rel="suggestions" template="https://autocomplete.tekir.co/brave?query={searchTerms}"/>
+    <Url type="application/x-suggestions+json" rel="suggestions" template="https://tekir.co/api/autocomplete/brave?query={searchTerms}"/>
     <Alias>@tekir</Alias>
     <InputEncoding>UTF-8</InputEncoding>
     <Language>en-US</Language>
