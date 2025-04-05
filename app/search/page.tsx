@@ -127,19 +127,23 @@ export default function SearchPage() {
       }
 
       setLoading(true);
-      fetch(
-        `/api/pars/${searchEngine}?q=${encodeURIComponent(query)}`
-      )
-        .then((response) => response.json())
-        .then((searchData) => {
-          setResults(searchData);
-          sessionStorage.setItem(
-            `search-${searchEngine}-${query}`,
-            JSON.stringify({ results: searchData })
-          );
-        })
-        .catch((error) => console.error("Search failed:", error))
-        .finally(() => setLoading(false));
+      
+      // Add 1 second delay before making the request
+      setTimeout(() => {
+        fetch(
+          `/api/pars/${searchEngine}?q=${encodeURIComponent(query)}`
+        )
+          .then((response) => response.json())
+          .then((searchData) => {
+            setResults(searchData);
+            sessionStorage.setItem(
+              `search-${searchEngine}-${query}`,
+              JSON.stringify({ results: searchData })
+            );
+          })
+          .catch((error) => console.error("Search failed:", error))
+          .finally(() => setLoading(false));
+      }, 1200); // So rate limiters don't block us
     })();
   }, [query, searchEngine]);
 
