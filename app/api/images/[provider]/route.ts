@@ -101,6 +101,26 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
       return NextResponse.json(response, { status: 200 });
     }
     default:
-      return NextResponse.json({ error: 'Invalid or unsupported provider. Currently only "brave" is supported.' }, { status: 400 });
+        const cacheKey = `brave_images_${query}_${count}`;
+      
+        // Check cache first
+        if (cache[cacheKey] && cache[cacheKey].expire > now) {
+          const cachedResponse = cache[cacheKey].data;
+          return NextResponse.json(cachedResponse, { status: 200 });
+        }
+        
+        // Fetch fresh data if not in cache or expired
+        results = await getBraveImages(query, count);
+        
+        const response: SearchResponse = {
+          results,
+          provider: 'Brave'
+        };
+        
+        // Update cache
+        cache[cacheKey] = { 
+          data: response, 
+          expire: now + CACHE_DURATION 
+        };
   }
 }
