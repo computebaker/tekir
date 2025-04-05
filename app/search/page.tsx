@@ -144,6 +144,58 @@ export default function SearchPage() {
   }, [query, searchEngine]);
 
   useEffect(() => {
+    if (!query || searchType !== 'images') return;
+
+    const cachedImages = sessionStorage.getItem(`images-${searchEngine}-${query}`);
+    if (cachedImages) {
+      const { results: cachedResults } = JSON.parse(cachedImages);
+      setImageResults(cachedResults);
+    }
+
+    setImageLoading(true);
+    fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.results) {
+          setImageResults(data.results);
+          sessionStorage.setItem(
+            `images-${searchEngine}-${query}`,
+            JSON.stringify({ results: data.results })
+          );
+        }
+      })
+      .catch((error) => console.error("Image search failed:", error))
+      .finally(() => setImageLoading(false));
+  }, [query, searchEngine, searchType]);
+
+  useEffect(() => {
+    if (!query || searchType !== 'images') return;
+
+    if (imageResults.length === 0 && !imageLoading) {
+      const cachedImages = sessionStorage.getItem(`images-${searchEngine}-${query}`);
+      if (cachedImages) {
+        const { results: cachedResults } = JSON.parse(cachedImages);
+        setImageResults(cachedResults);
+      } else {
+        setImageLoading(true);
+        fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.results) {
+              setImageResults(data.results);
+              sessionStorage.setItem(
+                `images-${searchEngine}-${query}`,
+                JSON.stringify({ results: data.results })
+              );
+            }
+          })
+          .catch((error) => console.error("Image search failed:", error))
+          .finally(() => setImageLoading(false));
+      }
+    }
+  }, [searchType, query, searchEngine, imageResults.length, imageLoading]);
+
+  useEffect(() => {
     if (!query) return;
 
     if (!aiEnabled) {
@@ -412,34 +464,32 @@ export default function SearchPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!query || searchType !== 'images') return;
-
-    const cachedImages = sessionStorage.getItem(`images-${searchEngine}-${query}`);
-    if (cachedImages) {
-      const { results: cachedResults } = JSON.parse(cachedImages);
-      setImageResults(cachedResults);
-    }
-
-    setImageLoading(true);
-    fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.results) {
-          setImageResults(data.results);
-          sessionStorage.setItem(
-            `images-${searchEngine}-${query}`,
-            JSON.stringify({ results: data.results })
-          );
-        }
-      })
-      .catch((error) => console.error("Image search failed:", error))
-      .finally(() => setImageLoading(false));
-  }, [query, searchEngine, searchType]);
-
   const handleSearchTypeChange = (type: 'web' | 'images') => {
     setSearchType(type);
     localStorage.setItem("searchType", type);
+
+    if (type === 'images' && query && imageResults.length === 0 && !imageLoading) {
+      const cachedImages = sessionStorage.getItem(`images-${searchEngine}-${query}`);
+      if (cachedImages) {
+        const { results: cachedResults } = JSON.parse(cachedImages);
+        setImageResults(cachedResults);
+      } else {
+        setImageLoading(true);
+        fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.results) {
+              setImageResults(data.results);
+              sessionStorage.setItem(
+                `images-${searchEngine}-${query}`,
+                JSON.stringify({ results: data.results })
+              );
+            }
+          })
+          .catch((error) => console.error("Image search failed:", error))
+          .finally(() => setImageLoading(false));
+      }
+    }
   };
 
   const [followUpQuestion, setFollowUpQuestion] = useState("");
@@ -849,25 +899,31 @@ export default function SearchPage() {
               <div className="flex space-x-4">
                 <button
                   onClick={() => handleSearchTypeChange('web')}
-                  className={`pb-2 px-1 flex items-center gap-2 transition-colors ${
-                    searchType === 'web'
-                      ? 'border-b-2 border-primary text-primary font-medium'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
                 >
-                  <Search className="w-4 h-4" />
-                  <span>Search</span>
+                  <div className="flex items-center gap-2">
+                    <Search className="w-4 h-4" />
+                    <span className={searchType === 'web' ? 'text-primary font-medium' : 'text-muted-foreground group-hover:text-foreground'}>
+                      Search
+                    </span>
+                  </div>
+                  {searchType === 'web' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: '100%', maxWidth: '62px', margin: '0 auto' }}></div>
+                  )}
                 </button>
                 <button
                   onClick={() => handleSearchTypeChange('images')}
-                  className={`pb-2 px-1 flex items-center gap-2 transition-colors ${
-                    searchType === 'images'
-                      ? 'border-b-2 border-primary text-primary font-medium'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
                 >
-                  <ImageIcon className="w-4 h-4" />
-                  <span>Images</span>
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4" />
+                    <span className={searchType === 'images' ? 'text-primary font-medium' : 'text-muted-foreground group-hover:text-foreground'}>
+                      Images
+                    </span>
+                  </div>
+                  {searchType === 'images' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: '100%', maxWidth: '64px', margin: '0 auto' }}></div>
+                  )}
                 </button>
               </div>
             </div>
