@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore } from "lucide-react";
+import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -20,7 +20,6 @@ interface Suggestion {
   query: string;
 }
 
-// Add Wikipedia interface definitions
 interface WikipediaData {
   title: string;
   extract: string;
@@ -32,6 +31,23 @@ interface WikipediaData {
   pageUrl: string;
 }
 
+interface ImageSearchResult {
+  title: string;
+  url: string;
+  source: string;
+  thumbnail: {
+    src: string;
+  };
+  properties: {
+    url: string;
+    placeholder: string;
+  };
+  meta_url: {
+    netloc: string;
+    path: string;
+  };
+}
+
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -41,37 +57,33 @@ export default function SearchPage() {
   const [searchInput, setSearchInput] = useState(query);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  // Default aiEnabled set to true.
   const [aiEnabled, setAiEnabled] = useState(true);
   const [searchEngine, setSearchEngine] = useState("brave");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [aiModel, setAiModel] = useState("gemini"); // Add this
-  const [modelDropdownOpen, setModelDropdownOpen] = useState(false); // Add this
+  const [aiModel, setAiModel] = useState("gemini");
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [autocompleteSource, setAutocompleteSource] = useState(() => 
+  const [autocompleteSource, setAutocompleteSource] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
   const [hasBang, setHasBang] = useState(false);
-  
-  // Add Wikipedia state
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
-  // Add state for mobile expand/collapse
   const [wikiExpanded, setWikiExpanded] = useState(false);
+  const [searchType, setSearchType] = useState<'web' | 'images'>('web');
+  const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
+  const [imageLoading, setImageLoading] = useState(false);
 
-  // Refs for click-outside detection
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
   const autocompleteDropdownRef = useRef<HTMLDivElement>(null);
   const searchEngineDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Add state for dropdowns visibility
   const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
   const [searchEngineDropdownOpen, setSearchEngineDropdownOpen] = useState(false);
 
-  // Read the AI preference from localStorage on mount.
   useEffect(() => {
     const stored = localStorage.getItem("karakulakEnabled");
     if (stored !== null) {
@@ -79,7 +91,6 @@ export default function SearchPage() {
     }
   }, []);
 
-  // Add effect to load stored search engine option on mount
   useEffect(() => {
     const storedEngine = localStorage.getItem("searchEngine");
     if (storedEngine) {
@@ -87,7 +98,6 @@ export default function SearchPage() {
     }
   }, []);
 
-  // Add effect to load stored model preference
   useEffect(() => {
     const storedModel = localStorage.getItem("aiModel");
     if (storedModel) {
@@ -95,7 +105,6 @@ export default function SearchPage() {
     }
   }, []);
 
-  // Replace the checkForBangs function with our new bang handling
   useEffect(() => {
     const checkQueryForBangs = async () => {
       if (!query) return;
@@ -104,25 +113,19 @@ export default function SearchPage() {
     checkQueryForBangs();
   }, [query]);
 
-  // Modify the search results effect
   useEffect(() => {
     if (!query) return;
-    
-    // Replace the call to checkForBangs with handleBangRedirect
-    // We'll use an async IIFE (Immediately Invoked Function Expression)
+
     (async () => {
-      // Try to handle as a bang command first - if it succeeds, stop processing
       const isRedirected = await handleBangRedirect(query);
       if (isRedirected) return;
-      
-      // Continue with normal search if no bang redirect happened
+
       const cachedSearch = sessionStorage.getItem(`search-${searchEngine}-${query}`);
       if (cachedSearch) {
         const { results: cachedResults } = JSON.parse(cachedSearch);
         setResults(cachedResults);
-        // continue to update search results even if cached for new search engine
       }
-      
+
       setLoading(true);
       fetch(
         `/api/pars/${searchEngine}?q=${encodeURIComponent(query)}`
@@ -140,23 +143,21 @@ export default function SearchPage() {
     })();
   }, [query, searchEngine]);
 
-  // Modify the AI effect
   useEffect(() => {
     if (!query) return;
-    
+
     if (!aiEnabled) {
       setAiResponse(null);
       return;
     }
-    
-    // Update cache key to include model name
+
     const cacheKey = `ai-${query}-${aiModel}`;
     const cachedAi = sessionStorage.getItem(cacheKey);
     if (cachedAi) {
       setAiResponse(JSON.parse(cachedAi));
       return;
     }
-    
+
     setAiLoading(true);
     if (localStorage.getItem("karakulakEnabled") === "false") {
       return;
@@ -170,11 +171,11 @@ export default function SearchPage() {
             },
             body: JSON.stringify({ message: query }),
           });
-          
+
           if (!res.ok) {
             throw new Error(`API returned status ${res.status}`);
           }
-          
+
           const aiData = await res.json();
           const aiResult = aiData.answer.trim();
           setAiResponse(aiResult);
@@ -182,40 +183,33 @@ export default function SearchPage() {
           setAiLoading(false);
         } catch (error) {
           console.error(`AI response failed for model ${model}:`, error);
-          
-          // If this wasn't already a retry and the model isn't gemini, try with gemini
+
           if (!isRetry && model !== "gemini") {
             console.log("Falling back to Gemini model");
             makeAIRequest("gemini", true);
           } else {
-            // If we're already using gemini or this was a retry, just set loading to false
             setAiLoading(false);
           }
         }
       };
-      
-      // Start with the selected model
+
       makeAIRequest(aiModel);
     }
   }, [query, aiEnabled, aiModel]);
 
-  // Add the model selection function
   const handleModelChange = (model: string) => {
     setAiModel(model);
     setModelDropdownOpen(false);
     localStorage.setItem("aiModel", model);
   };
 
-  // Modify the handleSearch function
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowSuggestions(false); // Hide suggestions when form is submitted
+    setShowSuggestions(false);
     const trimmed = searchInput.trim();
     if (trimmed) {
-      // Try to handle as a bang command first
       const redirected = await handleBangRedirect(trimmed);
       if (!redirected) {
-        // No bang matched, redirect to normal search
         router.push(`/search?q=${encodeURIComponent(trimmed)}`);
       }
     }
@@ -227,7 +221,6 @@ export default function SearchPage() {
     localStorage.setItem("karakulakEnabled", newValue.toString());
   };
 
-  // Modify the autocomplete effect to handle the new format
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (searchInput.trim().length < 2) {
@@ -235,7 +228,6 @@ export default function SearchPage() {
         return;
       }
 
-      // Check cache first
       const cacheKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
@@ -251,16 +243,12 @@ export default function SearchPage() {
           }
         });
         const data = await response.json();
-        
-        // Process new response format
+
         if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
-          // Convert the array of strings to array of objects with query property
           const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
           setSuggestions(processedSuggestions);
-          // Cache the processed results
           sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
         } else {
-          // Fallback for old format or unexpected data
           console.warn('Unexpected suggestion format:', data);
           setSuggestions([]);
         }
@@ -274,14 +262,13 @@ export default function SearchPage() {
     return () => clearTimeout(timeoutId);
   }, [searchInput, autocompleteSource]);
 
-  // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions) return;
-  
+
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => 
+        setSelectedIndex(prev =>
           prev < suggestions.length - 1 ? prev + 1 : prev
         );
         break;
@@ -297,7 +284,6 @@ export default function SearchPage() {
           router.push(`/search?q=${encodeURIComponent(selected.query)}`);
           setShowSuggestions(false);
         } else {
-          // Even if no suggestion is selected, hide the dropdown on Enter
           setShowSuggestions(false);
         }
         break;
@@ -307,18 +293,14 @@ export default function SearchPage() {
     }
   };
 
-  // Helper function to detect if input contains a bang
   const checkForBang = (input: string): boolean => {
-    // Check for bang pattern (! followed by letters)
     return /(?:^|\s)![a-z]+/.test(input.toLowerCase());
   };
-  
-  // Update bang detection when search input changes
+
   useEffect(() => {
     setHasBang(checkForBang(searchInput));
   }, [searchInput]);
 
-  // Add effect to update document title based on search query
   useEffect(() => {
     if (query) {
       document.title = `${query} - Tekir`;
@@ -327,48 +309,40 @@ export default function SearchPage() {
     }
   }, [query]);
 
-  // Click outside handler for suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Handle suggestions dropdown
-      if (suggestionsRef.current && 
-          !suggestionsRef.current.contains(event.target as Node) && 
+      if (suggestionsRef.current &&
+          !suggestionsRef.current.contains(event.target as Node) &&
           showSuggestions) {
         setShowSuggestions(false);
       }
-      
-      // Handle model dropdown
-      if (modelDropdownRef.current && 
-          !modelDropdownRef.current.contains(event.target as Node) && 
+
+      if (modelDropdownRef.current &&
+          !modelDropdownRef.current.contains(event.target as Node) &&
           modelDropdownOpen) {
         setModelDropdownOpen(false);
       }
 
-      // Autocomplete dropdown
-      if (autocompleteDropdownRef.current && 
-          !autocompleteDropdownRef.current.contains(event.target as Node) && 
+      if (autocompleteDropdownRef.current &&
+          !autocompleteDropdownRef.current.contains(event.target as Node) &&
           autocompleteDropdownOpen) {
         setAutocompleteDropdownOpen(false);
       }
-      
-      // Search engine dropdown
-      if (searchEngineDropdownRef.current && 
-          !searchEngineDropdownRef.current.contains(event.target as Node) && 
+
+      if (searchEngineDropdownRef.current &&
+          !searchEngineDropdownRef.current.contains(event.target as Node) &&
           searchEngineDropdownOpen) {
         setSearchEngineDropdownOpen(false);
       }
     };
 
-    // Add event listener
     document.addEventListener('mousedown', handleClickOutside);
-    
-    // Clean up
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showSuggestions, modelDropdownOpen, autocompleteDropdownOpen, searchEngineDropdownOpen]);
 
-  // Add effect to fetch Wikipedia data
   useEffect(() => {
     if (!query || query.trim().length < 2) {
       setWikiData(null);
@@ -376,7 +350,6 @@ export default function SearchPage() {
     }
 
     const fetchWikipediaData = async () => {
-      // Check cache first
       const cacheKey = `wiki-${query.trim().toLowerCase()}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
@@ -386,23 +359,21 @@ export default function SearchPage() {
 
       setWikiLoading(true);
       try {
-        // First, search for Wikipedia articles that match the query
         const searchUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=${encodeURIComponent(
           query
         )}&format=json&utf8=1`;
-        
+
         const searchResponse = await fetch(searchUrl);
         const searchData = await searchResponse.json();
-        
+
         if (searchData.query?.search?.length > 0) {
           const topResult = searchData.query.search[0];
           const pageTitle = topResult.title;
-          
-          // Then, get more detailed information about the top result
+
           const detailsUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
           const detailsResponse = await fetch(detailsUrl);
           const details = await detailsResponse.json();
-          
+
           if (details.type === "standard" || details.type === "disambiguation") {
             const wikipediaData: WikipediaData = {
               title: details.title,
@@ -410,7 +381,7 @@ export default function SearchPage() {
               pageUrl: details.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(details.title)}`,
               ...(details.thumbnail && { thumbnail: details.thumbnail })
             };
-            
+
             setWikiData(wikipediaData);
             sessionStorage.setItem(cacheKey, JSON.stringify(wikipediaData));
           } else {
@@ -426,8 +397,7 @@ export default function SearchPage() {
         setWikiLoading(false);
       }
     };
-    
-    // Don't fetch Wikipedia data if we have a bang command
+
     if (!hasBang) {
       fetchWikipediaData();
     } else {
@@ -435,28 +405,61 @@ export default function SearchPage() {
     }
   }, [query, hasBang]);
 
+  useEffect(() => {
+    const storedSearchType = localStorage.getItem("searchType");
+    if (storedSearchType === 'web' || storedSearchType === 'images') {
+      setSearchType(storedSearchType as 'web' | 'images');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!query || searchType !== 'images') return;
+
+    const cachedImages = sessionStorage.getItem(`images-${searchEngine}-${query}`);
+    if (cachedImages) {
+      const { results: cachedResults } = JSON.parse(cachedImages);
+      setImageResults(cachedResults);
+    }
+
+    setImageLoading(true);
+    fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.results) {
+          setImageResults(data.results);
+          sessionStorage.setItem(
+            `images-${searchEngine}-${query}`,
+            JSON.stringify({ results: data.results })
+          );
+        }
+      })
+      .catch((error) => console.error("Image search failed:", error))
+      .finally(() => setImageLoading(false));
+  }, [query, searchEngine, searchType]);
+
+  const handleSearchTypeChange = (type: 'web' | 'images') => {
+    setSearchType(type);
+    localStorage.setItem("searchType", type);
+  };
+
   const [followUpQuestion, setFollowUpQuestion] = useState("");
 
-  // Add a handler for the follow-up question
   const handleFollowUpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!followUpQuestion.trim()) return;
 
-    // Create parameters for the chat page with original query, AI response, and follow-up
     const chatParams = new URLSearchParams({
       originalQuery: query,
       aiResponse: aiResponse || "",
       followUp: followUpQuestion
     });
 
-    // Redirect to the chat page with these parameters
     router.push(`/chat?${chatParams.toString()}`);
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">
-        {/* Search Header */}
         <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full space-x-4">
             <Link href="/">
@@ -482,7 +485,6 @@ export default function SearchPage() {
                 <Search className="w-5 h-5" />
               </button>
               
-              {/* Autocomplete dropdown */}
               {showSuggestions && suggestions.length > 0 && (
                 <div 
                   ref={suggestionsRef}
@@ -509,7 +511,6 @@ export default function SearchPage() {
                 </div>
               )}
             </div>
-            {/* New icons placed right of search bar (desktop only) */}
             <div className="hidden md:flex items-center gap-4">
               <Link href="/about" className="group inline-flex items-center overflow-hidden transition-all duration-300">
                 <Lock className="w-5 h-5 text-muted-foreground" />
@@ -533,10 +534,8 @@ export default function SearchPage() {
             </button>
           </form>
 
-          {/* New desktop-only options block below the search bar */}
           <div className="hidden md:flex flex-col mt-4">
             <div className="flex items-center gap-4">
-              {/* Karakulak slider */}
               <div className="flex items-center">
                 <span className="text-sm text-muted-foreground">Karakulak</span>
                 <div className="relative ml-2">
@@ -556,7 +555,6 @@ export default function SearchPage() {
                   ></div>
                 </div>
               </div>
-              {/* Search engine selection */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Search engine:</span>
                 <div ref={searchEngineDropdownRef} className="relative">
@@ -624,7 +622,6 @@ export default function SearchPage() {
                 </div>
               </div>
               
-              {/* Autocomplete dropdown */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Autocomplete:</span>
                 <div ref={autocompleteDropdownRef} className="relative">
@@ -684,17 +681,12 @@ export default function SearchPage() {
                   )}
                 </div>
               </div>
-
-              
             </div>
           </div>
-          {/* Reintroduced mobile menu block - modified for better sizing */}
           {menuOpen && (
             <div className="md:hidden mt-4 p-4 bg-background rounded shadow-lg">
-              {/* Karakulak toggle - unchanged */}
               <div className="flex items-center gap-1 relative">
                 <div className="relative group">
-
                 </div>
                 <input 
                   type="checkbox" 
@@ -707,17 +699,14 @@ export default function SearchPage() {
                   htmlFor="toggleAi-mobile" 
                   className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
                 ></label>
-                {/* Updated mobile slider ball */}
                 <div
                   className={`absolute left-0 top-0 h-6 w-6 flex items-center justify-center bg-white rounded-full transition-transform duration-200 ease-in-out ${
                     aiEnabled ? "translate-x-5" : ""
                   }`}
                 ></div>
                 <span className="text-sm text-muted-foreground">Karakulak</span>
-
               </div>
               
-              {/* Search engine dropdown for mobile - modified sizing */}
               <div className="mt-4">
                 <span className="text-sm text-muted-foreground block mb-2">Search engine:</span>
                 <div className="inline-block relative" ref={searchEngineDropdownRef}>
@@ -785,7 +774,6 @@ export default function SearchPage() {
                 </div>
               </div>
               
-              {/* Autocomplete dropdown for mobile - modified sizing */}
               <div className="mt-4">
                 <span className="text-sm text-muted-foreground block mb-2">Autocomplete:</span>
                 <div className="inline-block relative" ref={autocompleteDropdownRef}>
@@ -849,20 +837,45 @@ export default function SearchPage() {
           )}
         </div>
 
-        {/* Main content with responsive layout */}
         <div className="max-w-6xl w-full md:ml-8 relative">
           {query && (
-            <p className="text-muted-foreground mb-6 md:w-4/5 xl:w-2/3">
+            <p className="text-muted-foreground mb-4 md:w-4/5 xl:w-2/3">
               Showing results for: <span className="font-medium text-foreground">{query}</span>
             </p>
           )}
 
-          {/* Desktop layout with Wikipedia on the right */}
+          {query && (
+            <div className="mb-6 border-b border-border">
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => handleSearchTypeChange('web')}
+                  className={`pb-2 px-1 flex items-center gap-2 transition-colors ${
+                    searchType === 'web'
+                      ? 'border-b-2 border-primary text-primary font-medium'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Search className="w-4 h-4" />
+                  <span>Search</span>
+                </button>
+                <button
+                  onClick={() => handleSearchTypeChange('images')}
+                  className={`pb-2 px-1 flex items-center gap-2 transition-colors ${
+                    searchType === 'images'
+                      ? 'border-b-2 border-primary text-primary font-medium'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Images</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col md:flex-row md:gap-8">
-            {/* Left column with AI response and search results */}
             <div className="flex-1 md:w-4/5 xl:w-2/3">
-              {/* AI Response Box */}
-              {aiEnabled && (aiLoading ? (
+              {searchType === 'web' && aiEnabled && (aiLoading ? (
                 <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 animate-pulse">
                   <div className="flex items-center mb-4">
                     <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -895,7 +908,6 @@ export default function SearchPage() {
                       </span>
                     </div>
                     
-                    {/* Model Selection Dropdown */}
                     <div className="relative" ref={modelDropdownRef}>
                       <button
                         onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
@@ -963,13 +975,11 @@ export default function SearchPage() {
                     </div>
                   </div>
                   
-                  {/* Rest of the AI response box content */}
                   <p className="text-left text-blue-800 dark:text-blue-100 mb-3">{aiResponse}</p>
                   <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
                     Auto-generated based on online sources. May contain inaccuracies.
                   </p>
                   
-                  {/* Follow-up question component */}
                   <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
                     <div className="flex items-center gap-2">
                       <input
@@ -992,7 +1002,7 @@ export default function SearchPage() {
                 </div>
               ) : null)}
               
-              {/* Mobile Wikipedia Info Box (collapsible) */}
+              {searchType === 'web' && (
                 <div className="md:hidden">
                 {wikiLoading ? (
                   <div className="mb-8 p-4 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
@@ -1003,7 +1013,6 @@ export default function SearchPage() {
                   </div>
                 ) : wikiData ? (
                   <div className="mb-8 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
-                  {/* Header with expand/collapse button */}
                   <button 
                     onClick={() => setWikiExpanded(!wikiExpanded)}
                     className="w-full flex items-center justify-between p-4 text-left"
@@ -1014,7 +1023,6 @@ export default function SearchPage() {
                     <ChevronDown className={`w-5 h-5 transition-transform ${wikiExpanded ? 'rotate-180' : ''}`} />
                   </button>
                   
-                  {/* Collapsible content */}
                   {wikiExpanded && (
                     <div className="p-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     {wikiData.thumbnail && (
@@ -1047,105 +1055,148 @@ export default function SearchPage() {
                   </div>
                 ) : null}
                 </div>
+              )}
 
-              {/* Search Results */}
-              {loading ? (
-                // Loading skeleton
-                <div className="space-y-8">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-muted rounded w-1/2"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : results.length > 0 ? (
-                <div className="space-y-8">
-                  {results.map((result, index) => (
-                    <div key={index} className="space-y-2">
-                      <a
-                        href={result.url}
-                        target="_self"
-                        rel="noopener noreferrer"
-                        className="block group"
-                      >
-                        <p className="text-sm text-muted-foreground mb-1">
-                          {result.displayUrl}
-                        </p>
-                        <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                          {result.title}
-                        </h2>
-                        <p className="text-muted-foreground">
-                          {result.description}
-                        </p>
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              ) : query ? (
-                <div className="text-center text-muted-foreground">
-                  No results found for your search
-                </div>
+              {searchType === 'web' ? (
+                loading ? (
+                  <div className="space-y-8">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : results.length > 0 ? (
+                  <div className="space-y-8">
+                    {results.map((result, index) => (
+                      <div key={index} className="space-y-2">
+                        <a
+                          href={result.url}
+                          target="_self"
+                          rel="noopener noreferrer"
+                          className="block group"
+                        >
+                          <p className="text-sm text-muted-foreground mb-1">
+                            {result.displayUrl}
+                          </p>
+                          <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
+                            {result.title}
+                          </h2>
+                          <p className="text-muted-foreground">
+                            {result.description}
+                          </p>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                ) : query ? (
+                  <div className="text-center text-muted-foreground">
+                    No results found for your search
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    Enter a search term to see results
+                  </div>
+                )
               ) : (
-                <div className="text-center text-muted-foreground">
-                  Enter a search term to see results
-                </div>
+                imageLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {[...Array(12)].map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="aspect-square bg-muted rounded-lg w-full"></div>
+                        <div className="h-4 bg-muted rounded w-3/4 mt-2"></div>
+                        <div className="h-3 bg-muted rounded w-1/2 mt-1"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : imageResults.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {imageResults.map((image, index) => (
+                      <a 
+                        key={index} 
+                        href={image.url} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group overflow-hidden"
+                      >
+                        <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-muted mb-2">
+                          <Image 
+                            src={image.thumbnail.src} 
+                            alt={image.title || "Image"} 
+                            fill 
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            placeholder="blur"
+                            blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNFNkU2RTYiLz48L3N2Zz4="}
+                          />
+                        </div>
+                        <p className="text-sm font-medium truncate">{image.title || "Image"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{image.source}</p>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    No images found for your search
+                  </div>
+                )
               )}
             </div>
             
-            {/* Desktop Wikipedia Info Box (right sidebar) */}
-            <div className="hidden md:block md:w-1/3">
-              {wikiLoading ? (
-                <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
-                  <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
-                  <div className="w-full h-40 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full mb-2"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-5/6 mb-2"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
-                </div>
-              ) : wikiData ? (
-                <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md">
-                  <h3 className="text-xl font-semibold mb-4">{wikiData.title}</h3>
-                  
-                  {wikiData.thumbnail && (
-                    <div className="mb-4 w-full">
-                      <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg">
-                        <Image 
-                          src={wikiData.thumbnail.source} 
-                          alt={wikiData.title}
-                          className="object-cover"
-                          fill
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                        />
+            {searchType === 'web' && (
+              <div className="hidden md:block md:w-1/3">
+                {wikiLoading ? (
+                  <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                    <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
+                    <div className="w-full h-40 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full mb-2"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-5/6 mb-2"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
+                  </div>
+                ) : wikiData ? (
+                  <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md">
+                    <h3 className="text-xl font-semibold mb-4">{wikiData.title}</h3>
+                    
+                    {wikiData.thumbnail && (
+                      <div className="mb-4 w-full">
+                        <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg">
+                          <Image 
+                            src={wikiData.thumbnail.source} 
+                            alt={wikiData.title}
+                            className="object-cover"
+                            fill
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                          />
+                        </div>
                       </div>
+                    )}
+                    
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {wikiData.extract}
+                      </p>
                     </div>
-                  )}
-                  
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      {wikiData.extract}
-                    </p>
+                    
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      <span>Source: </span>
+                      <a 
+                        href={wikiData.pageUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        Wikipedia
+                      </a>
+                    </div>
                   </div>
-                  
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    <span>Source: </span>
-                    <a 
-                      href={wikiData.pageUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      Wikipedia
-                    </a>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="w-full py-4 px-6 border-t border-border bg-background mt-auto">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
