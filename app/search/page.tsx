@@ -517,7 +517,7 @@ export default function SearchPage() {
         <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full space-x-4">
             <Link href="/">
-              <Image src="/tekir.png" alt="Tekir Logo" width={40} height={40} />
+              <Image src="/tekir-head.png" alt="Tekir Logo" width={40} height={40} />
             </Link>
             <div className="relative flex-1 min-w-0">
               <input
