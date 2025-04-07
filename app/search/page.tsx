@@ -120,32 +120,43 @@ export default function SearchPage() {
       const isRedirected = await handleBangRedirect(query);
       if (isRedirected) return;
 
-      const cachedSearch = sessionStorage.getItem(`search-${searchEngine}-${query}`);
+      const storedEngine = localStorage.getItem("searchEngine") || "brave";
+      let engineToUse = storedEngine;
+
+      const cachedSearch = sessionStorage.getItem(`search-${engineToUse}-${query}`);
       if (cachedSearch) {
         const { results: cachedResults } = JSON.parse(cachedSearch);
         setResults(cachedResults);
       }
 
       setLoading(true);
-      
-      // Add 1 second delay before making the request
-      setTimeout(() => {
-        fetch(
-          `/api/pars/${searchEngine}?q=${encodeURIComponent(query)}`
-        )
-          .then((response) => response.json())
-          .then((searchData) => {
-            setResults(searchData);
-            sessionStorage.setItem(
-              `search-${searchEngine}-${query}`,
-              JSON.stringify({ results: searchData })
-            );
-          })
-          .catch((error) => console.error("Search failed:", error))
-          .finally(() => setLoading(false));
-      }, 1200); // So rate limiters don't block us
+
+      const fetchWithEngine = async (engine: string) => {
+        try {
+          const response = await fetch(`/api/pars/${engine}?q=${encodeURIComponent(query)}`);
+          if (!response.ok) throw new Error("Fetch failed");
+          const searchData = await response.json();
+          setResults(searchData);
+          sessionStorage.setItem(
+            `search-${engine}-${query}`,
+            JSON.stringify({ results: searchData })
+          );
+          setSearchEngine(engine);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      setTimeout(async () => {
+        const success = await fetchWithEngine(engineToUse);
+        if (!success && engineToUse !== "brave") {
+          await fetchWithEngine("brave");
+        }
+        setLoading(false);
+      }, 1200);
     })();
-  }, [query, searchEngine]);
+  }, [query]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;

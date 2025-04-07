@@ -7,6 +7,7 @@ import { useRef, useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
 import { handleBangRedirect } from "@/utils/bangs";
+import { useTransition } from "react";
 
 interface Suggestion {
   query: string;
@@ -19,6 +20,7 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   // Keep autocompleteSource as a hidden setting without UI to change it
   const [autocompleteSource] = useState(() => 
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
@@ -61,15 +63,20 @@ export default function Home() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowSuggestions(false); // Hide suggestions when form is submitted
+    setShowSuggestions(false);
     const trimmed = searchQuery.trim();
-    if (trimmed) {
-      // Try to handle as a bang command first
-      const redirected = await handleBangRedirect(trimmed);
-      if (!redirected) {
-        // No bang matched, redirect to normal search
-        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
-      }
+    if (!trimmed) return;
+
+    startTransition(() => {
+      setTimeout(() => {
+        router.replace(`/search?q=${encodeURIComponent(trimmed)}`);
+      }, 100);
+    });
+
+    // Then handle bang redirect asynchronously
+    const redirected = await handleBangRedirect(trimmed);
+    if (redirected) {
+      // If bang redirect happened, do nothing (it already navigated)
     }
   };
 
