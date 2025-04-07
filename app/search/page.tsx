@@ -1033,9 +1033,9 @@ export default function SearchPage() {
                             </button>
 
                             <button
-                              onClick={() => handleModelChange('openai')}
+                              onClick={() => handleModelChange('chatgpt')}
                               className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                aiModel === 'openai' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                aiModel === 'chatgpt' ? 'bg-gray-100 dark:bg-gray-700' : ''
                               }`}
                             >
                               <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
