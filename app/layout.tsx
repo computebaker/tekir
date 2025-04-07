@@ -1,10 +1,6 @@
-"use client";
-
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { useEffect } from 'react';
-import { prefetchBangs } from '@/utils/bangs';
 import { Metadata } from 'next';
+import ClientLayout from '@/components/client-layout';
 
 // Add KaTeX CSS
 import 'katex/dist/katex.min.css';
@@ -22,11 +18,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Prefetch bangs when the app initializes
-  useEffect(() => {
-    prefetchBangs();
-  }, []);
-
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -37,14 +28,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ClientLayout>
           {children}
-        </ThemeProvider>
+        </ClientLayout>
       </body>
     </html>
   );
