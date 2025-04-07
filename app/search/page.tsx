@@ -226,41 +226,49 @@ export default function SearchPage() {
     }
 
     setAiLoading(true);
-    if (localStorage.getItem("karakulakEnabled") === "false") {
-      return;
-    } else {
-      const makeAIRequest = async (model: string, isRetry: boolean = false) => {
-        try {
-          const res = await fetch(`/api/karakulak/${model}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ message: query }),
-          });
 
-          if (!res.ok) {
-            throw new Error(`API returned status ${res.status}`);
-          }
+    const isModelEnabled = (model: string) => {
+      const stored = localStorage.getItem(`karakulakEnabled_${model}`);
+      return stored !== "false";
+    };
 
-          const aiData = await res.json();
-          const aiResult = aiData.answer.trim();
-          setAiResponse(aiResult);
-          sessionStorage.setItem(cacheKey, JSON.stringify(aiResult));
-          setAiLoading(false);
-        } catch (error) {
-          console.error(`AI response failed for model ${model}:`, error);
+    const makeAIRequest = async (model: string, isRetry: boolean = false) => {
+      try {
+        const res = await fetch(`/api/karakulak/${model}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: query }),
+        });
 
-          if (!isRetry && model !== "gemini") {
-            console.log("Falling back to Gemini model");
-            makeAIRequest("gemini", true);
-          } else {
-            setAiLoading(false);
-          }
+        if (!res.ok) {
+          throw new Error(`API returned status ${res.status}`);
         }
-      };
 
+        const aiData = await res.json();
+        const aiResult = aiData.answer.trim();
+        setAiResponse(aiResult);
+        sessionStorage.setItem(`ai-${query}-${model}`, JSON.stringify(aiResult));
+        setAiLoading(false);
+      } catch (error) {
+        console.error(`AI response failed for model ${model}:`, error);
+
+        if (!isRetry && model !== "gemini") {
+          console.log("Falling back to Gemini model");
+          makeAIRequest("gemini", true);
+        } else {
+          setAiLoading(false);
+        }
+      }
+    };
+
+    const selectedModelEnabled = isModelEnabled(aiModel);
+
+    if (selectedModelEnabled) {
       makeAIRequest(aiModel);
+    } else {
+      makeAIRequest("gemini");
     }
   }, [query, aiEnabled, aiModel]);
 
