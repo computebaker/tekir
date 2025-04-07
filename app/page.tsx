@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Search, Shield, Database, Sparkles, Github, Instagram, Brain, Lock, Code, Server, User, Users, MessageCircleMore } from "lucide-react";
+import { CircleAlert, Search, Lock,  MessageCircleMore } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,7 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   // Keep autocompleteSource as a hidden setting without UI to change it
   const [autocompleteSource] = useState(() => 
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
@@ -202,6 +203,25 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleGlobalKeydown);
   }, []);
 
+  useEffect(() => {
+    const handleOnlineStatus = () => {
+      setIsOnline(navigator.onLine);
+    };
+
+    // Add event listeners for online/offline events
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+
+    // Initial check
+    handleOnlineStatus();
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+    };
+  }, []);
+
   return (
     <main className="min-h-[100vh] relative">
       {/* Hero Section */}
@@ -289,6 +309,14 @@ export default function Home() {
           
           </div>
           </section>
+
+      {/* Offline Notification */}
+      {!isOnline && (
+        <div className="fixed bottom-0 left-0 right-0 bg-red-500 text-white p-2 text-center flex items-center justify-center">
+          <CircleAlert className="w-4 h-4 mr-2" />
+          <span>You're offline - only cached results will be available.</span>
+        </div>
+      )}
         </main>
   );
 }
