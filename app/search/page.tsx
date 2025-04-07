@@ -992,6 +992,10 @@ export default function SearchPage() {
                           <>
                             <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
                           </>
+                        ) : aiModel === 'chatgpt' ? (
+                          <>
+                            <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
+                          </>
                         ) : (
                           <>
                             <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
@@ -1025,6 +1029,19 @@ export default function SearchPage() {
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">Gemini 2.0 Flash</span>
                                 <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A fast and intelligent model by Google</span>
+                              </div>
+                            </button>
+
+                            <button
+                              onClick={() => handleModelChange('openai')}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                aiModel === 'openai' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                              }`}
+                            >
+                              <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">GPT 4o-mini</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 text-left">Powerful, efficient model by OpenAI</span>
                               </div>
                             </button>
 

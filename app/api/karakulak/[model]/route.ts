@@ -107,6 +107,35 @@ async function mistral(message: string): Promise<string> {
   return answer ?? "Sorry, I can't help you with that.";
 }
 
+async function chatgpt(message: string): Promise<string> {
+  const now = Date.now();
+  const cached = cache.get(`chatgpt-${message}`);
+  if (cached && now - cached.timestamp < CACHE_TTL) {
+    return cached.response;
+  }
+
+  const response = await openai.chat.completions.create({
+    model: 'openai/gpt-4o-mini',
+    ...generationConfig,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, say: "Sorry, I can\'t help you with that." or its equivalent in the input\'s language.',
+      },
+      {
+        role: 'user',
+        content: message,
+      },
+    ],
+    stream: false,
+  });
+
+  const answer = response.choices[0].message.content;
+  cache.set(`chatgpt-${message}`, { response: answer ?? 'Sorry, I can\'t help you with that.', timestamp: now });
+  return answer ?? "Sorry, I can't help you with that.";
+}
+
 export async function POST(req: NextRequest, { params }: { params: { model: string } }) {
   const { model } = params;
   const { message } = await req.json();
@@ -125,6 +154,9 @@ export async function POST(req: NextRequest, { params }: { params: { model: stri
         break;
       case 'mistral':
         answer = await mistral(message);
+        break;
+      case 'chatgpt':
+        answer = await chatgpt(message);
         break;
       default:
         return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 404 });
