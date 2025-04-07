@@ -60,7 +60,7 @@ export default function SearchPage() {
   const [aiEnabled, setAiEnabled] = useState(true);
   const [searchEngine, setSearchEngine] = useState("brave");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [aiModel, setAiModel] = useState("gemini");
+  const [aiModel, setAiModel] = useState<string>();
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -218,7 +218,12 @@ export default function SearchPage() {
       return;
     }
 
-    const cacheKey = `ai-${query}-${aiModel}`;
+    if (aiModel === undefined && localStorage.getItem("aiModel") !== null) {
+      return; 
+    }
+
+    const modelToUse = aiModel || "gemini";
+    const cacheKey = `ai-${query}-${modelToUse}`;
     const cachedAi = sessionStorage.getItem(cacheKey);
     if (cachedAi) {
       setAiResponse(JSON.parse(cachedAi));
@@ -254,8 +259,8 @@ export default function SearchPage() {
       } catch (error) {
         console.error(`AI response failed for model ${model}:`, error);
 
-        if (!isRetry && model !== "gemini") {
-          console.log("Falling back to Gemini model");
+        if (!isRetry && model !== "gemini" && !aiModel) {
+          console.log("No user preference found, falling back to Gemini model");
           makeAIRequest("gemini", true);
         } else {
           setAiLoading(false);
@@ -263,12 +268,10 @@ export default function SearchPage() {
       }
     };
 
-    const selectedModelEnabled = isModelEnabled(aiModel);
+    const selectedModelEnabled = isModelEnabled(modelToUse);
 
     if (selectedModelEnabled) {
-      makeAIRequest(aiModel);
-    } else {
-      makeAIRequest("gemini");
+      makeAIRequest(modelToUse);
     }
   }, [query, aiEnabled, aiModel]);
 

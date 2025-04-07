@@ -43,7 +43,7 @@ export default function Home() {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("karakulakEnabled");
       if (stored == null) {
-        localStorage.setItem("karakulakEnabled", "false");
+        localStorage.setItem("karakulakEnabled", "true");
       }
     }
   }, []);
