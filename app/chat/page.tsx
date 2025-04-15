@@ -119,6 +119,12 @@ export default function ChatPage() {
       name: "Gemini 2.0 Flash",
       description: "Google's most capable model",
       icon: "/google.png"
+    },
+    {
+      id: "mistral-7b",
+      name: "Mistral 7B",
+      description: "Mistral's lightweight and efficient model",
+      icon: "/mistral.png"
     }
   ];
 
@@ -128,16 +134,21 @@ export default function ChatPage() {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const queryInput = searchParams.get('q');
+      const modelParam = searchParams.get('model');
+      const modelFromParam = models.find(m => m.id === modelParam);
 
       if (queryInput && !isLoading) {
         // Merge with older chats from localStorage
         const storedChats = localStorage.getItem("tekirChats");
         const oldChats: ChatSession[] = storedChats ? JSON.parse(storedChats) : [];
 
+        // Use model from param if available, otherwise default
+        const modelToUse = modelFromParam || defaultModel;
+
         // Create a new chat
         const newChat: ChatSession = {
           id: Date.now().toString(),
-          model: defaultModel,
+          model: modelToUse,
           messages: [],
           createdAt: Date.now(),
           locked: false,
@@ -262,6 +273,8 @@ export default function ChatPage() {
       const originalQuery = searchParams.get('originalQuery');
       const aiResponse = searchParams.get('aiResponse');
       const followUp = searchParams.get('followUp');
+      const modelParam = searchParams.get('model');
+      const modelFromParam = models.find(m => m.id === modelParam);
 
       // If we have all parameters needed for the follow-up scenario
       if (originalQuery && aiResponse && followUp && !isLoading) {
@@ -269,10 +282,13 @@ export default function ChatPage() {
         const storedChats = localStorage.getItem("tekirChats");
         const oldChats: ChatSession[] = storedChats ? JSON.parse(storedChats) : [];
 
+        // Use model from param if available, otherwise default
+        const modelToUse = modelFromParam || defaultModel;
+
         // Create a new chat with history
         const newChat: ChatSession = {
           id: Date.now().toString(),
-          model: defaultModel,
+          model: modelToUse,
           messages: [
             { role: "user", content: originalQuery },
             { role: "assistant", content: aiResponse },

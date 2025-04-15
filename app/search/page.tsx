@@ -527,7 +527,8 @@ export default function SearchPage() {
     const chatParams = new URLSearchParams({
       originalQuery: query,
       aiResponse: aiResponse || "",
-      followUp: followUpQuestion
+      followUp: followUpQuestion,
+      model: aiModel || "llama-3-1-80b"
     });
 
     router.push(`/chat?${chatParams.toString()}`);
