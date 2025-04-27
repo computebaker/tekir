@@ -524,23 +524,13 @@ export default function SearchPage() {
     e.preventDefault();
     if (!followUpQuestion.trim()) return;
 
-    const localAi = localStorage.getItem("aiModel");
-    const aiModel =
-      localAi === "gemini"
-        ? "gemini-2.0-flash"
-        : localAi === "mistral"
-        ? "mistral-7b"
-        : localAi === "chatgpt"
-        ? "gpt-4o-mini"
-        : "llama-3-1-80b";
     const chatParams = new URLSearchParams({
       originalQuery: query,
       aiResponse: aiResponse || "",
       followUp: followUpQuestion,
-      model: aiModel || "llama-3-1-80b"
     });
 
-    router.push(`/chat?${chatParams.toString()}`);
+    router.push(`https://chat.tekir.co/?${chatParams.toString()}`);
   };
 
   return (
