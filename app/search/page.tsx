@@ -604,7 +604,7 @@ export default function SearchPage() {
                   Your searches are private.
                 </span>
               </Link>
-              <Link href="/chat" className="group inline-flex items-center overflow-hidden transition-all duration-300">
+              <Link href="https://chat.tekir.co" className="group inline-flex items-center overflow-hidden transition-all duration-300">
                 <MessageCircleMore className="w-5 h-5 text-muted-foreground" />
                 <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] transition-all duration-300 ease-out">
                   AI Chat
@@ -976,7 +976,7 @@ export default function SearchPage() {
                       <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
                         BETA
                       </span>
-                      <Link href="/chat" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                      <Link href="https://chat.tekir.co" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
                         Try Tekir Chat →
                       </Link>
                     </span>
@@ -994,7 +994,7 @@ export default function SearchPage() {
                         <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
                           BETA
                         </span>
-                        <Link href="/chat" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                        <Link href="https://chat.tekir.co" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
                           Try Tekir Chat →
                         </Link>
                       </span>
@@ -1310,7 +1310,7 @@ export default function SearchPage() {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <p className="text-sm text-muted-foreground">
-              🇹🇷 Tekir was made in Turkiye!
+            Tekir, built by <a href="https://computebaker.com" className="text-primary hover:underline">computebaker</a>.
             </p>
             <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Privacy
@@ -1331,7 +1331,7 @@ export default function SearchPage() {
               <Instagram className="w-5 h-5" />
             </a>
             <a
-              href="https://github.com/tekircik"
+              href="https://github.com/computebaker"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors"

@@ -299,7 +299,7 @@ export default function Home() {
             
             <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
             
-            <Link href="/chat" className="hover:text-foreground transition-colors">
+            <Link href="https://chat.tekir.co" className="hover:text-foreground transition-colors">
               <div className="flex items-center gap-2">
               <MessageCircleMore className="w-4 h-4" />
               <span className="font-medium">AI Chat</span>

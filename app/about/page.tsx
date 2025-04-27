@@ -40,7 +40,7 @@ export default function AboutPage() {
               <Search className="w-5 h-5" />
               Try Tekir Now
             </Link>
-            <a href="https://github.com/tekircik" 
+            <a href="https://github.com/computebaker/tekir" 
               className="px-6 py-3 rounded-full bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity font-medium flex items-center gap-2"
               target="_blank" rel="noopener noreferrer">
               <Github className="w-5 h-5" />
@@ -109,7 +109,7 @@ export default function AboutPage() {
                   <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
                     BETA
                   </span>
-                  <Link href="/chat" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                  <Link href="https://chat.tekir.co" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
                     Try Tekir Chat →
                   </Link>
                 </span>
@@ -229,7 +229,7 @@ export default function AboutPage() {
             
             <div className="text-center">
               <Link 
-                href="/chat"
+                href="https://chat.tekir.co"
                 className="inline-flex items-center px-5 py-2.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium"
               >
                 Try Tekir Chat <ArrowRight className="ml-2 w-4 h-4" />
@@ -323,7 +323,7 @@ export default function AboutPage() {
             Tekir is built to be open. Join our community to help build a better search experience for everyone.
           </p>
           <a 
-            href="https://github.com/tekircik" 
+            href="https://github.com/computebaker/tekir" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center px-6 py-3 rounded-full bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity font-medium"
@@ -339,7 +339,7 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <p className="text-sm text-muted-foreground">
-              🇹🇷 Tekir was made in Turkiye!
+              Tekir, built by <a href="https://computebaker.com" className="text-primary hover:underline">computebaker</a>.
             </p>
             <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Privacy
@@ -360,7 +360,7 @@ export default function AboutPage() {
               <Instagram className="w-5 h-5" />
             </a>
             <a
-              href="https://github.com/tekircik"
+              href="https://github.com/computebaker"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors"
