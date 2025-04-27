@@ -30,6 +30,12 @@ interface ChatSession {
 }
 
 export default function ChatPage() {
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.location.href = "https://chat.tekir.co";
+    }
+  }, []); 
+
   // Replace states:
   // Remove: const [messages, setMessages] = useState<Message[]>([]);
   // Remove: const [selectedModel, setSelectedModel] = useState<ModelOption>(...);
