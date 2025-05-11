@@ -326,9 +326,12 @@ export default function SearchPage() {
         const params = new URLSearchParams();
         params.set("q", trimmed);
         if (diveEnabled) {
-          params.set("dive", "true");
+          // And navigate to the /dive path
+          router.push(`/dive?${params.toString()}`);
+        } else {
+          // Otherwise, navigate to the /search path without the "dive" parameter
+          router.push(`/search?${params.toString()}`);
         }
-        router.push(`/search?${params.toString()}`);
       }
     }
   };
