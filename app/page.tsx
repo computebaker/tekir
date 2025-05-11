@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CircleAlert, Search, Lock,  MessageCircleMore } from "lucide-react";
+import { CircleAlert, Search, Lock, MessageCircleMore, Sparkles } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
@@ -22,10 +22,10 @@ export default function Home() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
-  // Keep autocompleteSource as a hidden setting without UI to change it
   const [autocompleteSource] = useState(() => 
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
+  const [diveEnabled, setDiveEnabled] = useState(false);
   const [hasBang, setHasBang] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
@@ -49,9 +49,8 @@ export default function Home() {
     }
   }, []);
 
-  const scrollToFeatures = () => {
-    const featuresSection = document.getElementById("features");
-    featuresSection?.scrollIntoView({ behavior: "smooth" });
+  const handleToggleDiveSearch = () => {
+    setDiveEnabled(prevDiveEnabled => !prevDiveEnabled);
   };
 
   useEffect(() => {
@@ -68,17 +67,29 @@ export default function Home() {
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
 
-    startTransition(() => {
-      setTimeout(() => {
-        router.replace(`/search?q=${encodeURIComponent(trimmed)}`);
-      }, 100);
-    });
-
-    // Then handle bang redirect asynchronously
-    const redirected = await handleBangRedirect(trimmed);
-    if (redirected) {
-      // If bang redirect happened, do nothing (it already navigated)
+    // It's generally better to handle bang redirects before deciding the target path,
+    // as a bang might take the user to a completely different site.
+    const isBangRedirected = await handleBangRedirect(trimmed);
+    if (isBangRedirected) {
+      return; // If redirected by a bang, no further action is needed here.
     }
+
+    const params = new URLSearchParams();
+    params.set("q", trimmed);
+
+    let targetPath = "/search";
+    if (diveEnabled) {
+      targetPath = "/dive";
+      // The `dive` page itself will handle the dive logic based on the path,
+      // so no explicit `dive=true` param is needed if redirecting to /dive.
+    }
+
+    startTransition(() => {
+      // Use a timeout to allow visual feedback before navigation
+      setTimeout(() => {
+        router.replace(`${targetPath}?${params.toString()}`);
+      }, 100); 
+    });
   };
 
   useEffect(() => {
@@ -229,7 +240,7 @@ export default function Home() {
         <div className="w-full max-w-3xl space-y-8 text-center">
           {/* Logo */}
           <div className="flex justify-center">
-            <Image src="/tekir-head.png" alt="Tekir logo" width={200} height={66} loading="eager" />
+            <Image src="/tekir-head.png" alt="Tekir logo" width={200} height={66} loading="eager" priority />
           </div>
 
           {/* Search Bar */}
@@ -245,14 +256,25 @@ export default function Home() {
               onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
               placeholder="What's on your mind?"
-              className="w-full px-6 py-4 pr-14 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
+              className="w-full px-6 py-4 pr-24 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg" // Increased pr for two buttons
             />
-            <button 
-              type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-muted transition-colors"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center"> {/* Container for buttons */}
+              <button
+                type="button"
+                onClick={handleToggleDiveSearch}
+                className={`p-3 rounded-full transition-colors mr-1 ${diveEnabled ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
+                title="Toggle Dive Search"
+              >
+                <Sparkles className="w-5 h-5" />
+              </button>
+              <button
+                type="submit"
+                className="p-3 rounded-full text-muted-foreground hover:bg-muted transition-colors"
+                title="Search"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            </div>
             
             {/* Bang notification */}
             {hasBang && (

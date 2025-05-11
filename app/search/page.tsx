@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon } from "lucide-react";
+import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -52,6 +52,8 @@ export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
+  const initialDiveEnabled = searchParams.get("dive") === "true";
+
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
@@ -75,6 +77,7 @@ export default function SearchPage() {
   const [searchType, setSearchType] = useState<'web' | 'images'>('web');
   const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
+  const [diveEnabled, setDiveEnabled] = useState(initialDiveEnabled);
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
@@ -106,6 +109,10 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
+    setDiveEnabled(searchParams.get("dive") === "true");
+  }, [searchParams]);
+
+  useEffect(() => {
     const checkQueryForBangs = async () => {
       if (!query) return;
       await handleBangRedirect(query);
@@ -114,49 +121,77 @@ export default function SearchPage() {
   }, [query]);
 
   useEffect(() => {
-    if (!query) return;
+    const currentQuery = searchParams.get("q") || "";
+    const isDiveActive = searchParams.get("dive") === "true";
+
+    if (!currentQuery) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
 
     (async () => {
-      const isRedirected = await handleBangRedirect(query);
-      if (isRedirected) return;
-
-      const storedEngine = localStorage.getItem("searchEngine") || "brave";
-      let engineToUse = storedEngine;
-
-      const cachedSearch = sessionStorage.getItem(`search-${engineToUse}-${query}`);
-      if (cachedSearch) {
-        const { results: cachedResults } = JSON.parse(cachedSearch);
-        setResults(cachedResults);
+      const isRedirected = await handleBangRedirect(currentQuery);
+      if (isRedirected) {
+        setLoading(false);
+        return;
       }
 
       setLoading(true);
+      setResults([]);
+      setAiResponse(null);
+      setWikiData(null);
 
-      const fetchWithEngine = async (engine: string) => {
+      if (isDiveActive) {
         try {
-          const response = await fetch(`/api/pars/${engine}?q=${encodeURIComponent(query)}`);
-          if (!response.ok) throw new Error("Fetch failed");
-          const searchData = await response.json();
-          setResults(searchData);
-          sessionStorage.setItem(
-            `search-${engine}-${query}`,
-            JSON.stringify({ results: searchData })
-          );
-          setSearchEngine(engine);
-          return true;
-        } catch {
-          return false;
+          const response = await fetch(`/api/dive?q=${encodeURIComponent(currentQuery)}`);
+          if (!response.ok) throw new Error(`Dive API request failed with status ${response.status}`);
+          const diveData = await response.json();
+          setResults(diveData.results || diveData);
+        } catch (error) {
+          console.error("Dive search failed:", error);
+          setResults([]);
+        } finally {
+          setLoading(false);
         }
-      };
+      } else {
+        const storedEngine = localStorage.getItem("searchEngine") || "brave";
+        let engineToUse = storedEngine;
 
-      setTimeout(async () => {
-        const success = await fetchWithEngine(engineToUse);
-        if (!success && engineToUse !== "brave") {
-          await fetchWithEngine("brave");
+        const cachedSearchKey = `search-${engineToUse}-${currentQuery}`;
+        const cachedSearch = sessionStorage.getItem(cachedSearchKey);
+        if (cachedSearch) {
+          const { results: cachedResults } = JSON.parse(cachedSearch);
+          setResults(cachedResults);
         }
-        setLoading(false);
-      }, 1200);
+
+        const fetchWithEngine = async (engine: string) => {
+          try {
+            const response = await fetch(`/api/pars/${engine}?q=${encodeURIComponent(currentQuery)}`);
+            if (!response.ok) throw new Error("Fetch failed");
+            const searchData = await response.json();
+            setResults(searchData);
+            sessionStorage.setItem(
+              `search-${engine}-${currentQuery}`,
+              JSON.stringify({ results: searchData })
+            );
+            setSearchEngine(engine);
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
+        setTimeout(async () => {
+          const success = await fetchWithEngine(engineToUse);
+          if (!success && engineToUse !== "brave") {
+            await fetchWithEngine("brave");
+          }
+          setLoading(false);
+        }, 1200);
+      }
     })();
-  }, [query]);
+  }, [searchParams, router]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
@@ -288,9 +323,18 @@ export default function SearchPage() {
     if (trimmed) {
       const redirected = await handleBangRedirect(trimmed);
       if (!redirected) {
-        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+        const params = new URLSearchParams();
+        params.set("q", trimmed);
+        if (diveEnabled) {
+          params.set("dive", "true");
+        }
+        router.push(`/search?${params.toString()}`);
       }
     }
+  };
+
+  const handleToggleDiveSearch = () => {
+    setDiveEnabled(prevDiveEnabled => !prevDiveEnabled);
   };
 
   const toggleAiEnabled = () => {
@@ -537,7 +581,7 @@ export default function SearchPage() {
     <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">
         <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 mb-8 relative">
-          <form onSubmit={handleSearch} className="flex items-center w-full space-x-4">
+          <form onSubmit={handleSearch} className="flex items-center w-full space-x-2 md:space-x-4">
             <Link href="/">
               <Image src="/tekir-head.png" alt="Tekir Logo" width={40} height={40} />
             </Link>
@@ -552,14 +596,28 @@ export default function SearchPage() {
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="Search anything..."
-                className="w-full px-4 py-2 pr-8 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
+                className="w-full px-4 py-2 pr-20 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
               />
-              <button 
-                type="submit"
-                className="absolute right-0 top-0 h-full flex items-center pr-3"
-              >
-                <Search className="w-5 h-5" />
-              </button>
+              <div className="absolute right-0 top-0 h-full flex items-center pr-2">
+                <button
+                  type="button"
+                  onClick={handleToggleDiveSearch}
+                  className={`p-2 rounded-full transition-colors ${diveEnabled ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
+                  title="Toggle Dive Search"
+                >
+                  <div className="flex items-center">
+                  <Sparkles className="w-5 h-5" />
+                  <span className="ml-2 text-sm">Dive</span>
+                  </div>
+                </button>
+                <button
+                  type="submit"
+                  className="p-2 rounded-full text-muted-foreground hover:bg-muted"
+                  title="Search"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </div>
               
               {showSuggestions && suggestions.length > 0 && (
                 <div 
