@@ -1,6 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest } from 'next/server';
 import { headers } from 'next/headers';
+import { isValidSessionToken, isRedisConfigured } from '@/lib/redis';
 
 // Change from force-static to force-dynamic
 export const dynamic = "force-dynamic";
