@@ -23,14 +23,6 @@ interface SearchResponse {
   provider: string;
 }
 
-interface CacheEntry {
-  data: SearchResponse;
-  expire: number;
-}
-
-const cache: { [key: string]: CacheEntry } = {};
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
-
 async function getBraveImages(q: string, count: number = 20): Promise<ImageResult[]> {
   try {
     const params = new URLSearchParams({
@@ -100,52 +92,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
 
   switch (provider.toLowerCase()) {
     case 'brave': {
-        const cacheKey = `brave_images_${query}_${count}`;
-        
-        // Check cache first
-        if (cache[cacheKey] && cache[cacheKey].expire > now) {
-          const cachedResponse = cache[cacheKey].data;
-          return NextResponse.json(cachedResponse, { status: 200 });
-        }
-        
-        // Fetch fresh data if not in cache or expired
         results = await getBraveImages(query, count);
         
         const response: SearchResponse = {
           results,
           provider: 'Brave'
-        };
-        
-        // Update cache
-        cache[cacheKey] = { 
-          data: response, 
-          expire: now + CACHE_DURATION 
         };
         
         return NextResponse.json(response, { status: 200 });
       }
       case 'duck': {
         /* Fix after DuckDuckGo API is available */
-        const cacheKey = `brave_images_${query}_${count}`;
         
-        // Check cache first
-        if (cache[cacheKey] && cache[cacheKey].expire > now) {
-          const cachedResponse = cache[cacheKey].data;
-          return NextResponse.json(cachedResponse, { status: 200 });
-        }
-        
-        // Fetch fresh data if not in cache or expired
         results = await getBraveImages(query, count);
         
         const response: SearchResponse = {
           results,
           provider: 'Brave'
-        };
-        
-        // Update cache
-        cache[cacheKey] = { 
-          data: response, 
-          expire: now + CACHE_DURATION 
         };
         
         return NextResponse.json(response, { status: 200 });

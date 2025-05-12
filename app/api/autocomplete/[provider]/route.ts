@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis';
 
-const cache: { [key: string]: any } = {};
 
 async function brave(query: string, count: number = 4) {
-    const key = `brave-${query}`;
-    if (cache[key]) return cache[key];
-
-    // If not cached, fetch from the API.
     const url = `https://api.search.brave.com/res/v1/suggest/search?q=${query}&count=${count}`;
     const headers = {
         "Accept": "application/json",
@@ -27,8 +22,6 @@ async function brave(query: string, count: number = 4) {
         const suggestions = data.results.map((item: { query: string }) => item.query);
         const formattedResponse = [query, suggestions];
         
-        // Cache the result with the key.
-        cache[key] = formattedResponse;
         return formattedResponse;
     } catch (error) {
         console.error('Error fetching suggestions:', error);
@@ -37,10 +30,6 @@ async function brave(query: string, count: number = 4) {
 }
 
 async function duck(query: string, count: number = 8) {
-    const key = `duck-${query}`;
-    if (cache[key]) return cache[key];
-
-    // If not cached, fetch from the API
     const url = `https://duckduckgo.com/ac/?q=${query}&kl=wt-wt`;
     const headers = {
         "Accept": "application/json",
@@ -58,8 +47,6 @@ async function duck(query: string, count: number = 8) {
         const suggestions = data.slice(0, count).map((item: { phrase: string }) => item.phrase);
         const formattedResponse = [query, suggestions];
         
-        // Cache the result
-        cache[key] = formattedResponse;
         return formattedResponse;
     } catch (error) {
         console.error('Error fetching suggestions:', error);

@@ -11,13 +11,6 @@ interface Results {
   source: string;
 }
 
-interface CacheEntry {
-  data: Results[];
-  expire: number;
-}
-
-const cache: { [key: string]: CacheEntry } = {};
-
 async function getBrave(q: string): Promise<Results[]> {
   const results: Results[] = [];
   try {
@@ -181,36 +174,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const now = Date.now();
 
   switch (provider.toLowerCase()) {
-    case 'duck': {
-      const cacheKey = `duck_${query}`;
-      if (cache[cacheKey] && cache[cacheKey].expire > now) {
-        results = cache[cacheKey].data;
-      } else {
-        results = await getDuck(query);
-        cache[cacheKey] = { data: results, expire: now + 30 * 60 * 1000 };
-      }
+    case 'duck':
+      results = await getDuck(query);
       break;
-    }
-    case 'brave': {
-      const cacheKey = `brave_${query}`;
-      if (cache[cacheKey] && cache[cacheKey].expire > now) {
-        results = cache[cacheKey].data;
-      } else {
-        results = await getBrave(query);
-        cache[cacheKey] = { data: results, expire: now + 30 * 60 * 1000 };
-      }
+    case 'brave':
+      results = await getBrave(query);
       break;
-    }
-    case 'google': {
-      const cacheKey = `google_${query}`;
-      if (cache[cacheKey] && cache[cacheKey].expire > now) {
-        results = cache[cacheKey].data;
-      } else {
-        results = await getGoogle(query, 0);
-        cache[cacheKey] = { data: results, expire: now + 30 * 60 * 1000 };
-      }
+    case 'google':
+      results = await getGoogle(query, 0);
       break;
-    }
     default:
       return NextResponse.json({ error: 'Invalid source' }, { status: 400 });
   }
