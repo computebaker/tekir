@@ -62,8 +62,9 @@ async function getBraveImages(q: string, count: number = 20): Promise<ImageResul
   }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { provider: string } }) {
-  if (isRedisConfigured) { // Only check token if Redis is configured
+export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
+  const { provider } = await params;
+    if (isRedisConfigured) { // Only check token if Redis is configured
     const sessionToken = req.cookies.get('session-token')?.value;
 
     if (!sessionToken) {
@@ -86,7 +87,6 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
     console.warn("Redis is not configured. Skipping session token validation and request counting for /api/pars. This should be addressed in production.");
   }
 
-  const { provider } = params;
   const query = req.nextUrl.searchParams.get('q');
   const countParam = req.nextUrl.searchParams.get('count');
   const count = countParam ? parseInt(countParam, 10) : 20;

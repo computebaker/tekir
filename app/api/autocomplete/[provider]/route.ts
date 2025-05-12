@@ -67,8 +67,9 @@ async function duck(query: string, count: number = 8) {
     }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { provider: string } }) {
-    if (isRedisConfigured) { // Only check token if Redis is configured
+export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
+    const { provider } = await params;
+        if (isRedisConfigured) { // Only check token if Redis is configured
         const sessionToken = req.cookies.get('session-token')?.value;
     
         if (!sessionToken) {
@@ -91,7 +92,6 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
         console.warn("Redis is not configured. Skipping session token validation and request counting for /api/pars. This should be addressed in production.");
       }
     
-    const { provider } = params;
     const query = req.nextUrl.searchParams.get('q');
     if (!query) {
         return NextResponse.json({ error: 'Missing query parameter "q".' }, { status: 400 });

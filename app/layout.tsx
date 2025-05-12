@@ -1,16 +1,19 @@
 import "./globals.css";
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next'; // Import Viewport
 import ClientLayout from '@/components/client-layout';
 
 // Add KaTeX CSS
 import 'katex/dist/katex.min.css';
 
 export const metadata: Metadata = {
+  manifest: '/manifest.json',
+};
+
+export const viewport: Viewport = { // Added viewport export
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: 'white' },
     { media: '(prefers-color-scheme: dark)', color: 'black' }
   ],
-  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

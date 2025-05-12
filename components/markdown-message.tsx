@@ -2,8 +2,6 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { coldarkDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { cn } from "@/lib/utils";
 import { Copy } from "lucide-react";
 
@@ -14,12 +12,11 @@ interface MarkdownMessageProps {
 
 function CodeBlock({ inline, className, children, ...props }: any) {
   const codeString = String(children).replace(/\n$/, "");
-  const match = /language-(\w+)/.exec(className || "");
   const copyCode = () => {
     navigator.clipboard.writeText(codeString);
   };
 
-  if (!inline && match) {
+  if (!inline) {
     return (
       <div className="relative">
         <button 
@@ -28,28 +25,20 @@ function CodeBlock({ inline, className, children, ...props }: any) {
         >
           <Copy className="w-4 h-4 text-white" />
         </button>
-        <SyntaxHighlighter
-          // @ts-ignore
-          style={coldarkDark as Record<string, React.CSSProperties>}
-          language={match[1]}
-          PreTag="div"
-          {...props}
-        >
-          {codeString}
-        </SyntaxHighlighter>
+        <pre className="p-4 bg-neutral-900 rounded-md text-white overflow-x-auto">
+          <code {...props}>{codeString}</code>
+        </pre>
       </div>
     );
   }
-  return inline ? (
+
+  return (
     <code className={className} {...props}>
       {children}
     </code>
-  ) : (
-    <pre className={className} {...props}>
-      <code>{codeString}</code>
-    </pre>
   );
 }
+
 
 export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
   return (

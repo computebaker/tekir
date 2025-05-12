@@ -43,7 +43,7 @@ export default function ChatPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
       <div className="flex flex-col items-center space-y-4">
-        <p className="text-lg font-medium">Redirecting you to the new chat experience...</p>
+        <p className="text-lg font-medium justify-center">Redirecting you to the new chat experience...</p>
         <Link href="https://chat.tekir.co" className="text-blue-500 hover:underline">
           Didn't get redirected?
         </Link>

@@ -146,8 +146,8 @@ async function getGoogle(q: string, n: number): Promise<Results[]> {
   return results;
 }
 
-export async function GET(req: NextRequest, { params }: { params: { provider: string } }) {
-  const { provider } = params;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
+  const { provider } = await params;
   const query = req.nextUrl.searchParams.get('q');
 
   if (isRedisConfigured) { // Only check token if Redis is configured

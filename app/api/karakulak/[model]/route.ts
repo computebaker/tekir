@@ -137,8 +137,9 @@ async function chatgpt(message: string): Promise<string> {
   return answer ?? "Sorry, I can't help you with that.";
 }
 
-export async function POST(req: NextRequest, { params }: { params: { model: string } }) {
-  if (isRedisConfigured) { // Only check token if Redis is configured
+export async function POST(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
+    const { model } = await params;
+    if (isRedisConfigured) { // Only check token if Redis is configured
     const sessionToken = req.cookies.get('session-token')?.value;
 
     if (!sessionToken) {
@@ -161,7 +162,6 @@ export async function POST(req: NextRequest, { params }: { params: { model: stri
     console.warn("Redis is not configured. Skipping session token validation and request counting for /api/pars. This should be addressed in production.");
   }
 
-  const { model } = params;
   const { message } = await req.json();
   if (!message) {
     return NextResponse.json({ error: 'Something failed.' }, { status: 400 });

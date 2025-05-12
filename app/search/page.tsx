@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from 'react'; // Import Suspense
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -48,7 +49,8 @@ interface ImageSearchResult {
   };
 }
 
-export default function SearchPage() {
+// Rename the original SearchPage component
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
@@ -1394,5 +1396,14 @@ export default function SearchPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// Create a new default export component that wraps SearchPageContent in Suspense
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div>Loading search results...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }

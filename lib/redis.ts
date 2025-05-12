@@ -1,22 +1,25 @@
 import { createClient, RedisClientType, RedisFunctions, RedisModules, RedisScripts } from 'redis';
 
-const redisUrl = process.env.REDIS_URL;
+const redisUsername = process.env.REDIS_USERNAME;
+const redisPassword = process.env.REDIS_PASSWORD;
+const redisHost = process.env.REDIS_HOST;
+const redisPort = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : undefined;
 
-if (!redisUrl) {
-  console.warn("REDIS_URL environment variable is not set. Session functionality will be limited.");
+if (!redisUsername || !redisPassword || !redisHost || !redisPort) {
+  console.warn("Redis environment variables (REDIS_USERNAME, REDIS_PASSWORD, REDIS_HOST, REDIS_PORT) are not fully set. Session functionality will be limited.");
 }
 
 let redis: RedisClientType<RedisModules, RedisFunctions, RedisScripts> | null = null;
 
-if (redisUrl) {
+if (redisUsername && redisPassword && redisHost && redisPort) {
   try {
     redis = createClient({
-      username: process.env.REDIS_USERNAME,
-      password: process.env.REDIS_PASSWORD,
-      socket: { 
-        host: process.env.REDIS_URL,
-        port: 19485
-    },
+      username: redisUsername,
+      password: redisPassword,
+      socket: {
+        host: redisHost,
+        port: redisPort,
+      },
     });
 
     redis.on('connect', () => {
@@ -44,7 +47,7 @@ if (redisUrl) {
 
 export default redis;
 
-export const isRedisConfigured = !!redisUrl && !!redis;
+export const isRedisConfigured = !!redisUsername && !!redisPassword && !!redisHost && !!redisPort && !!redis;
 
 export async function isValidSessionToken(token: string): Promise<boolean> {
   if (!isRedisConfigured || !redis) {
