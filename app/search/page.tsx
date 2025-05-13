@@ -160,23 +160,12 @@ function SearchPageContent() {
         const storedEngine = localStorage.getItem("searchEngine") || "brave";
         let engineToUse = storedEngine;
 
-        const cachedSearchKey = `search-${engineToUse}-${currentQuery}`;
-        const cachedSearch = sessionStorage.getItem(cachedSearchKey);
-        if (cachedSearch) {
-          const { results: cachedResults } = JSON.parse(cachedSearch);
-          setResults(cachedResults);
-        }
-
         const fetchWithEngine = async (engine: string) => {
           try {
             const response = await fetch(`/api/pars/${engine}?q=${encodeURIComponent(currentQuery)}`);
             if (!response.ok) throw new Error("Fetch failed");
             const searchData = await response.json();
             setResults(searchData);
-            sessionStorage.setItem(
-              `search-${engine}-${currentQuery}`,
-              JSON.stringify({ results: searchData })
-            );
             setSearchEngine(engine);
             return true;
           } catch {
@@ -197,23 +186,12 @@ function SearchPageContent() {
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
-
-    const cachedImages = sessionStorage.getItem(`images-${searchEngine}-${query}`);
-    if (cachedImages) {
-      const { results: cachedResults } = JSON.parse(cachedImages);
-      setImageResults(cachedResults);
-    }
-
     setImageLoading(true);
     fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
       .then((response) => response.json())
       .then((data) => {
         if (data.results) {
           setImageResults(data.results);
-          sessionStorage.setItem(
-            `images-${searchEngine}-${query}`,
-            JSON.stringify({ results: data.results })
-          );
         }
       })
       .catch((error) => console.error("Image search failed:", error))
@@ -224,26 +202,16 @@ function SearchPageContent() {
     if (!query || searchType !== 'images') return;
 
     if (imageResults.length === 0 && !imageLoading) {
-      const cachedImages = sessionStorage.getItem(`images-${searchEngine}-${query}`);
-      if (cachedImages) {
-        const { results: cachedResults } = JSON.parse(cachedImages);
-        setImageResults(cachedResults);
-      } else {
-        setImageLoading(true);
-        fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.results) {
-              setImageResults(data.results);
-              sessionStorage.setItem(
-                `images-${searchEngine}-${query}`,
-                JSON.stringify({ results: data.results })
-              );
-            }
-          })
-          .catch((error) => console.error("Image search failed:", error))
-          .finally(() => setImageLoading(false));
-      }
+      setImageLoading(true);
+      fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.results) {
+            setImageResults(data.results);
+          }
+        })
+        .catch((error) => console.error("Image search failed:", error))
+        .finally(() => setImageLoading(false));
     }
   }, [searchType, query, searchEngine, imageResults.length, imageLoading]);
 
@@ -260,13 +228,6 @@ function SearchPageContent() {
     }
 
     const modelToUse = aiModel || "gemini";
-    const cacheKey = `ai-${query}-${modelToUse}`;
-    const cachedAi = sessionStorage.getItem(cacheKey);
-    if (cachedAi) {
-      setAiResponse(JSON.parse(cachedAi));
-      return;
-    }
-
     setAiLoading(true);
 
     const isModelEnabled = (model: string) => {
@@ -291,7 +252,6 @@ function SearchPageContent() {
         const aiData = await res.json();
         const aiResult = aiData.answer.trim();
         setAiResponse(aiResult);
-        sessionStorage.setItem(`ai-${query}-${model}`, JSON.stringify(aiResult));
         setAiLoading(false);
       } catch (error) {
         console.error(`AI response failed for model ${model}:`, error);
@@ -355,13 +315,6 @@ function SearchPageContent() {
         return;
       }
 
-      const cacheKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        setSuggestions(JSON.parse(cached));
-        return;
-      }
-
       try {
         const response = await fetch(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchInput)}`, {
           method: 'GET',
@@ -374,7 +327,6 @@ function SearchPageContent() {
         if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
           const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
           setSuggestions(processedSuggestions);
-          sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
         } else {
           console.warn('Unexpected suggestion format:', data);
           setSuggestions([]);
@@ -477,12 +429,6 @@ function SearchPageContent() {
     }
 
     const fetchWikipediaData = async () => {
-      const cacheKey = `wiki-${query.trim().toLowerCase()}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        setWikiData(JSON.parse(cached));
-        return;
-      }
 
       setWikiLoading(true);
       try {
@@ -510,7 +456,6 @@ function SearchPageContent() {
             };
 
             setWikiData(wikipediaData);
-            sessionStorage.setItem(cacheKey, JSON.stringify(wikipediaData));
           } else {
             setWikiData(null);
           }
@@ -544,26 +489,16 @@ function SearchPageContent() {
     localStorage.setItem("searchType", type);
 
     if (type === 'images' && query && imageResults.length === 0 && !imageLoading) {
-      const cachedImages = sessionStorage.getItem(`images-${searchEngine}-${query}`);
-      if (cachedImages) {
-        const { results: cachedResults } = JSON.parse(cachedImages);
-        setImageResults(cachedResults);
-      } else {
-        setImageLoading(true);
-        fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.results) {
-              setImageResults(data.results);
-              sessionStorage.setItem(
-                `images-${searchEngine}-${query}`,
-                JSON.stringify({ results: data.results })
-              );
-            }
-          })
-          .catch((error) => console.error("Image search failed:", error))
-          .finally(() => setImageLoading(false));
-      }
+      setImageLoading(true);
+      fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.results) {
+            setImageResults(data.results);
+          }
+        })
+        .catch((error) => console.error("Image search failed:", error))
+        .finally(() => setImageLoading(false));
     }
   };
 
