@@ -40,25 +40,20 @@ async function fetchPageContent(url: string): Promise<string> {
 export async function POST(req: NextRequest) {
   if (isRedisConfigured) { // Only check token if Redis is configured
     const sessionToken = req.cookies.get('session-token')?.value;
-
     if (!sessionToken) {
       return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
     }
-
     const isValid = await isValidSessionToken(sessionToken);
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
     }
-
-    // Check request count limit
     const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
     if (!allowed) {
-      console.warn(`Session token ${sessionToken} exceeded request limit for /api/pars. Count: ${currentCount}`);
-      return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429 }); // 429 Too Many Requests
+      console.warn(`Session token ${sessionToken} exceeded request limit for /api/dive. Count: ${currentCount}`);
+      return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429 });
     }
   } else {
-    // Optionally, log a warning if Redis is not configured but you expect it to be
-    console.warn("Redis is not configured. Skipping session token validation and request counting for /api/pars. This should be addressed in production.");
+    console.warn("Redis is not configured. Skipping session token validation and request counting for /api/dive. This should be addressed in production.");
   }
 
   try {

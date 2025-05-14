@@ -20,7 +20,13 @@ export async function POST(req: NextRequest) {
     }
     // Set session token cookie
     const response = NextResponse.json({ success: true, token, message: 'Session token generated and registered.' });
-    response.cookies.set('session-token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: expirationInSeconds, path: '/' });
+    response.cookies.set('session-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // allow cookies on same-site requests
+      maxAge: expirationInSeconds,
+      path: '/',
+    });
     return response;
   } catch (error) {
     console.error("Error in /api/session/register:", error);
