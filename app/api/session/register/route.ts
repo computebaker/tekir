@@ -1,30 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerSessionToken, isRedisConfigured } from '@/lib/redis';
+import { randomBytes } from 'crypto';
 
 export async function POST(req: NextRequest) {
   if (!isRedisConfigured) {
     console.warn("Redis is not configured. Cannot register session token via API.");
-    // Depending on policy, you might return a specific error or a success-like response
-    // if sessions are optional when Redis is down.
     return NextResponse.json({ success: true, message: "Redis not configured, skipping registration." });
   }
 
   try {
-    const body = await req.json();
-    const { token } = body;
+    // Generate a secure session token on the server
+    const token = randomBytes(32).toString('hex');
 
-    if (!token || typeof token !== 'string') {
-      return NextResponse.json({ success: false, error: 'Token is required and must be a string.' }, { status: 400 });
-    }
-
-    const expirationInSeconds = 24 * 60 * 60; // 24 hours, or make this configurable
+    const expirationInSeconds = 24 * 60 * 60; // 24 hours
     const registered = await registerSessionToken(token, expirationInSeconds);
 
-    if (registered) {
-      return NextResponse.json({ success: true, message: 'Session token registered.' });
-    } else {
+    if (!registered) {
       return NextResponse.json({ success: false, error: 'Failed to register session token.' }, { status: 500 });
     }
+    // Set session token cookie
+    const response = NextResponse.json({ success: true, token, message: 'Session token generated and registered.' });
+    response.cookies.set('session-token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: expirationInSeconds, path: '/' });
+    return response;
   } catch (error) {
     console.error("Error in /api/session/register:", error);
     let errorMessage = "Internal server error.";

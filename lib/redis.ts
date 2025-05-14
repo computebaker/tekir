@@ -50,13 +50,25 @@ export default redis;
 export const isRedisConfigured = !!redisUsername && !!redisPassword && !!redisHost && !!redisPort && !!redis;
 
 export async function isValidSessionToken(token: string): Promise<boolean> {
-  if (!isRedisConfigured || !redis) {
-    console.warn("Redis is not configured or not connected. Cannot validate session token.");
-    return true; // Or false, based on policy
+  if (!redis) {
+    console.warn("Redis client is not initialized. Cannot validate session token.");
+    return false;
+  }
+  if (!redis.isOpen) {
+    try {
+      await redis.connect();
+    } catch (err) {
+      console.error("Redis reconnection failed:", err);
+      return false;
+    }
   }
   try {
-    const result = await redis.exists(`session:${token}`);
-    return result === 1;
+    const exists = await redis.exists(`session:${token}`);
+    if (exists !== 1) {
+      return false;
+    }
+    const ttl = await redis.ttl(`session:${token}`);
+    return ttl > 0;
   } catch (error) {
     console.error("Error validating session token in Redis:", error);
     return false;
@@ -83,9 +95,17 @@ export async function registerSessionToken(token: string, expirationInSeconds: n
 const MAX_REQUESTS_PER_SESSION = 600;
 
 export async function incrementAndCheckRequestCount(token: string): Promise<{ allowed: boolean; currentCount: number }> {
-  if (!isRedisConfigured || !redis) {
-    console.warn("Redis is not configured or not connected. Cannot check request count.");
-    return { allowed: true, currentCount: 0 };
+  if (!redis) {
+    console.warn("Redis client is not initialized. Cannot check request count.");
+    return { allowed: false, currentCount: 0 };
+  }
+  if (!redis.isOpen) {
+    try {
+      await redis.connect();
+    } catch (err) {
+      console.error("Redis reconnection failed:", err);
+      return { allowed: false, currentCount: 0 };
+    }
   }
   try {
     const countKey = `session_requests:${token}`;
