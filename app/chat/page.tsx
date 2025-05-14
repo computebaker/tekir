@@ -1,33 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
+import { useEffect } from "react";
 import Link from "next/link";
-import { Bot, ChevronDown, User, FileCode, MoreVertical, Edit, Trash, Plus, ArrowRight, Flame } from "lucide-react";
-import { MarkdownMessage } from "@/components/markdown-message";
-import { AnimatePresence, motion } from "framer-motion";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
-interface ModelOption {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-}
-
-// Add new ChatSession interface
-interface ChatSession {
-  id: string;
-  model: ModelOption;
-  messages: Message[];
-  createdAt: number;
-  locked: boolean;
-  customTitle?: string;
-}
 
 export default function ChatPage() {
   useEffect(() => {

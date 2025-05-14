@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from 'react'; // Import Suspense
+import { Suspense } from 'react'; 
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";

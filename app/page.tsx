@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CircleAlert, Search, Lock, MessageCircleMore, Sparkles } from "lucide-react";
+import { Search, Lock, MessageCircleMore, Sparkles } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
 import { handleBangRedirect } from "@/utils/bangs";
 import { useTransition } from "react";
@@ -80,8 +79,6 @@ export default function Home() {
     let targetPath = "/search";
     if (diveEnabled) {
       targetPath = "/dive";
-      // The `dive` page itself will handle the dive logic based on the path,
-      // so no explicit `dive=true` param is needed if redirecting to /dive.
     }
 
     startTransition(() => {
@@ -214,25 +211,6 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleGlobalKeydown);
   }, []);
 
-  useEffect(() => {
-    const handleOnlineStatus = () => {
-      setIsOnline(navigator.onLine);
-    };
-
-    // Add event listeners for online/offline events
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOnlineStatus);
-
-    // Initial check
-    handleOnlineStatus();
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOnlineStatus);
-    };
-  }, []);
-
   return (
     <main className="min-h-[100vh] relative">
       {/* Hero Section */}
@@ -331,14 +309,6 @@ export default function Home() {
           
           </div>
           </section>
-
-      {/* Offline Notification */}
-      {!isOnline && (
-        <div className="fixed bottom-0 left-0 right-0 bg-red-500 text-white p-2 text-center flex items-center justify-center">
-          <CircleAlert className="w-4 h-4 mr-2" />
-          <span>You're offline - only cached results will be available.</span>
-        </div>
-      )}
         </main>
   );
 }

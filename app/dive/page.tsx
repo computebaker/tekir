@@ -4,8 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Bot, Search, ExternalLink, ArrowRight, Loader2, AlertTriangle, Zap, MessageCircleMore, Lock } from "lucide-react";
-import { MarkdownMessage } from "@/components/markdown-message"; // Assuming this path is correct
+import { Search, ExternalLink, ArrowRight, Loader2, AlertTriangle, Zap, MessageCircleMore } from "lucide-react";
+import { MarkdownMessage } from "@/components/markdown-message"; 
 import { ThemeToggle } from "@/components/theme-toggle";
 
 interface SearchResultItem {
