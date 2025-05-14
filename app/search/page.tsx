@@ -1337,7 +1337,7 @@ function SearchPageContent() {
 // Create a new default export component that wraps SearchPageContent in Suspense
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div>Loading search results...</div>}>
+    <Suspense fallback={<div></div>}>
       <SearchPageContent />
     </Suspense>
   );
