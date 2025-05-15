@@ -528,37 +528,40 @@ function SearchPageContent() {
               <Image src="/tekir-head.png" alt="Tekir Logo" width={40} height={40} />
             </Link>
             <div className="relative flex-1 min-w-0">
+              <div className="flex items-center w-full relative">
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => {
-                  setSearchInput(e.target.value);
-                  setShowSuggestions(true);
+                setSearchInput(e.target.value);
+                setShowSuggestions(true);
                 }}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="Search anything..."
-                className="w-full px-4 py-2 pr-20 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
+                className="flex-1 px-4 py-2 pr-4 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
+                style={{ minWidth: 0 }}
               />
-              <div className="absolute right-0 top-0 h-full flex items-center pr-2">
-                <button
-                  type="button"
-                  onClick={handleToggleDiveSearch}
-                  className={`p-2 rounded-full transition-colors ${diveEnabled ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
-                  title="Toggle Dive Search"
-                >
-                  <div className="flex items-center">
-                  <Sparkles className="w-5 h-5" />
-                  <span className="ml-2 text-sm">Dive</span>
-                  </div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center"> {/* Container for buttons */}
+              <button
+                type="button"
+                onClick={handleToggleDiveSearch}
+                className={`p-3 rounded-full transition-colors mr-1 ${diveEnabled ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
+                title="Toggle Dive Search"
+              >
+                <div className="flex items-center">
+                <Sparkles className="w-5 h-5" />
+                <span className="ml-2 text-sm">Dive</span>
+                </div>
                 </button>
-                <button
-                  type="submit"
-                  className="p-2 rounded-full text-muted-foreground hover:bg-muted"
-                  title="Search"
-                >
-                  <Search className="w-5 h-5" />
+              <button
+                type="submit"
+                className="p-3 rounded-full text-muted-foreground hover:bg-muted transition-colors"
+                title="Search"
+              >
+                <Search className="w-5 h-5" />
                 </button>
+              </div>
               </div>
               
               {showSuggestions && suggestions.length > 0 && (
@@ -667,12 +670,13 @@ function SearchPageContent() {
                         
                         <button
                           type="button"
+                          disabled
                           onClick={() => {
                             setSearchEngine("duck");
                             localStorage.setItem("searchEngine", "duck");
                             setSearchEngineDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-400 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
                             searchEngine === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
                           }`}
                         >
@@ -681,7 +685,7 @@ function SearchPageContent() {
                               <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                             )}
                           </div>
-                          <span>DuckDuckGo</span>
+                          <span>DuckDuckGo (down)</span>
                         </button>
                         
                         <button
@@ -819,12 +823,13 @@ function SearchPageContent() {
                         
                         <button
                           type="button"
+                          disabled
                           onClick={() => {
                             setSearchEngine("duck");
                             localStorage.setItem("searchEngine", "duck");
                             setSearchEngineDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-400 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
                             searchEngine === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
                           }`}
                         >
@@ -833,13 +838,13 @@ function SearchPageContent() {
                               <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                             )}
                           </div>
-                          <span>DuckDuckGo</span>
+                          <span>DuckDuckGo (down)</span>
                         </button>
                         
                         <button
                           type="button"
                           disabled
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
+                          className="w-full flex items-center  gap-2 px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
                         >
                           <div className="w-4 h-4"></div>
                           <span>Google (soon)</span>
