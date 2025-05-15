@@ -30,6 +30,7 @@ interface WikipediaData {
     height: number;
   };
   pageUrl: string;
+  description?: string;
 }
 
 interface ImageSearchResult {
@@ -452,7 +453,8 @@ function SearchPageContent() {
               title: details.title,
               extract: details.extract,
               pageUrl: details.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(details.title)}`,
-              ...(details.thumbnail && { thumbnail: details.thumbnail })
+              ...(details.thumbnail && { thumbnail: details.thumbnail }),
+              description: details.description,
             };
 
             setWikiData(wikipediaData);
@@ -1253,7 +1255,12 @@ function SearchPageContent() {
                   </div>
                 ) : wikiData ? (
                   <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md">
-                    <h3 className="text-xl font-semibold mb-4">{wikiData.title}</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-semibold mb-1">{wikiData.title}</h3>
+                    </div>
+                    {wikiData.description && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{wikiData.description}</p>
+                    )}
                     
                     {wikiData.thumbnail && (
                       <div className="mb-4 w-full">
@@ -1276,7 +1283,7 @@ function SearchPageContent() {
                     </div>
                     
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      <span>Source: </span>
+                      <span>Read more in </span>
                       <a 
                         href={wikiData.pageUrl} 
                         target="_blank" 
