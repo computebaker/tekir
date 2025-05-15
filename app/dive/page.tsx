@@ -51,7 +51,7 @@ function DivePageContent() {
 
     try {
       // Step 1: Fetch search results from Brave
-      const braveSearchUrl = `/api/pars/duck?q=${encodeURIComponent(currentQuery)}`;
+      const braveSearchUrl = `/api/pars/brave?q=${encodeURIComponent(currentQuery)}`;
       const braveResponse = await fetch(braveSearchUrl);
       if (!braveResponse.ok) {
         throw new Error(`Failed to fetch search results: ${braveResponse.statusText}`);
