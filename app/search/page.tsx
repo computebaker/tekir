@@ -238,6 +238,15 @@ function SearchPageContent() {
 
     const makeAIRequest = async (model: string, isRetry: boolean = false) => {
       try {
+        const cacheKey = `karakulak-${model}-${query}`;
+        const cachedResponse = sessionStorage.getItem(cacheKey);
+
+        if (cachedResponse) {
+          setAiResponse(cachedResponse);
+          setAiLoading(false);
+          return;
+        }
+
         const res = await fetch(`/api/karakulak/${model}`, {
           method: "POST",
           headers: {
@@ -253,6 +262,7 @@ function SearchPageContent() {
         const aiData = await res.json();
         const aiResult = aiData.answer.trim();
         setAiResponse(aiResult);
+        sessionStorage.setItem(cacheKey, aiResult);
         setAiLoading(false);
       } catch (error) {
         console.error(`AI response failed for model ${model}:`, error);
