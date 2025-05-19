@@ -1,12 +1,35 @@
 "use client";
 
+import { useEffect, useState, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Lock, MessageCircleMore, Sparkles } from "lucide-react";
-import { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { handleBangRedirect } from "@/utils/bangs";
-import { useTransition } from "react";
+import { Search, Sparkles, Lock, MessageCircleMore } from "lucide-react";
+
+async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
+  const originalResponse = await fetch(url, options);
+
+  if (originalResponse.status === 403 && originalResponse.headers.get("Content-Type")?.includes("application/json")) {
+    const responseCloneForErrorCheck = originalResponse.clone();
+    try {
+      const errorData = await responseCloneForErrorCheck.json();
+      if (errorData && errorData.error === "Invalid or expired session token.") {
+        console.log("Session token expired or invalid. Attempting to refresh session...");
+        const registerResponse = await fetch("/api/session/register", { method: "POST" });
+        if (registerResponse.ok) {
+          console.log("Session refreshed successfully. Retrying the original request.");
+          return await fetch(url, options);
+        } else {
+          console.error("Failed to refresh session. Status:", registerResponse.status);
+          return originalResponse;
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing JSON from 403 response, or not the specific session token error:", e);
+    }
+  }
+  return originalResponse;
+}
 
 interface Suggestion {
   query: string;
@@ -20,13 +43,26 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
-  const [autocompleteSource] = useState(() => 
+  const [autocompleteSource] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
   const [diveEnabled, setDiveEnabled] = useState(false);
   const [hasBang, setHasBang] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+
+  // Placeholder for handleBangRedirect if it's not globally available or imported
+  const handleBangRedirect = async (query: string): Promise<boolean> => {
+    // This is a placeholder. Actual implementation might involve API calls.
+    // If it makes fetch calls, they should also use fetchWithSessionRefresh.
+    console.log(`Placeholder: handleBangRedirect for "${query}"`);
+    if (query.startsWith("!g ")) {
+      window.location.href = `https://google.com/search?q=${encodeURIComponent(query.substring(3))}`;
+      return true;
+    }
+    return false;
+  };
   
   // Helper function to detect if input contains a bang
   const checkForBang = (input: string): boolean => {
@@ -90,49 +126,56 @@ export default function Home() {
   };
 
   useEffect(() => {
+    let isMounted = true; // Flag to prevent state updates if component unmounts or effect re-runs
+
     const fetchSuggestions = async () => {
+      if (!isMounted) return;
+
       if (searchQuery.trim().length < 2) {
-        setSuggestions([]);
+        if (isMounted) setSuggestions([]);
         return;
       }
 
-      // Check cache first
       const cacheKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
-        setSuggestions(JSON.parse(cached));
+        if (isMounted) setSuggestions(JSON.parse(cached));
         return;
       }
 
       try {
-        const response = await fetch(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchQuery)}`, {
+        const response = await fetchWithSessionRefresh(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchQuery)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           }
         });
+
+        if (!response.ok) {
+          throw new Error(`Autocomplete fetch failed with status ${response.status}`);
+        }
         const data = await response.json();
         
-        // Process new response format
         if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
-          // Convert the array of strings to array of objects with query property
           const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
-          setSuggestions(processedSuggestions);
-          // Cache the processed results
+          if (isMounted) setSuggestions(processedSuggestions);
           sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
         } else {
-          // Fallback for old format or unexpected data
           console.warn('Unexpected suggestion format:', data);
-          setSuggestions([]);
+          if (isMounted) setSuggestions([]);
         }
       } catch (error) {
         console.error('Failed to fetch suggestions:', error);
-        setSuggestions([]);
+        if (isMounted) setSuggestions([]);
       }
     };
 
     const timeoutId = setTimeout(fetchSuggestions, 200);
-    return () => clearTimeout(timeoutId);
+    
+    return () => {
+      isMounted = false; // Set to false on cleanup
+      clearTimeout(timeoutId);
+    };
   }, [searchQuery, autocompleteSource]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -172,9 +215,6 @@ export default function Home() {
     document.title = "Tekir - The capable search engine";
   }, []);
 
-  // Ref for click-outside detection
-  const suggestionsRef = useRef<HTMLDivElement>(null);
-  
   // Click outside handler for suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -310,5 +350,4 @@ export default function Home() {
           </div>
           </section>
         </main>
-  );
-}
+  )};

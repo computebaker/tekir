@@ -9,6 +9,35 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { handleBangRedirect } from "@/utils/bangs";
 
+async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
+  const originalResponse = await fetch(url, options);
+
+  if (originalResponse.status === 403 && originalResponse.headers.get("Content-Type")?.includes("application/json")) {
+    const responseCloneForErrorCheck = originalResponse.clone(); 
+    try {
+      const errorData = await responseCloneForErrorCheck.json();
+      if (errorData && errorData.error === "Invalid or expired session token.") {
+        console.log("Session token expired or invalid. Attempting to refresh session...");
+
+        const registerResponse = await fetch("/api/session/register", {
+          method: "POST", 
+        });
+
+        if (registerResponse.ok) {
+          console.log("Session refreshed successfully. Retrying the original request.");
+          return await fetch(url, options);
+        } else {
+          console.error("Failed to refresh session. Status:", registerResponse.status);
+          return originalResponse;
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing JSON from 403 response, or not the specific session token error:", e);
+    }
+  }
+  return originalResponse;
+}
+
 interface SearchResult {
   title: string;
   description: string;
@@ -126,70 +155,91 @@ function SearchPageContent() {
   useEffect(() => {
     const currentQuery = searchParams.get("q") || "";
     const isDiveActive = searchParams.get("dive") === "true";
-
     if (!currentQuery) {
       setResults([]);
       setLoading(false);
       return;
     }
-
-    (async () => {
-      const isRedirected = await handleBangRedirect(currentQuery);
-      if (isRedirected) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setResults([]);
-      setAiResponse(null);
-      setWikiData(null);
-
-      if (isDiveActive) {
-        try {
-          const response = await fetch(`/api/dive?q=${encodeURIComponent(currentQuery)}`);
+    let isMounted = true;
+    setLoading(true);
+    setResults([]);
+    setWikiData(null);
+    if (isDiveActive) {
+      fetchWithSessionRefresh(`/api/dive?q=${encodeURIComponent(currentQuery)}`)
+        .then(response => {
           if (!response.ok) throw new Error(`Dive API request failed with status ${response.status}`);
-          const diveData = await response.json();
-          setResults(diveData.results || diveData);
-        } catch (error) {
+          return response.json();
+        })
+        .then(diveData => {
+          if (isMounted) {
+            setResults(diveData.results || diveData);
+          }
+        })
+        .catch(error => {
           console.error("Dive search failed:", error);
-          setResults([]);
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        const storedEngine = localStorage.getItem("searchEngine") || "brave";
-        let engineToUse = storedEngine;
+          if (isMounted) {
+            setResults([]);
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setLoading(false);
+          }
+        });
+      
+      return () => {
+        isMounted = false;
+      };
 
-        const fetchWithEngine = async (engine: string) => {
+    } else { 
+      const storedEngine = localStorage.getItem("searchEngine") || "brave";
+      const engineToUse = storedEngine;
+
+      const fetchRegularSearch = async () => {
+        const doFetch = async (engine: string) => {
           try {
-            const response = await fetch(`/api/pars/${engine}?q=${encodeURIComponent(currentQuery)}`);
-            if (!response.ok) throw new Error("Fetch failed");
+            const response = await fetchWithSessionRefresh(`/api/pars/${engine}?q=${encodeURIComponent(currentQuery)}`);
+            if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
             const searchData = await response.json();
-            setResults(searchData);
-            setSearchEngine(engine);
+            if (isMounted) {
+              setResults(searchData);
+              setSearchEngine(engine); 
+            }
             return true;
-          } catch {
+          } catch (error) {
+            console.error(error);
+            if (isMounted) {
+            }
             return false;
           }
         };
 
-        setTimeout(async () => {
-          const success = await fetchWithEngine(engineToUse);
-          if (!success && engineToUse !== "brave") {
-            await fetchWithEngine("brave");
-          }
+        const success = await doFetch(engineToUse);
+        if (isMounted && !success && engineToUse !== "brave") {
+          await doFetch("brave");
+        }
+        if (isMounted) {
           setLoading(false);
-        }, 1200);
-      }
-    })();
+        }
+      };
+
+      const timerId = setTimeout(fetchRegularSearch, 1200);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(timerId);
+      };
+    }
   }, [searchParams, router]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
     setImageLoading(true);
-    fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
-      .then((response) => response.json())
+    fetchWithSessionRefresh(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`) 
+      .then((response) => {
+        if (!response.ok) throw new Error(`Image search failed with status ${response.status}`);
+        return response.json();
+      })
       .then((data) => {
         if (data.results) {
           setImageResults(data.results);
@@ -204,8 +254,11 @@ function SearchPageContent() {
 
     if (imageResults.length === 0 && !imageLoading) {
       setImageLoading(true);
-      fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
-        .then((response) => response.json())
+      fetchWithSessionRefresh(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+        .then((response) => {
+          if (!response.ok) throw new Error(`Image search failed with status ${response.status}`);
+          return response.json();
+        })
         .then((data) => {
           if (data.results) {
             setImageResults(data.results);
@@ -247,7 +300,7 @@ function SearchPageContent() {
           return;
         }
 
-        const res = await fetch(`/api/karakulak/${model}`, {
+        const res = await fetchWithSessionRefresh(`/api/karakulak/${model}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -327,12 +380,13 @@ function SearchPageContent() {
       }
 
       try {
-        const response = await fetch(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchInput)}`, {
+        const response = await fetchWithSessionRefresh(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchInput)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           }
         });
+        if (!response.ok) throw new Error(`Autocomplete fetch failed with status ${response.status}`);
         const data = await response.json();
 
         if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
@@ -502,7 +556,7 @@ function SearchPageContent() {
 
     if (type === 'images' && query && imageResults.length === 0 && !imageLoading) {
       setImageLoading(true);
-      fetch(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+      fetchWithSessionRefresh(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
         .then((response) => response.json())
         .then((data) => {
           if (data.results) {

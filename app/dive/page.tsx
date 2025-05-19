@@ -1,12 +1,37 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, ExternalLink, ArrowRight, Loader2, AlertTriangle, Zap, MessageCircleMore } from "lucide-react";
 import { MarkdownMessage } from "@/components/markdown-message"; 
 import { ThemeToggle } from "@/components/theme-toggle";
+
+async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
+  const originalResponse = await fetch(url, options);
+
+  if (originalResponse.status === 403 && originalResponse.headers.get("Content-Type")?.includes("application/json")) {
+    const responseCloneForErrorCheck = originalResponse.clone();
+    try {
+      const errorData = await responseCloneForErrorCheck.json();
+      if (errorData && errorData.error === "Invalid or expired session token.") {
+        console.log("Session token expired or invalid. Attempting to refresh session...");
+        const registerResponse = await fetch("/api/session/register", { method: "POST" });
+        if (registerResponse.ok) {
+          console.log("Session refreshed successfully. Retrying the original request.");
+          return await fetch(url, options);
+        } else {
+          console.error("Failed to refresh session. Status:", registerResponse.status);
+          return originalResponse;
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing JSON from 403 response, or not the specific session token error:", e);
+    }
+  }
+  return originalResponse;
+}
 
 interface SearchResultItem {
   url: string;
@@ -33,15 +58,7 @@ function DivePageContent() {
   const [followUpQuestion, setFollowUpQuestion] = useState("");
   const [currentSearchInput, setCurrentSearchInput] = useState(queryParam || "");
 
-  useEffect(() => {
-    if (queryParam) {
-      setQuery(queryParam);
-      setCurrentSearchInput(queryParam);
-      fetchDiveData(queryParam);
-    }
-  }, [queryParam]);
-
-  const fetchDiveData = async (currentQuery: string) => {
+  const fetchDiveData = useCallback(async (currentQuery: string, signal: AbortSignal) => {
     if (!currentQuery) return;
 
     setIsLoading(true);
@@ -52,11 +69,14 @@ function DivePageContent() {
     try {
       // Step 1: Fetch search results from Brave
       const braveSearchUrl = `/api/pars/brave?q=${encodeURIComponent(currentQuery)}`;
-      const braveResponse = await fetch(braveSearchUrl);
+      const braveResponse = await fetchWithSessionRefresh(braveSearchUrl, { signal });
+      if (signal.aborted) return;
+
       if (!braveResponse.ok) {
         throw new Error(`Failed to fetch search results: ${braveResponse.statusText}`);
       }
       const braveResults: SearchResultItem[] = await braveResponse.json();
+      if (signal.aborted) return;
 
       if (!braveResults || braveResults.length === 0) {
         throw new Error("No search results found to dive into.");
@@ -70,11 +90,13 @@ function DivePageContent() {
 
       // Step 2: Call /api/dive with query and page URLs/metadata
       const diveApiUrl = "/api/dive";
-      const diveApiResponse = await fetch(diveApiUrl, {
+      const diveApiResponse = await fetchWithSessionRefresh(diveApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: currentQuery, pages: top5Results }),
+        signal,
       });
+      if (signal.aborted) return;
 
       if (!diveApiResponse.ok) {
         const errorData = await diveApiResponse.json().catch(() => ({ error: "Unknown error from Dive API" }));
@@ -82,16 +104,36 @@ function DivePageContent() {
       }
 
       const diveData: DiveApiResponse = await diveApiResponse.json();
+      if (signal.aborted) return;
+
       setLlmResponse(diveData.response);
       setSources(diveData.sources);
 
     } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log('Dive fetch aborted');
+        return;
+      }
       console.error("Dive mode error:", err);
       setError(err.message || "An unexpected error occurred.");
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [setIsLoading, setError, setLlmResponse, setSources]); // Dependencies are stable setters
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    if (queryParam) {
+      setQuery(queryParam);
+      setCurrentSearchInput(queryParam);
+      fetchDiveData(queryParam, abortController.signal);
+    }
+    return () => {
+      abortController.abort();
+    };
+  }, [queryParam, fetchDiveData, setQuery, setCurrentSearchInput]);
 
   const handleFollowUpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
