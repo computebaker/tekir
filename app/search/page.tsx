@@ -494,8 +494,54 @@ function SearchPageContent() {
     }
 
     const fetchWikipediaData = async () => {
-
       setWikiLoading(true);
+      try {
+        const suggestionResponse = await fetchWithSessionRefresh(
+          `/api/suggest/wikipedia?q=${encodeURIComponent(query)}`
+        );
+        
+        if (!suggestionResponse.ok) {
+          throw new Error(`Wikipedia suggestion API failed: ${suggestionResponse.status}`);
+        }
+        
+        const suggestionData = await suggestionResponse.json();
+        const articleTitle = suggestionData.article;
+        
+        if (articleTitle) {
+          const detailsUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(articleTitle)}`;
+          const detailsResponse = await fetch(detailsUrl);
+          const details = await detailsResponse.json();
+
+          if (details.type === "standard" || details.type === "disambiguation") {
+            const wikipediaData: WikipediaData = {
+              title: details.title,
+              extract: details.extract,
+              pageUrl: details.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(details.title)}`,
+              ...(details.thumbnail && { thumbnail: details.thumbnail }),
+              description: details.description,
+            };
+
+            setWikiData(wikipediaData);
+          } else {
+            await fallbackToWikipediaSearch();
+          }
+        } else {
+          await fallbackToWikipediaSearch();
+        }
+      } catch (error) {
+        console.error("Failed to fetch Wikipedia data:", error);
+        try {
+          await fallbackToWikipediaSearch();
+        } catch (fallbackError) {
+          console.error("Fallback Wikipedia search also failed:", fallbackError);
+          setWikiData(null);
+        }
+      } finally {
+        setWikiLoading(false);
+      }
+    };
+
+    const fallbackToWikipediaSearch = async () => {
       try {
         const searchUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=${encodeURIComponent(
           query
@@ -529,10 +575,8 @@ function SearchPageContent() {
           setWikiData(null);
         }
       } catch (error) {
-        console.error("Failed to fetch Wikipedia data:", error);
+        console.error("Fallback Wikipedia search failed:", error);
         setWikiData(null);
-      } finally {
-        setWikiLoading(false);
       }
     };
 
