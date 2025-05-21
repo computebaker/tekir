@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerSessionToken, isRedisConfigured } from '@/lib/redis';
-import { randomBytes } from 'crypto';
+import { createHash } from 'crypto';
+
+// Function to get client IP address from request
+function getClientIp(req: NextRequest): string | null {
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    // x-forwarded-for can be a comma-separated list of IPs. The first one is the client's.
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp.trim();
+  }
+  return null;
+}
+
+// Function to hash the IP address
+function hashIp(ip: string): string {
+  return createHash('sha256').update(ip).digest('hex');
+}
 
 export async function POST(req: NextRequest) {
   if (!isRedisConfigured) {
@@ -9,21 +29,28 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Generate a secure session token on the server
-    const token = randomBytes(32).toString('hex');
+    const clientIp = getClientIp(req);
+    let hashedIp: string | null = null;
 
-    const expirationInSeconds = 24 * 60 * 60; // 24 hours
-    const registered = await registerSessionToken(token, expirationInSeconds);
+    if (clientIp) {
+      hashedIp = hashIp(clientIp);
+    } else {
+      console.warn("Could not determine client IP address. Session will not be tied to IP.");
+    }
 
-    if (!registered) {
+    const expirationInSeconds = 24 * 60 * 60;
+    
+    const token = await registerSessionToken(hashedIp, expirationInSeconds);
+
+    if (!token) {
       return NextResponse.json({ success: false, error: 'Failed to register session token.' }, { status: 500 });
     }
-    // Set session token cookie
-    const response = NextResponse.json({ success: true, token, message: 'Session token generated and registered.' });
+    
+    const response = NextResponse.json({ success: true, token, message: 'Session token processed.' });
     response.cookies.set('session-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // allow cookies on same-site requests
+      sameSite: 'lax',
       maxAge: expirationInSeconds,
       path: '/',
     });

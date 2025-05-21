@@ -1,4 +1,5 @@
 import { createClient, RedisClientType, RedisFunctions, RedisModules, RedisScripts } from 'redis';
+import { randomBytes } from 'crypto'; 
 
 const redisUsername = process.env.REDIS_USERNAME;
 const redisPassword = process.env.REDIS_PASSWORD;
@@ -75,20 +76,65 @@ export async function isValidSessionToken(token: string): Promise<boolean> {
   }
 }
 
-export async function registerSessionToken(token: string, expirationInSeconds: number = 24 * 60 * 60): Promise<boolean> {
+export async function registerSessionToken(
+  hashedIp: string | null, 
+  expirationInSeconds: number = 24 * 60 * 60
+): Promise<string | null> { 
   if (!isRedisConfigured || !redis) {
     console.warn("Redis is not configured or not connected. Cannot register session token.");
-    return false;
+    return null;
   }
+
   try {
+    if (hashedIp) {
+      const ipSessionKey = `ip_session:${hashedIp}`;
+      const existingToken = await redis.get(ipSessionKey);
+
+      if (existingToken) {
+        const sessionKey = `session:${existingToken}`;
+        if (await redis.exists(sessionKey)) {
+          const multi = redis.multi();
+          multi.expire(sessionKey, expirationInSeconds);
+          multi.expire(ipSessionKey, expirationInSeconds);
+          
+          const sessionRequestsKey = `session_requests:${existingToken}`;
+          if (await redis.exists(sessionRequestsKey)) {
+              multi.expire(sessionRequestsKey, expirationInSeconds);
+          } else {
+              multi.setEx(sessionRequestsKey, expirationInSeconds, "0");
+          }
+          
+          await multi.exec();
+          console.log(`Refreshed session for existing token: ${existingToken} for IP hash: ${hashedIp}`);
+          return existingToken; 
+        } else {
+          console.log(`Found stale token ${existingToken} for IP hash ${hashedIp}. Creating new token.`);
+        }
+      }
+    }
+
+    const newToken = randomBytes(32).toString('hex');
+    const newSessionKey = `session:${newToken}`;
+    const newSessionRequestsKey = `session_requests:${newToken}`;
+
     const multi = redis.multi();
-    multi.setEx(`session:${token}`, expirationInSeconds, "active");
-    multi.setEx(`session_requests:${token}`, expirationInSeconds, "0");
+    multi.setEx(newSessionKey, expirationInSeconds, "active"); 
+    multi.setEx(newSessionRequestsKey, expirationInSeconds, "0"); 
+
+    if (hashedIp) {
+      const ipSessionKey = `ip_session:${hashedIp}`; 
+      multi.setEx(ipSessionKey, expirationInSeconds, newToken); 
+      console.log(`Registered new session token: ${newToken} and linked to IP hash: ${hashedIp}`);
+    } else {
+      console.log(`Registered new session token: ${newToken} (not linked to IP)`);
+    }
+    
     await multi.exec();
-    return true;
+    return newToken; 
+
   } catch (error) {
-    console.error("Error registering session token or initializing request count in Redis:", error);
-    return false;
+    console.error("Error in registerSessionToken with IP hash:", error);
+    return null;
   }
 }
 
