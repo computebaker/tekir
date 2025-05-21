@@ -12,7 +12,7 @@ import { handleBangRedirect } from "@/utils/bangs";
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
 
-  if (originalResponse.status === 403 && originalResponse.headers.get("Content-Type")?.includes("application/json")) {
+  if (originalResponse.status === 401 || originalResponse.status === 403 && originalResponse.headers.get("Content-Type")?.includes("application/json")) {
     const responseCloneForErrorCheck = originalResponse.clone(); 
     try {
       const errorData = await responseCloneForErrorCheck.json();
@@ -32,7 +32,7 @@ async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: Request
         }
       }
     } catch (e) {
-      console.warn("Error parsing JSON from 403 response, or not the specific session token error:", e);
+      console.warn("Error parsing JSON from 403/401 response, or not the specific session token error:", e);
     }
   }
   return originalResponse;
