@@ -348,6 +348,71 @@ export default function Home() {
             </div>
           
           </div>
-          </section>
-        </main>
+      </section>
+
+      <footer className="bg-neutral-900 text-neutral-300 w-full">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-8 gap-y-10 mb-10">
+            {/* Column 1: Logo, Tagline, Discover Button */}
+            <div className="lg:col-span-4">
+              <div className="mb-5">
+                <Image src="/tekir.png" alt="Tekir Logo" width={50} height={150} />
+              </div>
+              <p className="text-neutral-400 mb-6 text-sm leading-relaxed">
+                Tekir is a privacy-friendly search engine that serves the best search experience. 
+              </p>
+              <Link
+                href="/about"
+                className="inline-block px-5 py-2 border border-neutral-600 rounded-md text-sm font-medium text-neutral-200 hover:bg-neutral-800 hover:border-neutral-500 transition-colors"
+              >
+                Discover the service
+              </Link>
+            </div>
+
+            <div className="lg:col-span-2 lg:col-start-6 md:col-start-auto">
+              <h3 className="text-base font-semibold text-neutral-100 mb-4">Products</h3>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="#" className="text-neutral-400 hover:text-white transition-colors">Search</Link></li>
+                <li><Link href="/dive" className="text-neutral-400 hover:text-white transition-colors">Dive Mode</Link></li>
+                <li><Link href="/chat" className="text-neutral-400 hover:text-white transition-colors">AI Chat</Link></li>
+              </ul>
+            </div>
+
+            <div className="lg:col-span-2">
+              <h3 className="text-base font-semibold text-neutral-100 mb-4">About Tekir</h3>
+              <ul className="space-y-3 text-sm">
+                <li><a href="/about" className="text-neutral-400 hover:text-white transition-colors">About us</a></li>
+                <li><a href="/privacy" className="text-neutral-400 hover:text-white transition-colors">Privacy</a></li>
+                <li><a href="/terms" className="text-neutral-400 hover:text-white transition-colors">Terms</a></li>
+                <li><a href="https://computebaker.com" className="text-neutral-400 hover:text-white transition-colors">computebaker</a></li>
+              </ul>
+            </div>
+
+            <div className="lg:col-span-2">
+              <h3 className="text-base font-semibold text-neutral-100 mb-4">Follow us</h3>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="https://instagram.com/tekirsearch" className="text-neutral-400 hover:text-white transition-colors">Instagram</Link></li>
+                <li><Link href="https://bsky.app/profile/tekir.co" className="text-neutral-400 hover:text-white transition-colors">Bluesky</Link></li>
+            </ul>
+            </div>
+          </div>
+
+          <hr className="border-neutral-800" />
+
+          <div className="flex flex-col md:flex-row justify-between items-center text-sm text-neutral-500 pt-8 gap-4">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2">
+              <span>&copy; {new Date().getFullYear()} <Link href="https://computebaker.com">computebaker</Link>. All rights reserved.</span>
+              <Link href="/privacy" className="hover:text-neutral-300 transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-neutral-300 transition-colors">Terms of Service</Link>
+            </div>
+            <Link
+              href="https://btt.community/t/tekir-meta-arama-motoru/18108"
+              className="mt-4 md:mt-0 shrink-0 px-5 py-2 border border-neutral-700 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:border-neutral-600 transition-colors"
+            >
+              Share your feedback
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </main>
   )};
