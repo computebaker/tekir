@@ -405,12 +405,21 @@ export default function Home() {
               <Link href="/privacy" className="hover:text-neutral-300 transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-neutral-300 transition-colors">Terms of Service</Link>
             </div>
-            <Link
-              href="https://btt.community/t/tekir-meta-arama-motoru/18108"
-              className="mt-4 md:mt-0 shrink-0 px-5 py-2 border border-neutral-700 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:border-neutral-600 transition-colors"
-            >
-              Share your feedback
-            </Link>
+            <div className="flex flex-col md:flex-row items-center gap-4">
+              <iframe 
+                src="https://status.tekir.co/en/badge" 
+                width="250" 
+                height="30" 
+                style={{ colorScheme: 'normal' }}
+                className="rounded"
+              />
+              <Link
+                href="https://btt.community/t/tekir-meta-arama-motoru/18108"
+                className="shrink-0 px-5 py-2 border border-neutral-700 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:border-neutral-600 transition-colors"
+              >
+                Share your feedback
+              </Link>
+            </div>
           </div>
         </div>
       </footer>

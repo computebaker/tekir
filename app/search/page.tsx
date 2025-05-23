@@ -1428,6 +1428,15 @@ function SearchPageContent() {
             </Link>
           </div>
           <div className="flex items-center space-x-4">
+            <iframe 
+              src="https://status.tekir.co/en/badge" 
+              width="250" 
+              height="30" 
+              frameBorder="0" 
+              scrolling="no" 
+              style={{ colorScheme: 'normal' }}
+              className="rounded"
+            />
             <ThemeToggle />
             <a
               href="https://instagram.com/tekirsearch"
