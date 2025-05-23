@@ -1,5 +1,39 @@
 import { createClient, RedisClientType, RedisFunctions, RedisModules, RedisScripts } from 'redis';
-import { randomBytes } from 'crypto'; 
+import { randomBytes } from 'crypto';
+
+interface CachedSession {
+  isValid: boolean;
+  requestCount: number;
+  lastUpdated: number;
+  expiresAt: number;
+}
+
+interface MemoryCache {
+  sessions: Map<string, CachedSession>;
+  ipTokens: Map<string, { token: string; expiresAt: number }>;
+}
+
+const CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes
+const memoryCache: MemoryCache = {
+  sessions: new Map(),
+  ipTokens: new Map()
+};
+
+function cleanExpiredCache() {
+  const now = Date.now();
+  
+  memoryCache.sessions.forEach((session, token) => {
+    if (session.expiresAt < now) {
+      memoryCache.sessions.delete(token);
+    }
+  });
+  
+  memoryCache.ipTokens.forEach((data, ip) => {
+    if (data.expiresAt < now) {
+      memoryCache.ipTokens.delete(ip);
+    }
+  });
+} 
 
 const redisUsername = process.env.REDIS_USERNAME;
 const redisPassword = process.env.REDIS_PASSWORD;
@@ -51,6 +85,12 @@ export default redis;
 export const isRedisConfigured = !!redisUsername && !!redisPassword && !!redisHost && !!redisPort && !!redis;
 
 export async function isValidSessionToken(token: string): Promise<boolean> {
+  cleanExpiredCache();
+  const cached = memoryCache.sessions.get(token);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.isValid;
+  }
+
   if (!redis) {
     console.warn("Redis client is not initialized. Cannot validate session token.");
     return false;
@@ -66,10 +106,25 @@ export async function isValidSessionToken(token: string): Promise<boolean> {
   try {
     const exists = await redis.exists(`session:${token}`);
     if (exists !== 1) {
+      memoryCache.sessions.set(token, {
+        isValid: false,
+        requestCount: 0,
+        lastUpdated: Date.now(),
+        expiresAt: Date.now() + (CACHE_TTL_MS / 2)
+      });
       return false;
     }
     const ttl = await redis.ttl(`session:${token}`);
-    return ttl > 0;
+    const isValid = ttl > 0;
+    
+    memoryCache.sessions.set(token, {
+      isValid,
+      requestCount: cached?.requestCount || 0, 
+      lastUpdated: Date.now(),
+      expiresAt: Date.now() + CACHE_TTL_MS
+    });
+    
+    return isValid;
   } catch (error) {
     console.error("Error validating session token in Redis:", error);
     return false;
@@ -87,6 +142,15 @@ export async function registerSessionToken(
 
   try {
     if (hashedIp) {
+      cleanExpiredCache();
+      const cachedIpData = memoryCache.ipTokens.get(hashedIp);
+      if (cachedIpData && cachedIpData.expiresAt > Date.now()) {
+        const cachedSession = memoryCache.sessions.get(cachedIpData.token);
+        if (cachedSession && cachedSession.isValid && cachedSession.expiresAt > Date.now()) {
+          return cachedIpData.token;
+        }
+      }
+
       const ipSessionKey = `ip_session:${hashedIp}`;
       const existingToken = await redis.get(ipSessionKey);
 
@@ -105,11 +169,21 @@ export async function registerSessionToken(
           }
           
           await multi.exec();
-          console.log(`Refreshed session for existing token: ${existingToken} for IP hash: ${hashedIp}`);
+          
+          memoryCache.sessions.set(existingToken, {
+            isValid: true,
+            requestCount: 0,
+            lastUpdated: Date.now(),
+            expiresAt: Date.now() + CACHE_TTL_MS
+          });
+          
+          memoryCache.ipTokens.set(hashedIp, {
+            token: existingToken,
+            expiresAt: Date.now() + CACHE_TTL_MS
+          });
+          
           return existingToken; 
-        } else {
-          console.log(`Found stale token ${existingToken} for IP hash ${hashedIp}. Creating new token.`);
-        }
+        } 
       }
     }
 
@@ -125,11 +199,24 @@ export async function registerSessionToken(
       const ipSessionKey = `ip_session:${hashedIp}`; 
       multi.setEx(ipSessionKey, expirationInSeconds, newToken); 
       console.log(`Registered new session token: ${newToken} and linked to IP hash: ${hashedIp}`);
+      
+      memoryCache.ipTokens.set(hashedIp, {
+        token: newToken,
+        expiresAt: Date.now() + CACHE_TTL_MS
+      });
     } else {
       console.log(`Registered new session token: ${newToken} (not linked to IP)`);
     }
     
     await multi.exec();
+    
+    memoryCache.sessions.set(newToken, {
+      isValid: true,
+      requestCount: 0,
+      lastUpdated: Date.now(),
+      expiresAt: Date.now() + CACHE_TTL_MS
+    });
+    
     return newToken; 
 
   } catch (error) {
@@ -141,6 +228,19 @@ export async function registerSessionToken(
 const MAX_REQUESTS_PER_SESSION = 600;
 
 export async function incrementAndCheckRequestCount(token: string): Promise<{ allowed: boolean; currentCount: number }> {
+  cleanExpiredCache();
+  const cached = memoryCache.sessions.get(token);
+  
+  if (cached && cached.expiresAt > Date.now()) {
+    const timeSinceLastUpdate = Date.now() - cached.lastUpdated;
+    
+    if (timeSinceLastUpdate < 60000 && cached.requestCount < MAX_REQUESTS_PER_SESSION) {
+      cached.requestCount++;
+      cached.lastUpdated = Date.now();
+      return { allowed: cached.requestCount <= MAX_REQUESTS_PER_SESSION, currentCount: cached.requestCount };
+    }
+  }
+
   if (!redis) {
     console.warn("Redis client is not initialized. Cannot check request count.");
     return { allowed: false, currentCount: 0 };
@@ -165,6 +265,13 @@ export async function incrementAndCheckRequestCount(token: string): Promise<{ al
     } else {
       return { allowed: false, currentCount };
     }
+
+    memoryCache.sessions.set(token, {
+      isValid: cached?.isValid ?? true,
+      requestCount: currentCount,
+      lastUpdated: Date.now(),
+      expiresAt: Date.now() + CACHE_TTL_MS
+    });
 
     if (currentCount > MAX_REQUESTS_PER_SESSION) {
       return { allowed: false, currentCount };
