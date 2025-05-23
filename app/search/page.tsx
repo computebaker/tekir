@@ -110,6 +110,10 @@ function SearchPageContent() {
   const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [diveEnabled, setDiveEnabled] = useState(initialDiveEnabled);
+  const [aiDiveEnabled, setAiDiveEnabled] = useState(false);
+  const [diveResponse, setDiveResponse] = useState<string | null>(null);
+  const [diveSources, setDiveSources] = useState<Array<{url: string, title: string, description?: string}>>([]);
+  const [diveLoading, setDiveLoading] = useState(false);
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
@@ -274,6 +278,8 @@ function SearchPageContent() {
 
     if (!aiEnabled) {
       setAiResponse(null);
+      setDiveResponse(null);
+      setDiveSources([]);
       return;
     }
 
@@ -283,6 +289,7 @@ function SearchPageContent() {
 
     const modelToUse = aiModel || "gemini";
     setAiLoading(true);
+    setDiveLoading(true);
 
     const isModelEnabled = (model: string) => {
       const stored = localStorage.getItem(`karakulakEnabled_${model}`);
@@ -291,40 +298,100 @@ function SearchPageContent() {
 
     const makeAIRequest = async (model: string, isRetry: boolean = false) => {
       try {
-        const cacheKey = `karakulak-${model}-${query}`;
-        const cachedResponse = sessionStorage.getItem(cacheKey);
+        if (aiDiveEnabled) {
+          // Dive AI Mode - fetch search results first, then process with AI
+          const diveKey = `dive-${query}`;
+          const cachedDiveResponse = sessionStorage.getItem(diveKey);
+          
+          if (cachedDiveResponse) {
+            const cached = JSON.parse(cachedDiveResponse);
+            setDiveResponse(cached.response);
+            setDiveSources(cached.sources || []);
+            setDiveLoading(false);
+            setAiResponse(null); // Clear regular AI response when dive is active
+            setAiLoading(false);
+            return;
+          }
 
-        if (cachedResponse) {
-          setAiResponse(cachedResponse);
-          setAiLoading(false);
-          return;
+          // Fetch search results first
+          const searchResponse = await fetchWithSessionRefresh(`/api/pars/brave?q=${encodeURIComponent(query)}`);
+          if (!searchResponse.ok) throw new Error(`Search API failed with status ${searchResponse.status}`);
+          
+          const searchResults = await searchResponse.json();
+          if (!searchResults || searchResults.length === 0) {
+            throw new Error("No search results found for dive mode.");
+          }
+
+          const top5Results = searchResults.slice(0, 5).map((r: any) => ({
+            url: r.url,
+            title: r.title,
+            snippet: r.description
+          }));
+
+          // Call dive API
+          const diveResponse = await fetchWithSessionRefresh('/api/dive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, pages: top5Results })
+          });
+
+          if (!diveResponse.ok) {
+            throw new Error(`Dive API failed with status ${diveResponse.status}`);
+          }
+
+          const diveData = await diveResponse.json();
+          setDiveResponse(diveData.response);
+          setDiveSources(diveData.sources || []);
+          setAiResponse(null); // Clear regular AI response when dive is active
+          
+          // Cache the dive response
+          sessionStorage.setItem(diveKey, JSON.stringify(diveData));
+          
+        } else {
+          // Regular AI Mode
+          const cacheKey = `karakulak-${model}-${query}`;
+          const cachedResponse = sessionStorage.getItem(cacheKey);
+
+          if (cachedResponse) {
+            setAiResponse(cachedResponse);
+            setDiveResponse(null); // Clear dive response when regular AI is active
+            setDiveSources([]);
+            setAiLoading(false);
+            setDiveLoading(false);
+            return;
+          }
+
+          const res = await fetchWithSessionRefresh(`/api/karakulak/${model}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ message: query }),
+          });
+
+          if (!res.ok) {
+            throw new Error(`API returned status ${res.status}`);
+          }
+
+          const aiData = await res.json();
+          const aiResult = aiData.answer.trim();
+          setAiResponse(aiResult);
+          setDiveResponse(null); // Clear dive response when regular AI is active
+          setDiveSources([]);
+          sessionStorage.setItem(cacheKey, aiResult);
         }
-
-        const res = await fetchWithSessionRefresh(`/api/karakulak/${model}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: query }),
-        });
-
-        if (!res.ok) {
-          throw new Error(`API returned status ${res.status}`);
-        }
-
-        const aiData = await res.json();
-        const aiResult = aiData.answer.trim();
-        setAiResponse(aiResult);
-        sessionStorage.setItem(cacheKey, aiResult);
+        
         setAiLoading(false);
+        setDiveLoading(false);
       } catch (error) {
         console.error(`AI response failed for model ${model}:`, error);
 
-        if (!isRetry && model !== "gemini" && !aiModel) {
+        if (!isRetry && model !== "gemini" && !aiModel && !aiDiveEnabled) {
           console.log("No user preference found, falling back to Gemini model");
           makeAIRequest("gemini", true);
         } else {
           setAiLoading(false);
+          setDiveLoading(false);
         }
       }
     };
@@ -334,7 +401,7 @@ function SearchPageContent() {
     if (selectedModelEnabled) {
       makeAIRequest(modelToUse);
     }
-  }, [query, aiEnabled, aiModel]);
+  }, [query, aiEnabled, aiModel, aiDiveEnabled]);
 
   const handleModelChange = (model: string) => {
     setAiModel(model);
@@ -364,6 +431,10 @@ function SearchPageContent() {
 
   const handleToggleDiveSearch = () => {
     setDiveEnabled(prevDiveEnabled => !prevDiveEnabled);
+  };
+
+  const handleToggleAiDive = () => {
+    setAiDiveEnabled(prevAiDiveEnabled => !prevAiDiveEnabled);
   };
 
   const toggleAiEnabled = () => {
@@ -1070,126 +1141,163 @@ function SearchPageContent() {
 
           <div className="flex flex-col md:flex-row md:gap-8">
             <div className="flex-1 md:w-4/5 xl:w-2/3">
-              {searchType === 'web' && aiEnabled && (aiLoading ? (
+              {searchType === 'web' && aiEnabled && ((aiLoading || diveLoading) ? (
                 <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 animate-pulse">
                   <div className="flex items-center mb-4">
                     <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                      Karakulak AI
+                      Karakulak
                       <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
                         BETA
                       </span>
-                      <Link href="https://chat.tekir.co" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
-                        Try Tekir Chat →
-                      </Link>
                     </span>
                   </div>
                   <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
                   <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2"></div>
                 </div>
-              ) : aiResponse ? (
+              ) : (aiResponse || diveResponse) ? (
                 <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                       <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                        Karakulak AI
+                        Karakulak
                         <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
                           BETA
                         </span>
-                        <Link href="https://chat.tekir.co" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
-                          Try Tekir Chat →
-                        </Link>
                       </span>
                     </div>
                     
-                    <div className="relative" ref={modelDropdownRef}>
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        onClick={handleToggleAiDive}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          aiDiveEnabled 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                        title={aiDiveEnabled ? "Disable Dive mode" : "Enable Dive mode"}
                       >
-                        {aiModel === 'llama' ? (
-                          <>
-                            <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
-                          </>
-                        ) : aiModel === 'mistral' ? (
-                          <>
-                            <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
-                          </>
-                        ) : aiModel === 'chatgpt' ? (
-                          <>
-                            <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
-                          </>
-                        ) : (
-                          <>
-                            <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
-                          </>
-                        )}
-                        <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
+                        Dive
                       </button>
-                      {modelDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
-                          <div className="p-1">
-                            <button
-                              onClick={() => handleModelChange('llama')}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                aiModel === 'llama' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                              }`}
-                            >
+                      
+                      <div className="relative" ref={modelDropdownRef}>
+                        <button
+                          onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          {aiModel === 'llama' ? (
+                            <>
                               <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
-                              <div className="flex flex-col items-start">
-                                <span className="font-medium">Llama 3.1 7B</span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A powerful and open-source model by Meta</span>
-                              </div>
-                            </button>
-                            
-                            <button
-                              onClick={() => handleModelChange('gemini')}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                aiModel === 'gemini' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                              }`}
-                            >
-                              <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
-                              <div className="flex flex-col items-start">
-                                <span className="font-medium">Gemini 2.0 Flash</span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A fast and intelligent model by Google</span>
-                              </div>
-                            </button>
-
-                            <button
-                              onClick={() => handleModelChange('chatgpt')}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                aiModel === 'chatgpt' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                              }`}
-                            >
-                              <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
-                              <div className="flex flex-col items-start">
-                                <span className="font-medium">GPT 4o-mini</span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 text-left">Powerful, efficient model by OpenAI</span>
-                              </div>
-                            </button>
-
-                            <button
-                              onClick={() => handleModelChange('mistral')}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                aiModel === 'mistral' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                              }`}
-                            >
+                            </>
+                          ) : aiModel === 'mistral' ? (
+                            <>
                               <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
-                              <div className="flex flex-col items-start">
-                                <span className="font-medium">Mistral Nemo</span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A lightweight and efficient model by Mistral AI</span>
-                              </div>
-                            </button>
+                            </>
+                          ) : aiModel === 'chatgpt' ? (
+                            <>
+                              <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
+                            </>
+                          ) : (
+                            <>
+                              <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
+                            </>
+                          )}
+                          <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {modelDropdownOpen && (
+                          <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
+                            <div className="p-1">
+                              <button
+                                onClick={() => handleModelChange('llama')}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                  aiModel === 'llama' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                }`}
+                              >
+                                <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">Llama 3.1 7B</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A powerful and open-source model by Meta</span>
+                                </div>
+                              </button>
+                              
+                              <button
+                                onClick={() => handleModelChange('gemini')}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                  aiModel === 'gemini' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                }`}
+                              >
+                                <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">Gemini 2.0 Flash</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A fast and intelligent model by Google</span>
+                                </div>
+                              </button>
+
+                              <button
+                                onClick={() => handleModelChange('chatgpt')}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                  aiModel === 'chatgpt' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                }`}
+                              >
+                                <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">GPT 4o-mini</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 text-left">Powerful, efficient model by OpenAI</span>
+                                </div>
+                              </button>
+
+                              <button
+                                onClick={() => handleModelChange('mistral')}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                  aiModel === 'mistral' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                }`}
+                              >
+                                <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">Mistral Nemo</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A lightweight and efficient model by Mistral AI</span>
+                                </div>
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                   
-                  <p className="text-left text-blue-800 dark:text-blue-100 mb-3">{aiResponse}</p>
+                  <p className="text-left text-blue-800 dark:text-blue-100 mb-3">
+                    {diveResponse || aiResponse}
+                  </p>
+                  
+                  {diveSources && diveSources.length > 0 && (
+                    <div className="mb-4">
+                      <div className="flex flex-wrap gap-2">
+                        {diveSources.map((source, index) => (
+                          <a
+                            key={index}
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 text-sm hover:bg-blue-200 dark:hover:bg-blue-800/70 transition-colors"
+                            title={source.description}
+                          >
+                            <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mr-2">
+                              {index + 1}
+                            </span>
+                            <span className="truncate max-w-[150px]">{source.title}</span>
+                            <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
-                    Auto-generated based on online sources. May contain inaccuracies.
+                    {aiDiveEnabled 
+                      ? "Generated from web sources. May contain inaccuracies." 
+                      : "Auto-generated based on AI knowledge. May contain inaccuracies."
+                    }
                   </p>
                   
                   <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">

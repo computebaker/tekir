@@ -63,12 +63,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing query or pages for Dive mode.' }, { status: 400 });
     }
 
-    // Fetch content for each page
     const fetchedPagesPromises = pages.map(async (page) => {
       const content = await fetchPageContent(page.url);
       return {
         ...page,
-        htmlContent: content, // Store the extracted text content
+        htmlContent: content, 
       };
     });
 
@@ -87,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     const llmPrompt = `The user is asking: "${query}". 
 
-Based on the following content from up to 5 web pages, provide a comprehensive answer. Synthesize the information and present it clearly. Do not just summarize each source. If the sources contradict, point it out. If the sources don't provide enough information, say so. Be objective and informative. Here is the content:
+Based on the following content from up to 2 web pages, provide a comprehensive answer. Synthesize the information and present it clearly. Do not just summarize each source. If the sources contradict, point it out. If the sources don't provide enough information, say so. Be objective and informative. Here is the content:
 
 ${contextForLlm}Respond directly to the user's query: "${query}".`;
 

@@ -82,7 +82,7 @@ function DivePageContent() {
         throw new Error("No search results found to dive into.");
       }
 
-      const top5Results = braveResults.slice(0, 5).map(r => ({
+      const top2results = braveResults.slice(0, 2).map(r => ({
         url: r.url,
         title: r.title,
         snippet: r.description // Assuming description is the snippet
@@ -93,7 +93,7 @@ function DivePageContent() {
       const diveApiResponse = await fetchWithSessionRefresh(diveApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: currentQuery, pages: top5Results }),
+        body: JSON.stringify({ query: currentQuery, pages: top2results }),
         signal,
       });
       if (signal.aborted) return;
