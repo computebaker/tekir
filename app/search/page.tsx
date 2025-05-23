@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles } from "lucide-react";
+import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles, Star } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -84,7 +84,6 @@ function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
-  const initialDiveEnabled = searchParams.get("dive") === "true";
 
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,7 +108,6 @@ function SearchPageContent() {
   const [searchType, setSearchType] = useState<'web' | 'images'>('web');
   const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
-  const [diveEnabled, setDiveEnabled] = useState(initialDiveEnabled);
   const [aiDiveEnabled, setAiDiveEnabled] = useState(false);
   const [diveResponse, setDiveResponse] = useState<string | null>(null);
   const [diveSources, setDiveSources] = useState<Array<{url: string, title: string, description?: string}>>([]);
@@ -145,10 +143,6 @@ function SearchPageContent() {
   }, []);
 
   useEffect(() => {
-    setDiveEnabled(searchParams.get("dive") === "true");
-  }, [searchParams]);
-
-  useEffect(() => {
     const checkQueryForBangs = async () => {
       if (!query) return;
       await handleBangRedirect(query);
@@ -158,7 +152,6 @@ function SearchPageContent() {
 
   useEffect(() => {
     const currentQuery = searchParams.get("q") || "";
-    const isDiveActive = searchParams.get("dive") === "true";
     if (!currentQuery) {
       setResults([]);
       setLoading(false);
@@ -168,72 +161,45 @@ function SearchPageContent() {
     setLoading(true);
     setResults([]);
     setWikiData(null);
-    if (isDiveActive) {
-      fetchWithSessionRefresh(`/api/dive?q=${encodeURIComponent(currentQuery)}`)
-        .then(response => {
-          if (!response.ok) throw new Error(`Dive API request failed with status ${response.status}`);
-          return response.json();
-        })
-        .then(diveData => {
-          if (isMounted) {
-            setResults(diveData.results || diveData);
-          }
-        })
-        .catch(error => {
-          console.error("Dive search failed:", error);
-          if (isMounted) {
-            setResults([]);
-          }
-        })
-        .finally(() => {
-          if (isMounted) {
-            setLoading(false);
-          }
-        });
-      
-      return () => {
-        isMounted = false;
-      };
+    
+    // Always fetch regular search results for display, regardless of Dive mode
+    const storedEngine = localStorage.getItem("searchEngine") || "brave";
+    const engineToUse = storedEngine;
 
-    } else { 
-      const storedEngine = localStorage.getItem("searchEngine") || "brave";
-      const engineToUse = storedEngine;
-
-      const fetchRegularSearch = async () => {
-        const doFetch = async (engine: string) => {
-          try {
-            const response = await fetchWithSessionRefresh(`/api/pars/${engine}?q=${encodeURIComponent(currentQuery)}`);
-            if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
-            const searchData = await response.json();
-            if (isMounted) {
-              setResults(searchData);
-              setSearchEngine(engine); 
-            }
-            return true;
-          } catch (error) {
-            console.error(error);
-            if (isMounted) {
-            }
-            return false;
+    const fetchRegularSearch = async () => {
+      const doFetch = async (engine: string) => {
+        try {
+          const response = await fetchWithSessionRefresh(`/api/pars/${engine}?q=${encodeURIComponent(currentQuery)}`);
+          if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
+          const searchData = await response.json();
+          if (isMounted) {
+            setResults(searchData);
+            setSearchEngine(engine); 
           }
-        };
-
-        const success = await doFetch(engineToUse);
-        if (isMounted && !success && engineToUse !== "brave") {
-          await doFetch("brave");
-        }
-        if (isMounted) {
-          setLoading(false);
+          return true;
+        } catch (error) {
+          console.error(error);
+          if (isMounted) {
+          }
+          return false;
         }
       };
 
-      const timerId = setTimeout(fetchRegularSearch, 1200);
+      const success = await doFetch(engineToUse);
+      if (isMounted && !success && engineToUse !== "brave") {
+        await doFetch("brave");
+      }
+      if (isMounted) {
+        setLoading(false);
+      }
+    };
 
-      return () => {
-        isMounted = false;
-        clearTimeout(timerId);
-      };
-    }
+    const timerId = setTimeout(fetchRegularSearch, 1200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timerId);
+    };
   }, [searchParams, router]);
 
   useEffect(() => {
@@ -299,7 +265,7 @@ function SearchPageContent() {
     const makeAIRequest = async (model: string, isRetry: boolean = false) => {
       try {
         if (aiDiveEnabled) {
-          // Dive AI Mode - fetch search results first, then process with AI
+          // Dive AI Mode - use existing search results to avoid duplicate API calls
           const diveKey = `dive-${query}`;
           const cachedDiveResponse = sessionStorage.getItem(diveKey);
           
@@ -313,26 +279,24 @@ function SearchPageContent() {
             return;
           }
 
-          // Fetch search results first
-          const searchResponse = await fetchWithSessionRefresh(`/api/pars/brave?q=${encodeURIComponent(query)}`);
-          if (!searchResponse.ok) throw new Error(`Search API failed with status ${searchResponse.status}`);
-          
-          const searchResults = await searchResponse.json();
-          if (!searchResults || searchResults.length === 0) {
-            throw new Error("No search results found for dive mode.");
+          // Check if we have search results available to avoid duplicate API call
+          if (!results || results.length === 0) {
+            // Wait for search results to be available
+            console.log("Waiting for search results before making Dive AI request...");
+            return;
           }
 
-          const top5Results = searchResults.slice(0, 5).map((r: any) => ({
+          const top2Results = results.slice(0, 2).map((r: any) => ({
             url: r.url,
             title: r.title,
             snippet: r.description
           }));
 
-          // Call dive API
+          // Call dive API with existing search results
           const diveResponse = await fetchWithSessionRefresh('/api/dive', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, pages: top5Results })
+            body: JSON.stringify({ query, pages: top2Results })
           });
 
           if (!diveResponse.ok) {
@@ -401,7 +365,7 @@ function SearchPageContent() {
     if (selectedModelEnabled) {
       makeAIRequest(modelToUse);
     }
-  }, [query, aiEnabled, aiModel, aiDiveEnabled]);
+  }, [query, aiEnabled, aiModel, aiDiveEnabled, results]);
 
   const handleModelChange = (model: string) => {
     setAiModel(model);
@@ -418,19 +382,9 @@ function SearchPageContent() {
       if (!redirected) {
         const params = new URLSearchParams();
         params.set("q", trimmed);
-        if (diveEnabled) {
-          // And navigate to the /dive path
-          router.push(`/dive?${params.toString()}`);
-        } else {
-          // Otherwise, navigate to the /search path without the "dive" parameter
-          router.push(`/search?${params.toString()}`);
-        }
+        router.push(`/search?${params.toString()}`);
       }
     }
-  };
-
-  const handleToggleDiveSearch = () => {
-    setDiveEnabled(prevDiveEnabled => !prevDiveEnabled);
   };
 
   const handleToggleAiDive = () => {
@@ -721,18 +675,7 @@ function SearchPageContent() {
                 className="flex-1 px-4 py-2 pr-4 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
                 style={{ minWidth: 0 }}
               />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center"> {/* Container for buttons */}
-              <button
-                type="button"
-                onClick={handleToggleDiveSearch}
-                className={`p-3 rounded-full transition-colors mr-1 ${diveEnabled ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
-                title="Toggle Dive Search"
-              >
-                <div className="flex items-center">
-                <Sparkles className="w-5 h-5" />
-                <span className="ml-2 text-sm">Dive</span>
-                </div>
-                </button>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
               <button
                 type="submit"
                 className="p-3 rounded-full text-muted-foreground hover:bg-muted transition-colors"
@@ -1141,21 +1084,7 @@ function SearchPageContent() {
 
           <div className="flex flex-col md:flex-row md:gap-8">
             <div className="flex-1 md:w-4/5 xl:w-2/3">
-              {searchType === 'web' && aiEnabled && ((aiLoading || diveLoading) ? (
-                <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 animate-pulse">
-                  <div className="flex items-center mb-4">
-                    <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                      Karakulak
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
-                        BETA
-                      </span>
-                    </span>
-                  </div>
-                  <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2"></div>
-                </div>
-              ) : (aiResponse || diveResponse) ? (
+              {searchType === 'web' && aiEnabled && (aiResponse || diveResponse || aiLoading || diveLoading) ? (
                 <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
@@ -1171,14 +1100,15 @@ function SearchPageContent() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleToggleAiDive}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                           aiDiveEnabled 
                             ? 'bg-blue-600 text-white hover:bg-blue-700' 
                             : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                         title={aiDiveEnabled ? "Disable Dive mode" : "Enable Dive mode"}
                       >
-                        Dive
+                        <Sparkles className="w-4 h-4" />
+                        <span>Dive</span>
                       </button>
                       
                       <div className="relative" ref={modelDropdownRef}>
@@ -1266,61 +1196,70 @@ function SearchPageContent() {
                     </div>
                   </div>
                   
-                  <p className="text-left text-blue-800 dark:text-blue-100 mb-3">
-                    {diveResponse || aiResponse}
-                  </p>
-                  
-                  {diveSources && diveSources.length > 0 && (
-                    <div className="mb-4">
-                      <div className="flex flex-wrap gap-2">
-                        {diveSources.map((source, index) => (
-                          <a
-                            key={index}
-                            href={source.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 text-sm hover:bg-blue-200 dark:hover:bg-blue-800/70 transition-colors"
-                            title={source.description}
+                  {(aiLoading || diveLoading) ? (
+                    <div className="animate-pulse">
+                      <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
+                      <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2 mb-3"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-left text-blue-800 dark:text-blue-100 mb-3">
+                        {diveResponse || aiResponse}
+                      </p>
+                      
+                      {diveSources && diveSources.length > 0 && (
+                        <div className="mb-4">
+                          <div className="flex flex-wrap gap-2">
+                            {diveSources.map((source, index) => (
+                              <a
+                                key={index}
+                                href={source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 text-sm hover:bg-blue-200 dark:hover:bg-blue-800/70 transition-colors"
+                                title={source.description}
+                              >
+                                <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mr-2">
+                                  {index + 1}
+                                </span>
+                                <span className="truncate max-w-[150px]">{source.title}</span>
+                                <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
+                        {aiDiveEnabled 
+                          ? "Generated from web sources. May contain inaccuracies." 
+                          : "Auto-generated based on AI knowledge. May contain inaccuracies."
+                        }
+                      </p>
+                      
+                      <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={followUpQuestion}
+                            onChange={(e) => setFollowUpQuestion(e.target.value)}
+                            placeholder="Ask a follow-up question..."
+                            className="flex-1 px-3 py-2 rounded-md border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!followUpQuestion.trim()}
+                            className="p-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Ask follow-up question"
                           >
-                            <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mr-2">
-                              {index + 1}
-                            </span>
-                            <span className="truncate max-w-[150px]">{source.title}</span>
-                            <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
-                          </a>
-                        ))}
-                      </div>
-                    </div>
+                            <ArrowRight className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </form>
+                    </>
                   )}
-                  
-                  <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
-                    {aiDiveEnabled 
-                      ? "Generated from web sources. May contain inaccuracies." 
-                      : "Auto-generated based on AI knowledge. May contain inaccuracies."
-                    }
-                  </p>
-                  
-                  <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={followUpQuestion}
-                        onChange={(e) => setFollowUpQuestion(e.target.value)}
-                        placeholder="Ask a follow-up question..."
-                        className="flex-1 px-3 py-2 rounded-md border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!followUpQuestion.trim()}
-                        className="p-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                        aria-label="Ask follow-up question"
-                      >
-                        <ArrowRight className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </form>
                 </div>
-              ) : null)}
+              ) : null}
               
               {searchType === 'web' && (
                 <div className="md:hidden">

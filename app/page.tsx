@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Sparkles, Lock, MessageCircleMore } from "lucide-react";
+import { Search, Lock, MessageCircleMore } from "lucide-react";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -46,7 +46,6 @@ export default function Home() {
   const [autocompleteSource] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
-  const [diveEnabled, setDiveEnabled] = useState(false);
   const [hasBang, setHasBang] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -84,10 +83,6 @@ export default function Home() {
     }
   }, []);
 
-  const handleToggleDiveSearch = () => {
-    setDiveEnabled(prevDiveEnabled => !prevDiveEnabled);
-  };
-
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
@@ -113,9 +108,6 @@ export default function Home() {
     params.set("q", trimmed);
 
     let targetPath = "/search";
-    if (diveEnabled) {
-      targetPath = "/dive";
-    }
 
     startTransition(() => {
       // Use a timeout to allow visual feedback before navigation
@@ -278,14 +270,6 @@ export default function Home() {
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center"> {/* Container for buttons */}
               <button
-                type="button"
-                onClick={handleToggleDiveSearch}
-                className={`p-3 rounded-full transition-colors mr-1 ${diveEnabled ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
-                title="Toggle Dive Search"
-              >
-                <Sparkles className="w-5 h-5" />
-              </button>
-              <button
                 type="submit"
                 className="p-3 rounded-full text-muted-foreground hover:bg-muted transition-colors"
                 title="Search"
@@ -373,7 +357,6 @@ export default function Home() {
               <h3 className="text-base font-semibold text-neutral-100 mb-4">Products</h3>
               <ul className="space-y-3 text-sm">
                 <li><Link href="#" className="text-neutral-400 hover:text-white transition-colors">Search</Link></li>
-                <li><Link href="/dive" className="text-neutral-400 hover:text-white transition-colors">Dive Mode</Link></li>
                 <li><Link href="/chat" className="text-neutral-400 hover:text-white transition-colors">AI Chat</Link></li>
               </ul>
             </div>
