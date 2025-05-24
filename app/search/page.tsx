@@ -1107,7 +1107,7 @@ function SearchPageContent() {
                         }`}
                         title={aiDiveEnabled ? "Disable Dive mode" : "Enable Dive mode"}
                       >
-                        <Sparkles className="w-4 h-4" />
+                        <Sparkles className="w-4 h-4 hidden sm:block" />
                         <span>Dive</span>
                       </button>
                       
