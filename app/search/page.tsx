@@ -1084,7 +1084,9 @@ function SearchPageContent() {
 
           <div className="flex flex-col md:flex-row md:gap-8">
             <div className="flex-1 md:w-4/5 xl:w-2/3">
-              {searchType === 'web' && aiEnabled && (aiResponse || diveResponse || aiLoading || diveLoading) ? (
+              {searchType === 'web' && aiEnabled && (aiResponse || diveResponse || aiLoading || diveLoading) && 
+               !((aiResponse && aiResponse.includes("Sorry, I can't help you with that.")) || 
+                 (diveResponse && diveResponse.includes("Sorry, I can't help you with that."))) ? (
                 <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
