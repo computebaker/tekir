@@ -25,8 +25,6 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
         <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Tekir" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <script defer src="https://improve.tekir.co/script.js" data-website-id="7a88a1bd-75b7-4690-abf1-b63922b3deb2"></script>
-        <meta name="takeads-platform-verification" content="05503d4f-cba9-4392-ab29-73bfd6e8f1f5"></meta>
       </head>
       <body>
         <ClientLayout>
