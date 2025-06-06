@@ -6,6 +6,8 @@ interface CachedSession {
   requestCount: number;
   lastUpdated: number;
   expiresAt: number;
+  userId?: string; 
+  requestLimit?: number; 
 }
 
 interface MemoryCache {
@@ -133,7 +135,8 @@ export async function isValidSessionToken(token: string): Promise<boolean> {
 
 export async function registerSessionToken(
   hashedIp: string | null, 
-  expirationInSeconds: number = 24 * 60 * 60
+  expirationInSeconds: number = 24 * 60 * 60,
+  userId: string | null = null
 ): Promise<string | null> { 
   if (!isRedisConfigured || !redis) {
     console.warn("Redis is not configured or not connected. Cannot register session token.");
@@ -141,6 +144,43 @@ export async function registerSessionToken(
   }
 
   try {
+    // If this is a user-linked session, check for existing user session first
+    if (userId) {
+      const userSessionKey = `user_session:${userId}`;
+      const existingToken = await redis.get(userSessionKey);
+      
+      if (existingToken) {
+        const sessionKey = `session:${existingToken}`;
+        if (await redis.exists(sessionKey)) {
+          // Extend existing user session
+          const multi = redis.multi();
+          multi.expire(sessionKey, expirationInSeconds);
+          multi.expire(userSessionKey, expirationInSeconds);
+          
+          const sessionRequestsKey = `session_requests:${existingToken}`;
+          if (await redis.exists(sessionRequestsKey)) {
+            multi.expire(sessionRequestsKey, expirationInSeconds);
+          } else {
+            multi.setEx(sessionRequestsKey, expirationInSeconds, "0");
+          }
+          
+          await multi.exec();
+          
+          // Update cache with user info and higher limit
+          memoryCache.sessions.set(existingToken, {
+            isValid: true,
+            requestCount: 0,
+            lastUpdated: Date.now(),
+            expiresAt: Date.now() + CACHE_TTL_MS,
+            userId: userId,
+            requestLimit: 1200 // Higher limit for authenticated users
+          });
+          
+          console.log(`Extended existing user session for user ${userId}: ${existingToken}`);
+          return existingToken;
+        }
+      }
+    }
     if (hashedIp) {
       cleanExpiredCache();
       const cachedIpData = memoryCache.ipTokens.get(hashedIp);
@@ -195,6 +235,13 @@ export async function registerSessionToken(
     multi.setEx(newSessionKey, expirationInSeconds, "active"); 
     multi.setEx(newSessionRequestsKey, expirationInSeconds, "0"); 
 
+    // Link session to user if userId provided
+    if (userId) {
+      const userSessionKey = `user_session:${userId}`;
+      multi.setEx(userSessionKey, expirationInSeconds, newToken);
+      console.log(`Registered new user session token: ${newToken} for user: ${userId}`);
+    }
+
     if (hashedIp) {
       const ipSessionKey = `ip_session:${hashedIp}`; 
       multi.setEx(ipSessionKey, expirationInSeconds, newToken); 
@@ -214,7 +261,9 @@ export async function registerSessionToken(
       isValid: true,
       requestCount: 0,
       lastUpdated: Date.now(),
-      expiresAt: Date.now() + CACHE_TTL_MS
+      expiresAt: Date.now() + CACHE_TTL_MS,
+      userId: userId || undefined,
+      requestLimit: userId ? 1200 : 600 // Higher limit for authenticated users
     });
     
     return newToken; 
@@ -225,19 +274,28 @@ export async function registerSessionToken(
   }
 }
 
-const MAX_REQUESTS_PER_SESSION = 600;
+const MAX_REQUESTS_PER_SESSION = 600; // Default for anonymous users
+const MAX_REQUESTS_PER_USER_SESSION = 1200; // Higher limit for authenticated users
 
 export async function incrementAndCheckRequestCount(token: string): Promise<{ allowed: boolean; currentCount: number }> {
   cleanExpiredCache();
   const cached = memoryCache.sessions.get(token);
   
+  // Determine the request limit for this session
+  let requestLimit = MAX_REQUESTS_PER_SESSION;
+  if (cached?.requestLimit) {
+    requestLimit = cached.requestLimit;
+  } else if (cached?.userId) {
+    requestLimit = MAX_REQUESTS_PER_USER_SESSION;
+  }
+  
   if (cached && cached.expiresAt > Date.now()) {
     const timeSinceLastUpdate = Date.now() - cached.lastUpdated;
     
-    if (timeSinceLastUpdate < 60000 && cached.requestCount < MAX_REQUESTS_PER_SESSION) {
+    if (timeSinceLastUpdate < 60000 && cached.requestCount < requestLimit) {
       cached.requestCount++;
       cached.lastUpdated = Date.now();
-      return { allowed: cached.requestCount <= MAX_REQUESTS_PER_SESSION, currentCount: cached.requestCount };
+      return { allowed: cached.requestCount <= requestLimit, currentCount: cached.requestCount };
     }
   }
 
@@ -266,19 +324,92 @@ export async function incrementAndCheckRequestCount(token: string): Promise<{ al
       return { allowed: false, currentCount };
     }
 
+    // Check if this session is linked to a user to determine the correct limit
+    let sessionUserId = cached?.userId;
+    if (!sessionUserId) {
+      // Check Redis for user link if not in cache
+      const sessionKeys = await redis.keys(`user_session:*`);
+      for (const userKey of sessionKeys) {
+        const userToken = await redis.get(userKey);
+        if (userToken === token) {
+          sessionUserId = userKey.replace('user_session:', '');
+          requestLimit = MAX_REQUESTS_PER_USER_SESSION;
+          break;
+        }
+      }
+    }
+
     memoryCache.sessions.set(token, {
       isValid: cached?.isValid ?? true,
       requestCount: currentCount,
       lastUpdated: Date.now(),
-      expiresAt: Date.now() + CACHE_TTL_MS
+      expiresAt: Date.now() + CACHE_TTL_MS,
+      userId: sessionUserId,
+      requestLimit: requestLimit
     });
 
-    if (currentCount > MAX_REQUESTS_PER_SESSION) {
+    if (currentCount > requestLimit) {
       return { allowed: false, currentCount };
     }
     return { allowed: true, currentCount };
   } catch (error) {
     console.error("Error incrementing or checking request count in Redis:", error);
     return { allowed: false, currentCount: -1 };
+  }
+}
+
+export async function linkSessionToUser(token: string, userId: string): Promise<boolean> {
+  if (!isRedisConfigured || !redis) {
+    console.warn("Redis is not configured or not connected. Cannot link session to user.");
+    return false;
+  }
+
+  try {
+    if (!redis.isOpen) {
+      await redis.connect();
+    }
+
+    const sessionKey = `session:${token}`;
+    const sessionExists = await redis.exists(sessionKey);
+    
+    if (!sessionExists) {
+      console.warn(`Session ${token} does not exist, cannot link to user ${userId}`);
+      return false;
+    }
+
+    // Check if user already has a session
+    const userSessionKey = `user_session:${userId}`;
+    const existingUserToken = await redis.get(userSessionKey);
+    
+    if (existingUserToken && existingUserToken !== token) {
+      // User already has a different session, remove the old one
+      await redis.del(`session:${existingUserToken}`);
+      await redis.del(`session_requests:${existingUserToken}`);
+      memoryCache.sessions.delete(existingUserToken);
+      console.log(`Removed old session ${existingUserToken} for user ${userId}`);
+    }
+
+    // Link the current session to the user
+    const sessionTTL = await redis.ttl(sessionKey);
+    const ttl = sessionTTL > 0 ? sessionTTL : 24 * 60 * 60;
+    
+    await redis.setEx(userSessionKey, ttl, token);
+    
+    // Update cache with user info and higher request limit
+    const cached = memoryCache.sessions.get(token);
+    memoryCache.sessions.set(token, {
+      isValid: cached?.isValid ?? true,
+      requestCount: cached?.requestCount ?? 0,
+      lastUpdated: Date.now(),
+      expiresAt: Date.now() + CACHE_TTL_MS,
+      userId: userId,
+      requestLimit: MAX_REQUESTS_PER_USER_SESSION
+    });
+
+    console.log(`Successfully linked session ${token} to user ${userId} with upgraded limit`);
+    return true;
+  } catch (error) {
+    console.error("Error linking session to user:", error);
+    return false;
   }
 }

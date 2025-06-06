@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles, Star } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import UserProfile from "@/components/user-profile";
 import { handleBangRedirect } from "@/utils/bangs";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
@@ -725,6 +726,7 @@ function SearchPageContent() {
                   AI Chat
                 </span>
               </Link>
+              <UserProfile />
             </div>
             <button 
               type="button" 
