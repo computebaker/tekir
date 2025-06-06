@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import { User, LogOut, LogIn, RefreshCw, LucideIcon } from "lucide-react";
+import { User, LogOut, LogIn, Settings, LucideIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { generateInitialsAvatar, generateAvatarUrl } from "@/lib/avatar";
 
@@ -20,7 +20,6 @@ interface UserProfileProps {
 export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
   const { data: session, status, update } = useSession();
   const [isOpen, setIsOpen] = useState(false);
-  const [isRegeneratingAvatar, setIsRegeneratingAvatar] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,35 +60,6 @@ export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
 
     linkSession();
   }, [(session?.user as any)?.id]); // Run when user ID changes (login/logout)
-
-  const handleRegenerateAvatar = async () => {
-    setIsRegeneratingAvatar(true);
-    try {
-      const response = await fetch('/api/user/regenerate-avatar', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Update the session with the new avatar
-        await update({
-          ...session,
-          user: {
-            ...session?.user,
-            image: data.avatarUrl,
-          },
-        });
-        console.log('Avatar regenerated successfully');
-      } else {
-        console.error('Failed to regenerate avatar');
-      }
-    } catch (error) {
-      console.error('Error regenerating avatar:', error);
-    } finally {
-      setIsRegeneratingAvatar(false);
-    }
-  };
 
   if (status === "loading") {
     return (
@@ -268,17 +238,14 @@ export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
           )}
           
           <div className="py-1">
-            <button
-              onClick={() => {
-                handleRegenerateAvatar();
-                setIsOpen(false);
-              }}
-              disabled={isRegeneratingAvatar}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            <Link
+              href="/settings/account"
+              onClick={() => setIsOpen(false)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${isRegeneratingAvatar ? 'animate-spin' : ''}`} />
-              {isRegeneratingAvatar ? 'Generating...' : 'New Avatar'}
-            </button>
+              <Settings className="w-4 h-4" />
+              Account Settings
+            </Link>
             
             <button
               onClick={() => {

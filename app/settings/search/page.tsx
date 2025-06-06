@@ -36,10 +36,12 @@ export default function SearchSettingsPage() {
   // Dropdown states
   const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
 
   // Refs for click outside handling
   const autocompleteDropdownRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -72,6 +74,10 @@ export default function SearchSettingsPage() {
           !modelDropdownRef.current.contains(event.target as Node) &&
           modelDropdownOpen) {
         setModelDropdownOpen(false);
+      }
+
+      if (mobileSettingsRef.current && !mobileSettingsRef.current.contains(event.target as Node)) {
+        setIsMobileSettingsOpen(false);
       }
     };
 
@@ -122,11 +128,11 @@ export default function SearchSettingsPage() {
         <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <Link 
-              href="/search" 
+              href="/home" 
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Search</span>
+              <span>Back to home</span>
             </Link>
             <div className="flex items-center gap-2">
               <Settings className="w-5 h-5" />
@@ -166,12 +172,14 @@ export default function SearchSettingsPage() {
                   {/* Divider */}
                   <div className="my-3 border-t border-border"></div>
 
-                  {/* Future Settings Categories */}
-                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground cursor-not-allowed opacity-50 hover:opacity-60 transition-opacity">
+                  {/* Account Settings */}
+                  <Link
+                    href="/settings/account"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
+                  >
                     <User className="w-4 h-4" />
                     <span>Account</span>
-                    <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-full">Soon</span>
-                  </div>
+                  </Link>
 
                   <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground cursor-not-allowed opacity-50 hover:opacity-60 transition-opacity">
                     <Shield className="w-4 h-4" />
@@ -192,12 +200,54 @@ export default function SearchSettingsPage() {
           {/* Main Content */}
           <main className="flex-1 min-w-0">
             {/* Mobile Navigation */}
-            <div className="lg:hidden mb-6 mx-2">
-              <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2 border">
-                <Settings className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Settings</span>
-                <span className="text-muted-foreground">/</span>
-                <span className="text-foreground font-medium">Search</span>
+            <div className="lg:hidden mb-6 mx-2" ref={mobileSettingsRef}>
+              <div className="relative">
+                <button
+                  onClick={() => setIsMobileSettingsOpen(!isMobileSettingsOpen)}
+                  className="w-full flex items-center justify-between gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2 border hover:bg-muted/70 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Settings</span>
+                    <span className="text-muted-foreground">/</span>
+                    <span className="text-foreground font-medium">Search</span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isMobileSettingsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isMobileSettingsOpen && (
+                  <div className="absolute top-full mt-2 w-full rounded-lg bg-background border border-border shadow-lg z-50">
+                    <div className="py-1">
+                      <div className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left bg-muted text-foreground cursor-default">
+                        <Search className="w-4 h-4" />
+                        <span className="font-medium">Search</span>
+                      </div>
+                      
+                      <Link
+                        href="/settings/account"
+                        onClick={() => setIsMobileSettingsOpen(false)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Account</span>
+                      </Link>
+                      
+                      <div className="border-t border-border my-1"></div>
+                      
+                      <div className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground cursor-not-allowed opacity-50">
+                        <Shield className="w-4 h-4" />
+                        <span>Privacy</span>
+                        <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-full">Soon</span>
+                      </div>
+                      
+                      <div className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground cursor-not-allowed opacity-50">
+                        <Bell className="w-4 h-4" />
+                        <span>Notifications</span>
+                        <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-full">Soon</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
