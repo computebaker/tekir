@@ -128,7 +128,7 @@ export default function SearchSettingsPage() {
         <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <Link 
-              href="/home" 
+              href="/" 
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
