@@ -8,11 +8,12 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function SignInPage() {
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState(""); // Store actual email for verification link
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +23,7 @@ export default function SignInPage() {
 
     try {
       const result = await signIn("credentials", {
-        email,
+        emailOrUsername,
         password,
         redirect: false,
       });
@@ -30,9 +31,29 @@ export default function SignInPage() {
       if (result?.error) {
         // Handle email verification error specifically
         if (result.error.includes("verify your email")) {
+          // If user signed in with username, we need to get their email for verification
+          const isEmail = emailOrUsername.includes("@");
+          if (!isEmail) {
+            // Fetch user's email by username for verification link
+            try {
+              const userResponse = await fetch("/api/auth/get-user-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: emailOrUsername }),
+              });
+              const userData = await userResponse.json();
+              if (userResponse.ok && userData.email) {
+                setUserEmail(userData.email);
+              }
+            } catch (e) {
+              console.error("Failed to fetch user email:", e);
+            }
+          } else {
+            setUserEmail(emailOrUsername);
+          }
           setError(`${result.error}. Need to verify your email?`);
         } else {
-          setError("Invalid email or password");
+          setError("Invalid email/username or password");
         }
       } else {
         // Wait for session to be established
@@ -63,12 +84,12 @@ export default function SignInPage() {
             Sign in to Tekir
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Enter your email or username to sign in.{" "}
             <Link
               href="/auth/signup"
               className="text-primary hover:underline"
             >
-              Sign up
+              Need an account?
             </Link>
           </p>
         </div>
@@ -80,7 +101,7 @@ export default function SignInPage() {
               {error.includes("verify your email") && (
                 <div className="mt-2">
                   <Link 
-                    href={`/auth/verify-email?email=${encodeURIComponent(email)}`}
+                    href={`/auth/verify-email?email=${encodeURIComponent(userEmail || emailOrUsername)}`}
                     className="text-primary hover:underline font-medium"
                   >
                     Go to email verification →
@@ -92,19 +113,19 @@ export default function SignInPage() {
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
+              <label htmlFor="emailOrUsername" className="sr-only">
+                Email address or username
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="emailOrUsername"
+                name="emailOrUsername"
+                type="text"
+                autoComplete="username"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
                 className="relative block w-full px-3 py-3 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
-                placeholder="Email address"
+                placeholder="Email address or username"
               />
             </div>
 
@@ -141,7 +162,7 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
