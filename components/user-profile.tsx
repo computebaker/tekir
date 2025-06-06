@@ -3,11 +3,21 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import { User, LogOut, LogIn, RefreshCw } from "lucide-react";
+import { User, LogOut, LogIn, RefreshCw, LucideIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { generateInitialsAvatar, generateAvatarUrl } from "@/lib/avatar";
 
-export default function UserProfile() {
+interface MobileNavItem {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+}
+
+interface UserProfileProps {
+  mobileNavItems?: MobileNavItem[];
+}
+
+export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
   const { data: session, status, update } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [isRegeneratingAvatar, setIsRegeneratingAvatar] = useState(false);
@@ -89,13 +99,65 @@ export default function UserProfile() {
 
   if (!session) {
     return (
-      <Link
-        href="/auth/signin"
-        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-      >
-        <LogIn className="w-4 h-4" />
-        <span className="hidden sm:block">Sign in</span>
-      </Link>
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center">
+            <User className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <span className="hidden sm:block">Guest</span>
+        </button>
+
+        {isOpen && (
+          <div className="absolute right-0 mt-2 w-48 rounded-lg bg-background border border-border shadow-lg z-50">
+            <div className="p-3 border-b border-border">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center">
+                  <User className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Guest User
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Welcome to Tekir ID
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Mobile navigation items - only show on mobile */}
+            {mobileNavItems.length > 0 && (
+              <div className="py-1 md:hidden border-b border-border">
+                {mobileNavItems.map((item, index) => (
+                  <Link
+                    key={index}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+            
+            <div className="py-1">
+              <Link
+                href="/auth/signin"
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                Sign in
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -187,6 +249,23 @@ export default function UserProfile() {
               </div>
             </div>
           </div>
+          
+          {/* Mobile navigation items - only show on mobile */}
+          {mobileNavItems.length > 0 && (
+            <div className="py-1 md:hidden border-b border-border">
+              {mobileNavItems.map((item, index) => (
+                <Link
+                  key={index}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          )}
           
           <div className="py-1">
             <button

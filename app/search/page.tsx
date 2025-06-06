@@ -4,11 +4,30 @@ import { Suspense } from 'react';
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, Menu, X, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles, Star } from "lucide-react";
+import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles, Star, Settings } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
 import { handleBangRedirect } from "@/utils/bangs";
+
+// Define mobile navigation items
+const mobileNavItems = [
+  {
+    href: "/about",
+    icon: Lock,
+    label: "About Tekir"
+  },
+  {
+    href: "https://chat.tekir.co",
+    icon: MessageCircleMore,
+    label: "AI Chat"
+  },
+  {
+    href: "/settings/search",
+    icon: Settings,
+    label: "Settings"
+  }
+];
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -91,11 +110,15 @@ function SearchPageContent() {
   const [searchInput, setSearchInput] = useState(query);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiEnabled, setAiEnabled] = useState(true);
-  const [searchEngine, setSearchEngine] = useState("brave");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [aiModel, setAiModel] = useState<string>();
-  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('karakulakEnabled') === 'true' : true
+  );
+  const [searchEngine, setSearchEngine] = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('searchEngine') || 'brave' : 'brave'
+  );
+  const [aiModel, setAiModel] = useState<string>(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('aiModel') || 'gemini' : 'gemini'
+  );
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -115,33 +138,10 @@ function SearchPageContent() {
   const [diveLoading, setDiveLoading] = useState(false);
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
-  const modelDropdownRef = useRef<HTMLDivElement>(null);
-  const autocompleteDropdownRef = useRef<HTMLDivElement>(null);
-  const searchEngineDropdownRef = useRef<HTMLDivElement>(null);
 
-  const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
-  const [searchEngineDropdownOpen, setSearchEngineDropdownOpen] = useState(false);
+  // ...existing code...
 
-  useEffect(() => {
-    const stored = localStorage.getItem("karakulakEnabled");
-    if (stored !== null) {
-      setAiEnabled(stored === "true");
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedEngine = localStorage.getItem("searchEngine");
-    if (storedEngine) {
-      setSearchEngine(storedEngine);
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedModel = localStorage.getItem("aiModel");
-    if (storedModel) {
-      setAiModel(storedModel);
-    }
-  }, []);
+  // ...existing code...
 
   useEffect(() => {
     const checkQueryForBangs = async () => {
@@ -368,12 +368,6 @@ function SearchPageContent() {
     }
   }, [query, aiEnabled, aiModel, aiDiveEnabled, results]);
 
-  const handleModelChange = (model: string) => {
-    setAiModel(model);
-    setModelDropdownOpen(false);
-    localStorage.setItem("aiModel", model);
-  };
-
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowSuggestions(false);
@@ -390,12 +384,6 @@ function SearchPageContent() {
 
   const handleToggleAiDive = () => {
     setAiDiveEnabled(prevAiDiveEnabled => !prevAiDiveEnabled);
-  };
-
-  const toggleAiEnabled = () => {
-    const newValue = !aiEnabled;
-    setAiEnabled(newValue);
-    localStorage.setItem("karakulakEnabled", newValue.toString());
   };
 
   useEffect(() => {
@@ -486,24 +474,6 @@ function SearchPageContent() {
           showSuggestions) {
         setShowSuggestions(false);
       }
-
-      if (modelDropdownRef.current &&
-          !modelDropdownRef.current.contains(event.target as Node) &&
-          modelDropdownOpen) {
-        setModelDropdownOpen(false);
-      }
-
-      if (autocompleteDropdownRef.current &&
-          !autocompleteDropdownRef.current.contains(event.target as Node) &&
-          autocompleteDropdownOpen) {
-        setAutocompleteDropdownOpen(false);
-      }
-
-      if (searchEngineDropdownRef.current &&
-          !searchEngineDropdownRef.current.contains(event.target as Node) &&
-          searchEngineDropdownOpen) {
-        setSearchEngineDropdownOpen(false);
-      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -511,7 +481,7 @@ function SearchPageContent() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showSuggestions, modelDropdownOpen, autocompleteDropdownOpen, searchEngineDropdownOpen]);
+  }, [showSuggestions]);
 
   useEffect(() => {
     if (!query || query.trim().length < 2) {
@@ -726,320 +696,19 @@ function SearchPageContent() {
                   AI Chat
                 </span>
               </Link>
-              <UserProfile />
+              <Link href="/settings/search" className="group inline-flex items-center overflow-hidden transition-all duration-300">
+                <Settings className="w-5 h-5 text-muted-foreground" />
+                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] transition-all duration-300 ease-out">
+                  Settings
+                </span>
+              </Link>
+              <UserProfile mobileNavItems={mobileNavItems} />
             </div>
-            <button 
-              type="button" 
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
-            >
-              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            <div className="md:hidden">
+              <UserProfile mobileNavItems={mobileNavItems} />
+            </div>
           </form>
 
-          <div className="hidden md:flex flex-col mt-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center">
-                <span className="text-sm text-muted-foreground">Karakulak</span>
-                <div className="relative ml-2">
-                  <input 
-                    type="checkbox" 
-                    id="toggleAi-desktop" 
-                    className="sr-only" 
-                    checked={aiEnabled} 
-                    onChange={toggleAiEnabled} 
-                  />
-                  <label 
-                    htmlFor="toggleAi-desktop" 
-                    className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
-                  ></label>
-                  <div 
-                    className={`absolute top-0 left-0 h-6 w-6 flex items-center justify-center bg-white rounded-full transition-transform duration-200 ease-in-out ${aiEnabled ? "translate-x-5" : ""}`}
-                  ></div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Search engine:</span>
-                <div ref={searchEngineDropdownRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setSearchEngineDropdownOpen(!searchEngineDropdownOpen)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center gap-2"
-                  >
-                    <span>{searchEngine === "brave" ? "Brave" : searchEngine === "duck" ? "DuckDuckGo" : "Google"}</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${searchEngineDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {searchEngineDropdownOpen && (
-                    <div className="absolute left-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSearchEngine("brave");
-                            localStorage.setItem("searchEngine", "brave");
-                            setSearchEngineDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            searchEngine === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
-                          }`}
-                        >
-                          <div className="w-4 h-4 flex items-center justify-center">
-                            {searchEngine === "brave" && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-                          <span>Brave</span>
-                        </button>
-                        
-                        <button
-                          type="button"
-                          disabled
-                          onClick={() => {
-                            setSearchEngine("duck");
-                            localStorage.setItem("searchEngine", "duck");
-                            setSearchEngineDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-400 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            searchEngine === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
-                          }`}
-                        >
-                          <div className="w-4 h-4 flex items-center justify-center">
-                            {searchEngine === "duck" && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-                          <span>DuckDuckGo (down)</span>
-                        </button>
-                        
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
-                        >
-                          <div className="w-4 h-4"></div>
-                          <span>Google (soon)</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Autocomplete:</span>
-                <div ref={autocompleteDropdownRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setAutocompleteDropdownOpen(!autocompleteDropdownOpen)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center gap-2"
-                  >
-                    <span>{autocompleteSource === "brave" ? "Brave" : "DuckDuckGo"}</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${autocompleteDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {autocompleteDropdownOpen && (
-                    <div className="absolute left-0 mt-1 w-40 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newSource = 'brave';
-                            setAutocompleteSource(newSource);
-                            localStorage.setItem('autocompleteSource', newSource);
-                            setAutocompleteDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            autocompleteSource === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
-                          }`}
-                        >
-                          <div className="w-4 h-4 flex items-center justify-center">
-                            {autocompleteSource === "brave" && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-                          <span>Brave</span>
-                        </button>
-                        
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newSource = 'duck';
-                            setAutocompleteSource(newSource);
-                            localStorage.setItem('autocompleteSource', newSource);
-                            setAutocompleteDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            autocompleteSource === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
-                          }`}
-                        >
-                          <div className="w-4 h-4 flex items-center justify-center">
-                            {autocompleteSource === "duck" && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-                          <span>DuckDuckGo</span>
-                        </button> 
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          {menuOpen && (
-            <div className="md:hidden mt-4 p-4 bg-background rounded shadow-lg">
-              <div className="flex items-center gap-1 relative">
-                <div className="relative group">
-                </div>
-                <input 
-                  type="checkbox" 
-                  id="toggleAi-mobile" 
-                  className="sr-only" 
-                  checked={aiEnabled} 
-                  onChange={toggleAiEnabled} 
-                />
-                <label 
-                  htmlFor="toggleAi-mobile" 
-                  className="block w-11 h-6 bg-gray-300 rounded-full cursor-pointer transition-colors duration-200 ease-in-out dark:bg-gray-700"
-                ></label>
-                <div
-                  className={`absolute left-0 top-0 h-6 w-6 flex items-center justify-center bg-white rounded-full transition-transform duration-200 ease-in-out ${
-                    aiEnabled ? "translate-x-5" : ""
-                  }`}
-                ></div>
-                <span className="text-sm text-muted-foreground">Karakulak</span>
-              </div>
-              
-              <div className="mt-4">
-                <span className="text-sm text-muted-foreground block mb-2">Search engine:</span>
-                <div className="inline-block relative" ref={searchEngineDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setSearchEngineDropdownOpen(!searchEngineDropdownOpen)}
-                    className="px-3 py-2 rounded-lg text-sm font-medium bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center gap-2"
-                  >
-                    <span>{searchEngine === "brave" ? "Brave" : searchEngine === "duck" ? "DuckDuckGo" : "Google"}</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${searchEngineDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {searchEngineDropdownOpen && (
-                    <div className="absolute left-0 mt-1 min-w-full whitespace-nowrap rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSearchEngine("brave");
-                            localStorage.setItem("searchEngine", "brave");
-                            setSearchEngineDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            searchEngine === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
-                          }`}
-                        >
-                          <div className="w-4 h-4 flex items-center justify-center">
-                            {searchEngine === "brave" && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-                          <span>Brave</span>
-                        </button>
-                        
-                        <button
-                          type="button"
-                          disabled
-                          onClick={() => {
-                            setSearchEngine("duck");
-                            localStorage.setItem("searchEngine", "duck");
-                            setSearchEngineDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-400 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            searchEngine === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
-                          }`}
-                        >
-                          <div className="w-4 h-4 flex items-center justify-center">
-                            {searchEngine === "duck" && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-                          <span>DuckDuckGo (down)</span>
-                        </button>
-                        
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full flex items-center  gap-2 px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
-                        >
-                          <div className="w-4 h-4"></div>
-                          <span>Google (soon)</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <span className="text-sm text-muted-foreground block mb-2">Autocomplete:</span>
-                <div className="inline-block relative" ref={autocompleteDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setAutocompleteDropdownOpen(!autocompleteDropdownOpen)}
-                    className="px-3 py-2 rounded-lg text-sm font-medium bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center gap-2"
-                  >
-                    <span>{autocompleteSource === "brave" ? "Brave" : "DuckDuckGo"}</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${autocompleteDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {autocompleteDropdownOpen && (
-                    <div className="absolute left-0 mt-1 min-w-full whitespace-nowrap rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newSource = 'brave';
-                            setAutocompleteSource(newSource);
-                            localStorage.setItem('autocompleteSource', newSource);
-                            setAutocompleteDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            autocompleteSource === "brave" ? "bg-gray-100 dark:bg-gray-700" : ""
-                          }`}
-                        >
-                          <div className="w-4 h-4 flex items-center justify-center">
-                            {autocompleteSource === "brave" && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-                          <span>Brave</span>
-                        </button>
-                        
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newSource = 'duck';
-                            setAutocompleteSource(newSource);
-                            localStorage.setItem('autocompleteSource', newSource);
-                            setAutocompleteDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            autocompleteSource === "duck" ? "bg-gray-100 dark:bg-gray-700" : ""
-                          }`}
-                        >
-                          <div className="w-4 h-4 flex items-center justify-center">
-                            {autocompleteSource === "duck" && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-                          <span>DuckDuckGo</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="max-w-6xl w-full md:ml-8 relative">
@@ -1114,89 +783,6 @@ function SearchPageContent() {
                         <Sparkles className="w-4 h-4 hidden sm:block" />
                         <span>Dive</span>
                       </button>
-                      
-                      <div className="relative" ref={modelDropdownRef}>
-                        <button
-                          onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          {aiModel === 'llama' ? (
-                            <>
-                              <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
-                            </>
-                          ) : aiModel === 'mistral' ? (
-                            <>
-                              <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
-                            </>
-                          ) : aiModel === 'chatgpt' ? (
-                            <>
-                              <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
-                            </>
-                          ) : (
-                            <>
-                              <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
-                            </>
-                          )}
-                          <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
-                        </button>
-                        {modelDropdownOpen && (
-                          <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-lg z-10">
-                            <div className="p-1">
-                              <button
-                                onClick={() => handleModelChange('llama')}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                  aiModel === 'llama' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                }`}
-                              >
-                                <Image src="/meta.png" alt="Meta Logo" width={20} height={20} className="rounded" />
-                                <div className="flex flex-col items-start">
-                                  <span className="font-medium">Llama 3.1 7B</span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A powerful and open-source model by Meta</span>
-                                </div>
-                              </button>
-                              
-                              <button
-                                onClick={() => handleModelChange('gemini')}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                  aiModel === 'gemini' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                }`}
-                              >
-                                <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
-                                <div className="flex flex-col items-start">
-                                  <span className="font-medium">Gemini 2.0 Flash</span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A fast and intelligent model by Google</span>
-                                </div>
-                              </button>
-
-                              <button
-                                onClick={() => handleModelChange('chatgpt')}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                  aiModel === 'chatgpt' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                }`}
-                              >
-                                <Image src="/openai.png" alt="OpenAI Logo" width={20} height={20} className="rounded" />
-                                <div className="flex flex-col items-start">
-                                  <span className="font-medium">GPT 4o-mini</span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 text-left">Powerful, efficient model by OpenAI</span>
-                                </div>
-                              </button>
-
-                              <button
-                                onClick={() => handleModelChange('mistral')}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                  aiModel === 'mistral' ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                }`}
-                              >
-                                <Image src="/mistral.png" alt="Mistral Logo" width={20} height={20} className="rounded" />
-                                <div className="flex flex-col items-start">
-                                  <span className="font-medium">Mistral Nemo</span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 text-left">A lightweight and efficient model by Mistral AI</span>
-                                </div>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   </div>
                   
