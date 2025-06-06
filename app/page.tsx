@@ -244,7 +244,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-[100vh] relative">
+    <main className="min-h-[100vh] relative overflow-x-hidden">
       {/* Hero Section */}
       <section className="h-screen flex flex-col items-center justify-center px-4 relative">
         <div className="w-full max-w-3xl space-y-8 text-center">
@@ -334,9 +334,9 @@ export default function Home() {
           </div>
       </section>
 
-      <footer className="bg-neutral-900 text-neutral-300 w-full">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-8 gap-y-10 mb-10">
+      <footer className="bg-neutral-900 text-neutral-300 w-full overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-4 sm:gap-x-8 gap-y-10 mb-10">
             {/* Column 1: Logo, Tagline, Discover Button */}
             <div className="lg:col-span-4">
               <div className="mb-5">
@@ -383,24 +383,25 @@ export default function Home() {
           <hr className="border-neutral-800" />
 
           <div className="flex flex-col md:flex-row justify-between items-center text-sm text-neutral-500 pt-8 gap-4">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2">
-              <span>&copy; {new Date().getFullYear()} <Link href="https://computebaker.com">computebaker</Link>. All rights reserved.</span>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3 sm:gap-x-5 gap-y-2 text-xs sm:text-sm">
+              <span className="text-center">&copy; {new Date().getFullYear()} <Link href="https://computebaker.com">computebaker</Link>. All rights reserved.</span>
               <Link href="/privacy" className="hover:text-neutral-300 transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-neutral-300 transition-colors">Terms of Service</Link>
+              <Link href="/terms" className="hover:text-neutral-300 transition-colors whitespace-nowrap">Terms of Service</Link>
             </div>
-            <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
               <iframe 
                 src="https://status.tekir.co/en/badge" 
                 width="250" 
                 height="30" 
-                style={{ colorScheme: 'normal' }}
-                className="rounded"
+                style={{ colorScheme: 'normal', maxWidth: '100%', width: '100%' }}
+                className="rounded max-w-full h-auto"
               />
               <Link
                 href="https://btt.community/t/tekir-meta-arama-motoru/18108"
-                className="shrink-0 px-5 py-2 border border-neutral-700 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:border-neutral-600 transition-colors"
+                className="shrink-0 px-3 py-2 border border-neutral-700 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:border-neutral-600 transition-colors text-center"
               >
-                Share your feedback
+                <span className="hidden sm:inline">Share your feedback</span>
+                <span className="sm:hidden">Feedback</span>
               </Link>
             </div>
           </div>
