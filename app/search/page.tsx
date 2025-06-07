@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles, Star, Settings } from "lucide-react";
+import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles, Star, Settings, Newspaper } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
@@ -99,6 +99,16 @@ interface ImageSearchResult {
   };
 }
 
+interface NewsResult {
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  age: string;
+  thumbnail?: string;
+  favicon?: string;
+}
+
 // Rename the original SearchPage component
 function SearchPageContent() {
   const searchParams = useSearchParams();
@@ -129,9 +139,11 @@ function SearchPageContent() {
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiExpanded, setWikiExpanded] = useState(false);
-  const [searchType, setSearchType] = useState<'web' | 'images'>('web');
+  const [searchType, setSearchType] = useState<'web' | 'images' | 'news'>('web');
   const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
+  const [newsResults, setNewsResults] = useState<NewsResult[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
   const [aiDiveEnabled, setAiDiveEnabled] = useState(false);
   const [diveResponse, setDiveResponse] = useState<string | null>(null);
   const [diveSources, setDiveSources] = useState<Array<{url: string, title: string, description?: string}>>([]);
@@ -229,6 +241,35 @@ function SearchPageContent() {
       })
       .catch((error) => console.error("Image search failed:", error))
       .finally(() => setImageLoading(false));
+  }, [query, searchEngine, searchType]);
+
+  useEffect(() => {
+    if (!query || searchType !== 'news') return;
+    setNewsLoading(true);
+    
+    // Get user preferences from localStorage
+    const storedCountry = localStorage.getItem("searchCountry") || "ALL";
+    const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
+    
+    // Build query parameters
+    const searchParams = new URLSearchParams({
+      q: query,
+      country: storedCountry,
+      safesearch: storedSafesearch
+    });
+    
+    fetchWithSessionRefresh(`/api/news/${searchEngine}?${searchParams}`) 
+      .then((response) => {
+        if (!response.ok) throw new Error(`News search failed with status ${response.status}`);
+        return response.json();
+      })
+      .then((data) => {
+        if (data.results) {
+          setNewsResults(data.results);
+        }
+      })
+      .catch((error) => console.error("News search failed:", error))
+      .finally(() => setNewsLoading(false));
   }, [query, searchEngine, searchType]);
 
   useEffect(() => {
@@ -596,12 +637,12 @@ function SearchPageContent() {
 
   useEffect(() => {
     const storedSearchType = localStorage.getItem("searchType");
-    if (storedSearchType === 'web' || storedSearchType === 'images') {
-      setSearchType(storedSearchType as 'web' | 'images');
+    if (storedSearchType === 'web' || storedSearchType === 'images' || storedSearchType === 'news') {
+      setSearchType(storedSearchType as 'web' | 'images' | 'news');
     }
   }, []);
 
-  const handleSearchTypeChange = (type: 'web' | 'images') => {
+  const handleSearchTypeChange = (type: 'web' | 'images' | 'news') => {
     setSearchType(type);
     localStorage.setItem("searchType", type);
 
@@ -616,6 +657,31 @@ function SearchPageContent() {
         })
         .catch((error) => console.error("Image search failed:", error))
         .finally(() => setImageLoading(false));
+    }
+
+    if (type === 'news' && query && newsResults.length === 0 && !newsLoading) {
+      setNewsLoading(true);
+      
+      // Get user preferences from localStorage
+      const storedCountry = localStorage.getItem("searchCountry") || "ALL";
+      const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
+      
+      // Build query parameters
+      const searchParams = new URLSearchParams({
+        q: query,
+        country: storedCountry,
+        safesearch: storedSafesearch
+      });
+      
+      fetchWithSessionRefresh(`/api/news/${searchEngine}?${searchParams}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.results) {
+            setNewsResults(data.results);
+          }
+        })
+        .catch((error) => console.error("News search failed:", error))
+        .finally(() => setNewsLoading(false));
     }
   };
 
@@ -758,6 +824,20 @@ function SearchPageContent() {
                   </div>
                   {searchType === 'images' && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: '100%', maxWidth: '64px', margin: '0 auto' }}></div>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSearchTypeChange('news')}
+                  className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
+                >
+                  <div className="flex items-center gap-2">
+                    <Newspaper className="w-4 h-4" />
+                    <span className={searchType === 'news' ? 'text-primary font-medium' : 'text-muted-foreground group-hover:text-foreground'}>
+                      News
+                    </span>
+                  </div>
+                  {searchType === 'news' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: '100%', maxWidth: '48px', margin: '0 auto' }}></div>
                   )}
                 </button>
               </div>
@@ -959,7 +1039,7 @@ function SearchPageContent() {
                     Enter a search term to see results
                   </div>
                 )
-              ) : (
+              ) : searchType === 'images' ? (
                 imageLoading ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {[...Array(12)].map((_, i) => (
@@ -1001,7 +1081,97 @@ function SearchPageContent() {
                     No images found for your search
                   </div>
                 )
-              )}
+              ) : searchType === 'news' ? (
+                newsLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {[...Array(8)].map((_, i) => (
+                      <div key={i} className="animate-pulse border border-border rounded-lg overflow-hidden bg-card">
+                        <div className="w-full h-48 bg-muted"></div>
+                        <div className="p-4">
+                          <div className="h-5 bg-muted rounded w-4/5 mb-2"></div>
+                          <div className="h-5 bg-muted rounded w-3/5 mb-4"></div>
+                          <div className="h-3 bg-muted rounded w-full mb-2"></div>
+                          <div className="h-3 bg-muted rounded w-4/5 mb-4"></div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-muted rounded"></div>
+                            <div className="h-3 bg-muted rounded w-20"></div>
+                            <div className="h-3 bg-muted rounded w-12"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : newsResults.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {newsResults.map((article, index) => (
+                      <div key={index} className="border border-border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200 bg-card">
+                        <a
+                          href={article.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block group h-full"
+                        >
+                          <div className="relative w-full h-48 bg-muted">
+                            {article.thumbnail ? (
+                              <Image 
+                                src={article.thumbnail} 
+                                alt={article.title}
+                                fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                className="object-cover group-hover:scale-105 transition-transform duration-200"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted">
+                                <Newspaper className="w-12 h-12 text-muted-foreground/50" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-4 flex flex-col h-full">
+                            {/* Source info at the top */}
+                            <div className="flex items-center gap-2 mb-2">
+                              {article.favicon && (
+                                <Image 
+                                  src={article.favicon} 
+                                  alt=""
+                                  width={16}
+                                  height={16}
+                                  className="rounded-sm flex-shrink-0"
+                                />
+                              )}
+                              <span className="text-xs text-muted-foreground truncate">
+                                {article.source.replace(/^(https?:\/\/)?(www\.)?/, '')}
+                                {article.age && (
+                                  <>
+                                    <span className="mx-1">•</span>
+                                    {article.age}
+                                  </>
+                                )}
+                              </span>
+                            </div>
+                            
+                            <h2 className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-2 mb-2 leading-tight">
+                              {article.title}
+                            </h2>
+                            <p className="text-muted-foreground text-sm line-clamp-2 mb-2 flex-grow">
+                              {(() => {
+                                const words = article.description.split(' ');
+                                if (words.length <= 14) {
+                                  return article.description + '...';
+                                }
+                                return words.slice(0, 14).join(' ') + '...';
+                              })()}
+                            </p>
+                          </div>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    No news articles found for your search
+                  </div>
+                )
+              ) : null}
             </div>
             
             {searchType === 'web' && (
