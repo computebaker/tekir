@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Lock, MessageCircleMore } from "lucide-react";
+import UserProfile from "@/components/user-profile";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -245,6 +246,11 @@ export default function Home() {
 
   return (
     <main className="min-h-[100vh] relative overflow-x-hidden">
+      {/* Profile Picture - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <UserProfile showOnlyAvatar={true} />
+      </div>
+
       {/* Hero Section */}
       <section className="h-screen flex flex-col items-center justify-center px-4 relative">
         <div className="w-full max-w-3xl space-y-8 text-center">

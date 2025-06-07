@@ -15,9 +15,10 @@ interface MobileNavItem {
 
 interface UserProfileProps {
   mobileNavItems?: MobileNavItem[];
+  showOnlyAvatar?: boolean;
 }
 
-export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
+export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = false }: UserProfileProps) {
   const { data: session, status, update } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -63,7 +64,7 @@ export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
 
   if (status === "loading") {
     return (
-      <div className="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
+      <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-muted animate-pulse`}></div>
     );
   }
 
@@ -72,12 +73,14 @@ export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
         >
-          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center">
-            <User className="w-4 h-4 text-muted-foreground" />
+          <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center`}>
+            <User className={`${showOnlyAvatar ? 'w-5 h-5' : 'w-4 h-4'} text-muted-foreground`} />
           </div>
-          <span className="hidden sm:block">Guest</span>
+          {!showOnlyAvatar && (
+            <span className="hidden sm:block">Guest</span>
+          )}
         </button>
 
         {isOpen && (
@@ -135,15 +138,15 @@ export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
       >
-        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-muted">
+        <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted`}>
           {session.user?.image ? (
             <Image
               src={session.user.image}
               alt={session.user.name || "Profile"}
-              width={32}
-              height={32}
+              width={showOnlyAvatar ? 40 : 32}
+              height={showOnlyAvatar ? 40 : 32}
               className="w-full h-full object-cover"
               onError={(e) => {
                 // Fallback to DiceBear avatar if image fails to load
@@ -163,15 +166,17 @@ export default function UserProfile({ mobileNavItems = [] }: UserProfileProps) {
                   : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
               })()}
               alt={session.user?.name || "Profile"}
-              width={32}
-              height={32}
+              width={showOnlyAvatar ? 40 : 32}
+              height={showOnlyAvatar ? 40 : 32}
               className="w-full h-full object-cover"
             />
           )}
         </div>
-        <span className="hidden sm:block">
-          {session.user?.name || "User"}
-        </span>
+        {!showOnlyAvatar && (
+          <span className="hidden sm:block">
+            {session.user?.name || "User"}
+          </span>
+        )}
       </button>
 
       {isOpen && (
