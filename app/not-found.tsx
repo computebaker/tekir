@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Search, Home, ArrowLeft, Cat } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import Footer from "@/components/footer";
 
 export default function NotFound() {
   return (
@@ -157,34 +158,7 @@ export default function NotFound() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full py-6 px-4 border-t border-border bg-background">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center space-x-4">
-            <p className="text-sm text-muted-foreground">
-              Tekir, built by{" "}
-              <a
-                href="https://computebaker.com"
-                className="text-primary hover:underline"
-              >
-                computebaker
-              </a>
-              .
-            </p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <iframe
-              src="https://status.tekir.co/en/badge"
-              width="250"
-              height="30"
-              frameBorder="0"
-              scrolling="no"
-              style={{ colorScheme: "normal" }}
-              className="rounded"
-            />
-          </div>
-        </div>
-      </footer>
+      <Footer variant="minimal" />
     </div>
   );
 }
