@@ -170,7 +170,18 @@ function SearchPageContent() {
     const fetchRegularSearch = async () => {
       const doFetch = async (engine: string) => {
         try {
-          const response = await fetchWithSessionRefresh(`/api/pars/${engine}?q=${encodeURIComponent(currentQuery)}`);
+          // Get user preferences from localStorage
+          const storedCountry = localStorage.getItem("searchCountry") || "ALL";
+          const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
+          
+          // Build query parameters
+          const searchParams = new URLSearchParams({
+            q: currentQuery,
+            country: storedCountry,
+            safesearch: storedSafesearch
+          });
+          
+          const response = await fetchWithSessionRefresh(`/api/pars/${engine}?${searchParams}`);
           if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
           const searchData = await response.json();
           if (isMounted) {

@@ -26,21 +26,68 @@ const settingsMobileNavItems = [
   }
 ];
 
+// Countries/regions data
+const COUNTRIES = [
+  { code: "ALL", name: "All Regions" },
+  { code: "AR", name: "Argentina" },
+  { code: "AU", name: "Australia" },
+  { code: "AT", name: "Austria" },
+  { code: "BE", name: "Belgium" },
+  { code: "BR", name: "Brazil" },
+  { code: "CA", name: "Canada" },
+  { code: "CL", name: "Chile" },
+  { code: "DK", name: "Denmark" },
+  { code: "FI", name: "Finland" },
+  { code: "FR", name: "France" },
+  { code: "DE", name: "Germany" },
+  { code: "HK", name: "Hong Kong" },
+  { code: "IN", name: "India" },
+  { code: "ID", name: "Indonesia" },
+  { code: "IT", name: "Italy" },
+  { code: "JP", name: "Japan" },
+  { code: "KR", name: "Korea" },
+  { code: "MY", name: "Malaysia" },
+  { code: "MX", name: "Mexico" },
+  { code: "NL", name: "Netherlands" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "NO", name: "Norway" },
+  { code: "CN", name: "Peoples Republic of China" },
+  { code: "PL", name: "Poland" },
+  { code: "PT", name: "Portugal" },
+  { code: "PH", name: "Republic of the Philippines" },
+  { code: "RU", name: "Russia" },
+  { code: "SA", name: "Saudi Arabia" },
+  { code: "ZA", name: "South Africa" },
+  { code: "ES", name: "Spain" },
+  { code: "SE", name: "Sweden" },
+  { code: "CH", name: "Switzerland" },
+  { code: "TW", name: "Taiwan" },
+  { code: "TR", name: "Turkey" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "US", name: "United States" }
+];
+
 export default function SearchSettingsPage() {
   // State for all settings
   const [karakulakEnabled, setKarakulakEnabled] = useState(true);
   const [searchEngine] = useState("brave"); // Unchangeable
   const [autocompleteSource, setAutocompleteSource] = useState("brave");
   const [aiModel, setAiModel] = useState("gemini");
+  const [searchCountry, setSearchCountry] = useState("ALL");
+  const [safesearch, setSafesearch] = useState("moderate");
 
   // Dropdown states
   const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  const [safesearchDropdownOpen, setSafesearchDropdownOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
 
   // Refs for click outside handling
   const autocompleteDropdownRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
+  const safesearchDropdownRef = useRef<HTMLDivElement>(null);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
   // Load settings from localStorage on mount
@@ -59,6 +106,16 @@ export default function SearchSettingsPage() {
     if (storedModel) {
       setAiModel(storedModel);
     }
+
+    const storedCountry = localStorage.getItem("searchCountry");
+    if (storedCountry) {
+      setSearchCountry(storedCountry);
+    }
+
+    const storedSafesearch = localStorage.getItem("safesearch");
+    if (storedSafesearch) {
+      setSafesearch(storedSafesearch);
+    }
   }, []);
 
   // Click outside handler
@@ -76,6 +133,18 @@ export default function SearchSettingsPage() {
         setModelDropdownOpen(false);
       }
 
+      if (countryDropdownRef.current &&
+          !countryDropdownRef.current.contains(event.target as Node) &&
+          countryDropdownOpen) {
+        setCountryDropdownOpen(false);
+      }
+
+      if (safesearchDropdownRef.current &&
+          !safesearchDropdownRef.current.contains(event.target as Node) &&
+          safesearchDropdownOpen) {
+        setSafesearchDropdownOpen(false);
+      }
+
       if (mobileSettingsRef.current && !mobileSettingsRef.current.contains(event.target as Node)) {
         setIsMobileSettingsOpen(false);
       }
@@ -85,7 +154,7 @@ export default function SearchSettingsPage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [autocompleteDropdownOpen, modelDropdownOpen]);
+  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen]);
 
   // Handlers for settings changes
   const handleKarakulakToggle = () => {
@@ -106,6 +175,18 @@ export default function SearchSettingsPage() {
     setModelDropdownOpen(false);
   };
 
+  const handleCountryChange = (country: string) => {
+    setSearchCountry(country);
+    localStorage.setItem("searchCountry", country);
+    setCountryDropdownOpen(false);
+  };
+
+  const handleSafesearchChange = (safesearchValue: string) => {
+    setSafesearch(safesearchValue);
+    localStorage.setItem("safesearch", safesearchValue);
+    setSafesearchDropdownOpen(false);
+  };
+
   const getModelDisplay = (model: string) => {
     switch (model) {
       case 'llama':
@@ -120,6 +201,20 @@ export default function SearchSettingsPage() {
   };
 
   const currentModel = getModelDisplay(aiModel);
+  const currentCountry = COUNTRIES.find(country => country.code === searchCountry) || COUNTRIES[0];
+
+  const getSafesearchDisplay = (value: string) => {
+    switch (value) {
+      case 'off':
+        return 'Off';
+      case 'moderate':
+        return 'Moderate';
+      case 'strict':
+        return 'Strict';
+      default:
+        return 'Moderate';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -455,6 +550,123 @@ export default function SearchSettingsPage() {
                             <span className="text-xs text-muted-foreground text-left">A lightweight and efficient model by Mistral AI</span>
                           </div>
                           {aiModel === 'mistral' && (
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Search Region/Country */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Search Region</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Choose your preferred search region for localized results
+                  </p>
+                </div>
+                <div className="relative" ref={countryDropdownRef}>
+                  <button
+                    onClick={() => setCountryDropdownOpen(!countryDropdownOpen)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
+                  >
+                    <span className="text-sm font-medium">{currentCountry.name}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${countryDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {countryDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10 max-h-60 overflow-y-auto">
+                      <div className="p-1">
+                        {COUNTRIES.map((country) => (
+                          <button
+                            key={country.code}
+                            onClick={() => handleCountryChange(country.code)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                              searchCountry === country.code ? 'bg-muted' : ''
+                            }`}
+                          >
+                            <div className="flex flex-col items-start flex-1">
+                              <span className="font-medium text-sm">{country.name}</span>
+                              <span className="text-xs text-muted-foreground">{country.code}</span>
+                            </div>
+                            {searchCountry === country.code && (
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* SafeSearch */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">SafeSearch</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Filter explicit content from your search results
+                  </p>
+                </div>
+                <div className="relative" ref={safesearchDropdownRef}>
+                  <button
+                    onClick={() => setSafesearchDropdownOpen(!safesearchDropdownOpen)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
+                  >
+                    <span className="text-sm font-medium">{getSafesearchDisplay(safesearch)}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${safesearchDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {safesearchDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-full min-w-[200px] rounded-lg bg-background border border-border shadow-lg z-10">
+                      <div className="p-1">
+                        <button
+                          onClick={() => handleSafesearchChange('off')}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                            safesearch === 'off' ? 'bg-muted' : ''
+                          }`}
+                        >
+                          <div className="flex flex-col items-start flex-1">
+                            <span className="font-medium text-sm">Off</span>
+                            <span className="text-xs text-muted-foreground">Show all results</span>
+                          </div>
+                          {safesearch === 'off' && (
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          )}
+                        </button>
+                        
+                        <button
+                          onClick={() => handleSafesearchChange('moderate')}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                            safesearch === 'moderate' ? 'bg-muted' : ''
+                          }`}
+                        >
+                          <div className="flex flex-col items-start flex-1">
+                            <span className="font-medium text-sm">Moderate</span>
+                            <span className="text-xs text-muted-foreground">Filter explicit content</span>
+                          </div>
+                          {safesearch === 'moderate' && (
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => handleSafesearchChange('strict')}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                            safesearch === 'strict' ? 'bg-muted' : ''
+                          }`}
+                        >
+                          <div className="flex flex-col items-start flex-1">
+                            <span className="font-medium text-sm">Strict</span>
+                            <span className="text-xs text-muted-foreground">Maximum filtering</span>
+                          </div>
+                          {safesearch === 'strict' && (
                             <div className="w-2 h-2 bg-primary rounded-full"></div>
                           )}
                         </button>

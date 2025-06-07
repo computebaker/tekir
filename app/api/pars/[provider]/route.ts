@@ -11,12 +11,22 @@ interface Results {
   source: string;
 }
 
-async function getBrave(q: string): Promise<Results[]> {
+async function getBrave(q: string, country: string = 'ALL', safesearch: string = 'moderate'): Promise<Results[]> {
   const results: Results[] = [];
   try {
-    const res = await fetch('https://api.search.brave.com/res/v1/web/search?q=' + q, {
+    const params = new URLSearchParams({
+      q: q,
+      country: country,
+      safesearch: safesearch,
+      spellcheck: 'false',
+      text_decorations: 'false'
+    });
+
+    const res = await fetch(`https://api.search.brave.com/res/v1/web/search?${params}`, {
+      method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Accept-Encoding': 'gzip',
         'X-Subscription-Token': process.env.BRAVE_SEARCH_KEY || ''
       }
     });
@@ -142,6 +152,8 @@ async function getGoogle(q: string, n: number): Promise<Results[]> {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
   const query = req.nextUrl.searchParams.get('q');
+  const country = req.nextUrl.searchParams.get('country') || 'ALL';
+  const safesearch = req.nextUrl.searchParams.get('safesearch') || 'moderate';
 
   if (isRedisConfigured) { // Only check token if Redis is configured
     const sessionToken = req.cookies.get('session-token')?.value;
@@ -173,7 +185,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       results = await getDuck(query);
       break;
     case 'brave':
-      results = await getBrave(query);
+      results = await getBrave(query, country, safesearch);
       break;
     case 'google':
       results = await getGoogle(query, 0);
