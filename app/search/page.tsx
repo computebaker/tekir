@@ -1113,13 +1113,26 @@ function SearchPageContent() {
                         >
                           <div className="relative w-full h-48 bg-muted">
                             {article.thumbnail ? (
-                              <Image 
-                                src={article.thumbnail} 
-                                alt={article.title}
-                                fill
-                                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                className="object-cover group-hover:scale-105 transition-transform duration-200"
-                              />
+                              <div className="relative w-full h-full">
+                                <Image 
+                                  src={article.thumbnail} 
+                                  alt={article.title}
+                                  fill
+                                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                  className="object-cover group-hover:scale-105 transition-transform duration-200"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const placeholder = target.parentElement?.querySelector('.image-placeholder');
+                                    if (placeholder) {
+                                      (placeholder as HTMLElement).style.display = 'flex';
+                                    }
+                                  }}
+                                />
+                                <div className="image-placeholder w-full h-full flex items-center justify-center bg-muted" style={{ display: 'none' }}>
+                                  <Newspaper className="w-12 h-12 text-muted-foreground/50" />
+                                </div>
+                              </div>
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-muted">
                                 <Newspaper className="w-12 h-12 text-muted-foreground/50" />
