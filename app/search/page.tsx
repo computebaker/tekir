@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
 import { handleBangRedirect } from "@/utils/bangs";
+import { fetchWithSessionRefreshAndCache, SearchCache } from "@/lib/cache";
 
 // Define mobile navigation items
 const mobileNavItems = [
@@ -30,34 +31,8 @@ const mobileNavItems = [
   }
 ];
 
-async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
-  const originalResponse = await fetch(url, options);
-
-  if (originalResponse.status === 401 || originalResponse.status === 403 && originalResponse.headers.get("Content-Type")?.includes("application/json")) {
-    const responseCloneForErrorCheck = originalResponse.clone(); 
-    try {
-      const errorData = await responseCloneForErrorCheck.json();
-      if (errorData && errorData.error === "Invalid or expired session token.") {
-        console.log("Session token expired or invalid. Attempting to refresh session...");
-
-        const registerResponse = await fetch("/api/session/register", {
-          method: "POST", 
-        });
-
-        if (registerResponse.ok) {
-          console.log("Session refreshed successfully. Retrying the original request.");
-          return await fetch(url, options);
-        } else {
-          console.error("Failed to refresh session. Status:", registerResponse.status);
-          return originalResponse;
-        }
-      }
-    } catch (e) {
-      console.warn("Error parsing JSON from 403/401 response, or not the specific session token error:", e);
-    }
-  }
-  return originalResponse;
-}
+// The fetchWithSessionRefresh function is now imported from cache.ts
+// as fetchWithSessionRefreshAndCache with enhanced caching capabilities for all search types including AI
 
 interface SearchResult {
   title: string;
@@ -194,7 +169,19 @@ function SearchPageContent() {
             safesearch: storedSafesearch
           });
           
-          const response = await fetchWithSessionRefresh(`/api/pars/${engine}?${searchParams}`);
+          const response = await fetchWithSessionRefreshAndCache(
+            `/api/pars/${engine}?${searchParams}`,
+            undefined,
+            {
+              searchType: 'search',
+              provider: engine,
+              query: currentQuery,
+              searchParams: {
+                country: storedCountry,
+                safesearch: storedSafesearch
+              }
+            }
+          );
           if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
           const searchData = await response.json();
           if (isMounted) {
@@ -230,7 +217,15 @@ function SearchPageContent() {
   useEffect(() => {
     if (!query || searchType !== 'images') return;
     setImageLoading(true);
-    fetchWithSessionRefresh(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`) 
+    fetchWithSessionRefreshAndCache(
+      `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
+      undefined,
+      {
+        searchType: 'images',
+        provider: searchEngine,
+        query: query
+      }
+    ) 
       .then((response) => {
         if (!response.ok) throw new Error(`Image search failed with status ${response.status}`);
         return response.json();
@@ -259,7 +254,19 @@ function SearchPageContent() {
       safesearch: storedSafesearch
     });
     
-    fetchWithSessionRefresh(`/api/news/${searchEngine}?${searchParams}`) 
+    fetchWithSessionRefreshAndCache(
+      `/api/news/${searchEngine}?${searchParams}`,
+      undefined,
+      {
+        searchType: 'news',
+        provider: searchEngine,
+        query: query,
+        searchParams: {
+          country: storedCountry,
+          safesearch: storedSafesearch
+        }
+      }
+    ) 
       .then((response) => {
         if (!response.ok) throw new Error(`News search failed with status ${response.status}`);
         return response.json();
@@ -278,7 +285,15 @@ function SearchPageContent() {
 
     if (imageResults.length === 0 && !imageLoading) {
       setImageLoading(true);
-      fetchWithSessionRefresh(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+      fetchWithSessionRefreshAndCache(
+        `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
+        undefined,
+        {
+          searchType: 'images',
+          provider: searchEngine,
+          query: query
+        }
+      )
         .then((response) => {
           if (!response.ok) throw new Error(`Image search failed with status ${response.status}`);
           return response.json();
@@ -320,13 +335,11 @@ function SearchPageContent() {
       try {
         if (aiDiveEnabled) {
           // Dive AI Mode - use existing search results to avoid duplicate API calls
-          const diveKey = `dive-${query}`;
-          const cachedDiveResponse = sessionStorage.getItem(diveKey);
+          const cachedDiveResponse = SearchCache.getDive(query);
           
           if (cachedDiveResponse) {
-            const cached = JSON.parse(cachedDiveResponse);
-            setDiveResponse(cached.response);
-            setDiveSources(cached.sources || []);
+            setDiveResponse(cachedDiveResponse.response);
+            setDiveSources(cachedDiveResponse.sources || []);
             setDiveLoading(false);
             setAiResponse(null); // Clear regular AI response when dive is active
             setAiLoading(false);
@@ -347,7 +360,7 @@ function SearchPageContent() {
           }));
 
           // Call dive API with existing search results
-          const diveResponse = await fetchWithSessionRefresh('/api/dive', {
+          const diveResponse = await fetchWithSessionRefreshAndCache('/api/dive', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query, pages: top2Results })
@@ -362,13 +375,12 @@ function SearchPageContent() {
           setDiveSources(diveData.sources || []);
           setAiResponse(null); // Clear regular AI response when dive is active
           
-          // Cache the dive response
-          sessionStorage.setItem(diveKey, JSON.stringify(diveData));
+          // Cache the dive response using unified cache
+          SearchCache.setDive(query, diveData.response, diveData.sources || []);
           
         } else {
           // Regular AI Mode
-          const cacheKey = `karakulak-${model}-${query}`;
-          const cachedResponse = sessionStorage.getItem(cacheKey);
+          const cachedResponse = SearchCache.getAI(model, query);
 
           if (cachedResponse) {
             setAiResponse(cachedResponse);
@@ -379,7 +391,7 @@ function SearchPageContent() {
             return;
           }
 
-          const res = await fetchWithSessionRefresh(`/api/karakulak/${model}`, {
+          const res = await fetchWithSessionRefreshAndCache(`/api/karakulak/${model}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -396,7 +408,9 @@ function SearchPageContent() {
           setAiResponse(aiResult);
           setDiveResponse(null); // Clear dive response when regular AI is active
           setDiveSources([]);
-          sessionStorage.setItem(cacheKey, aiResult);
+          
+          // Cache the AI response using unified cache
+          SearchCache.setAI(model, query, aiResult);
         }
         
         setAiLoading(false);
@@ -447,7 +461,7 @@ function SearchPageContent() {
       }
 
       try {
-        const response = await fetchWithSessionRefresh(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchInput)}`, {
+        const response = await fetchWithSessionRefreshAndCache(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchInput)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -545,7 +559,7 @@ function SearchPageContent() {
     const fetchWikipediaData = async () => {
       setWikiLoading(true);
       try {
-        const suggestionResponse = await fetchWithSessionRefresh(
+        const suggestionResponse = await fetchWithSessionRefreshAndCache(
           `/api/suggest/wikipedia?q=${encodeURIComponent(query)}`
         );
         
@@ -649,7 +663,15 @@ function SearchPageContent() {
 
     if (type === 'images' && query && imageResults.length === 0 && !imageLoading) {
       setImageLoading(true);
-      fetchWithSessionRefresh(`/api/images/${searchEngine}?q=${encodeURIComponent(query)}`)
+      fetchWithSessionRefreshAndCache(
+        `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
+        undefined,
+        {
+          searchType: 'images',
+          provider: searchEngine,
+          query: query
+        }
+      )
         .then((response) => response.json())
         .then((data) => {
           if (data.results) {
@@ -674,7 +696,19 @@ function SearchPageContent() {
         safesearch: storedSafesearch
       });
       
-      fetchWithSessionRefresh(`/api/news/${searchEngine}?${searchParams}`)
+      fetchWithSessionRefreshAndCache(
+        `/api/news/${searchEngine}?${searchParams}`,
+        undefined,
+        {
+          searchType: 'news',
+          provider: searchEngine,
+          query: query,
+          searchParams: {
+            country: storedCountry,
+            safesearch: storedSafesearch
+          }
+        }
+      )
         .then((response) => response.json())
         .then((data) => {
           if (data.results) {
