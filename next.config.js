@@ -16,6 +16,14 @@ const nextConfig = {
     minimumCacheTTL: 0, // Disable caching for profile images
   },
   transpilePackages: ['undici'],
+  turbopack: {
+    rules: {
+      '**/node_modules/undici/**/*.{js,mjs}': {
+        loaders: ['babel-loader'],
+        as: '*.js',
+      },
+    },
+  },
   webpack: (config, { isServer }) => {
     config.module.rules.push({
       test: /\.m?js$/,
