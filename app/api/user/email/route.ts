@@ -30,7 +30,6 @@ export async function PUT(request: NextRequest) {
           not: session.user.id
         }
       },
-      cacheStrategy: { ttl: 60 }, 
     });
 
     if (existingUser) {

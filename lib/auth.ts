@@ -26,7 +26,6 @@ export const authOptions: NextAuthOptions = {
           where: isEmail 
             ? { email: credentials.emailOrUsername }
             : { username: credentials.emailOrUsername },
-          cacheStrategy: { ttl: 300 },
         });
 
         if (!user) {

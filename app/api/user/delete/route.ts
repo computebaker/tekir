@@ -19,7 +19,6 @@ export async function DELETE(request: NextRequest) {
       where: {
         id: session.user.id
       },
-      cacheStrategy: { ttl: 60 }, 
     });
 
     if (!user) {

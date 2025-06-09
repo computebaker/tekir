@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
     // Check if user exists but is not verified
     const user = await prisma.user.findUnique({
       where: { email },
-      cacheStrategy: { ttl: 60 }, 
     });
 
     if (!user) {

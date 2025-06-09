@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
         name: true,
         email: true
       },
-      cacheStrategy: { ttl: 300 },
     });
 
     if (!user) {

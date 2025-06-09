@@ -35,7 +35,6 @@ export async function PUT(request: NextRequest) {
         id: true,
         password: true
       },
-      cacheStrategy: { ttl: 300 }, 
     });
 
     if (!user || !user.password) {
