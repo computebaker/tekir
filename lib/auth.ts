@@ -53,6 +53,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           username: user.username,
           image: user.image,
+          imageType: user.imageType,
         };
       },
     }),
@@ -61,38 +62,36 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         return {
           ...token,
+          name: (user as any).name,
           username: (user as any).username,
           image: (user as any).image,
           imageType: (user as any).imageType,
         };
       }
+      
+      // Update token when session is updated
+      if (trigger === "update" && session) {
+        return { ...token, ...session };
+      }
+      
       return token;
     },
     async session({ session, token }) {
-      // Fetch the latest user data including image from database
-      if (token.sub) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { image: true, imageType: true },
-          cacheStrategy: { ttl: 600 }, // Cache for 10 minutes - session data changes less frequently
-        });
-        
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            id: token.sub,
-            username: token.username,
-            image: dbUser?.image || session.user?.image,
-            imageType: dbUser?.imageType,
-          },
-        };
-      }
-      return session;
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.sub,
+          name: token.name as string | null,
+          username: token.username as string | null,
+          image: token.image as string | null,
+          imageType: token.imageType as string | null,
+        },
+      };
     },
   },
   pages: {

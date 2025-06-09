@@ -56,6 +56,7 @@ export default function AccountSettingsPage() {
   
   // Form states
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -74,7 +75,8 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     if (session?.user) {
       setEmail(session.user.email || "");
-      setUsername(session.user.name || "");
+      setName(session.user.name || "");
+      setUsername((session.user as any)?.username || "");
     }
   }, [session]);
 
@@ -125,6 +127,34 @@ export default function AccountSettingsPage() {
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'An error occurred while updating email' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNameUpdate = async () => {
+    if (!name.trim()) {
+      setMessage({ type: 'error', text: 'Name cannot be empty' });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/user/name', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+
+      if (response.ok) {
+        await update();
+        setMessage({ type: 'success', text: 'Name updated successfully' });
+      } else {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to update name' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'An error occurred while updating name' });
     } finally {
       setIsLoading(false);
     }
@@ -552,26 +582,65 @@ export default function AccountSettingsPage() {
                   </div>
                 </div>
 
+                {/* Name Settings */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="text-lg font-medium mb-4">Display Name</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium mb-2">
+                        Name
+                      </label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        This is the name that will be displayed publicly on your profile.
+                      </p>
+                      <div className="flex gap-3">
+                        <input
+                          id="name"
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                          placeholder="Enter your display name"
+                        />
+                        <button
+                          onClick={handleNameUpdate}
+                          disabled={isLoading || name === session.user?.name}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          Update
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Username Settings */}
                 <div className="rounded-lg border border-border bg-card p-6">
                   <h3 className="text-lg font-medium mb-4">Username</h3>
                   <div className="space-y-4">
                     <div>
                       <label htmlFor="username" className="block text-sm font-medium mb-2">
-                        Display Name
+                        Username
                       </label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Your unique username will be displayed as @{username || 'username'} under your name.
+                      </p>
                       <div className="flex gap-3">
-                        <input
-                          id="username"
-                          type="text"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="Enter your username"
-                        />
+                        <div className="flex-1 relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">@</span>
+                          <input
+                            id="username"
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-zA-Z0-9_]/g, ''))}
+                            className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="username"
+                          />
+                        </div>
                         <button
                           onClick={handleUsernameUpdate}
-                          disabled={isLoading || username === session.user?.name}
+                          disabled={isLoading || username === (session.user as any)?.username}
                           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           <Save className="w-4 h-4" />

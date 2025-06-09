@@ -201,7 +201,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   {session.user?.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {session.user?.email}
+                  {(session.user as any)?.username ? `@${(session.user as any)?.username}` : session.user?.email}
                 </p>
               </div>
             </div>
