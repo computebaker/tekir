@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
           { username },
         ],
       },
+      cacheStrategy: { ttl: 60 }, 
     });
 
     if (existingUser) {

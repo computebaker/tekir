@@ -34,7 +34,8 @@ export async function PUT(request: NextRequest) {
       select: {
         id: true,
         password: true
-      }
+      },
+      cacheStrategy: { ttl: 300 }, 
     });
 
     if (!user || !user.password) {

@@ -26,6 +26,7 @@ export const authOptions: NextAuthOptions = {
           where: isEmail 
             ? { email: credentials.emailOrUsername }
             : { username: credentials.emailOrUsername },
+          cacheStrategy: { ttl: 300 },
         });
 
         if (!user) {
@@ -77,6 +78,7 @@ export const authOptions: NextAuthOptions = {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
           select: { image: true, imageType: true },
+          cacheStrategy: { ttl: 600 }, // Cache for 10 minutes - session data changes less frequently
         });
         
         return {

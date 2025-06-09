@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     // Find user
     const user = await prisma.user.findUnique({
       where: { email },
+      cacheStrategy: { ttl: 60 }, 
     });
 
     if (!user) {

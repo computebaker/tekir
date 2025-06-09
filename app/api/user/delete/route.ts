@@ -18,7 +18,8 @@ export async function DELETE(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: {
         id: session.user.id
-      }
+      },
+      cacheStrategy: { ttl: 60 }, 
     });
 
     if (!user) {
