@@ -71,12 +71,16 @@ export default function AccountSettingsPage() {
   const [isRegeneratingAvatar, setIsRegeneratingAvatar] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
+  const [avatarRefreshKey, setAvatarRefreshKey] = useState(Date.now());
+
   // Load user data when session is available
   useEffect(() => {
     if (session?.user) {
       setEmail(session.user.email || "");
       setName(session.user.name || "");
       setUsername((session.user as any)?.username || "");
+      // Force avatar refresh when session changes
+      setAvatarRefreshKey(Date.now());
     }
   }, [session]);
 
@@ -244,7 +248,19 @@ export default function AccountSettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        await update({ updatedAt: data.updatedAt });
+        // Update session with new avatar data
+        await update({ 
+          image: data.avatar,
+          imageType: 'generated',
+          updatedAt: data.updatedAt 
+        });
+        
+        // Force a complete session refresh to ensure UI updates
+        setTimeout(async () => {
+          await update();
+          setAvatarRefreshKey(Date.now());
+        }, 100);
+        
         setMessage({ type: 'success', text: 'Profile avatar regenerated successfully' });
       } else {
         const data = await response.json();
@@ -270,7 +286,19 @@ export default function AccountSettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        await update({ updatedAt: data.updatedAt });
+        // Update session with new avatar data
+        await update({ 
+          image: data.avatar,
+          imageType: 'uploaded',
+          updatedAt: data.updatedAt 
+        });
+        
+        // Force a complete session refresh to ensure UI updates
+        setTimeout(async () => {
+          await update();
+          setAvatarRefreshKey(Date.now());
+        }, 100);
+        
         setMessage({ type: 'success', text: 'Profile picture uploaded successfully' });
       } else {
         const data = await response.json();
@@ -366,7 +394,8 @@ export default function AccountSettingsPage() {
     image: session.user?.image,
     imageType: (session.user as any)?.imageType,
     email: session.user?.email,
-    name: session.user?.name
+    name: session.user?.name,
+    updatedAt: (session.user as any)?.updatedAt || new Date().toISOString()
   });
 
   return (
@@ -530,6 +559,7 @@ export default function AccountSettingsPage() {
                     {/* Image Upload Section */}
                     <div>
                       <ImageUpload
+                        key={`avatar-upload-${avatarRefreshKey}`}
                         currentImage={userAvatarUrl}
                         onImageUpload={handleUploadAvatar}
                         onImageRemove={handleRemoveAvatar}

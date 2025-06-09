@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Avatar regenerated successfully",
-      avatarUrl: newAvatarUrl,
+      avatar: newAvatarUrl,
       updatedAt: updatedUser.updatedAt
     });
   } catch (error) {

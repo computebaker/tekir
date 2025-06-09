@@ -42,10 +42,10 @@ model User {
   emailVerified          DateTime?
   emailVerificationToken String?
   password               String
-  image                  String?   // URL or base64 data URL for profile picture
-  imageType              String?   // 'uploaded' or 'generated' to distinguish custom vs auto-generated
+  image                  String?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
+  imageType              String?
   accounts               Account[]
   sessions               Session[]
 }

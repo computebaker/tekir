@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Profile picture updated successfully',
-      image: updatedUser.image,
+      avatar: updatedUser.image,
       updatedAt: updatedUser.updatedAt
     });
 

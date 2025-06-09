@@ -35,6 +35,20 @@ export function getUserAvatarUrl(user: {
     return `${user.image}#t=${cacheBuster}`;
   }
   
+  // If user has a generated avatar, use the stored URL with cache busting
+  if (user.image && user.imageType === 'generated' && user.image.startsWith('http')) {
+    const separator = user.image.includes('?') ? '&' : '?';
+    const cacheBuster = user.updatedAt ? new Date(user.updatedAt).getTime() : Date.now();
+    return `${user.image}${separator}_t=${cacheBuster}`;
+  }
+  
+  // If user has imageType 'generated' but no stored URL, generate consistent avatar
+  if (user.imageType === 'generated' && user.id) {
+    const avatarUrl = generateAvatarUrl(user.id, user.email || undefined, size);
+    const cacheBuster = user.updatedAt ? new Date(user.updatedAt).getTime() : Date.now();
+    return `${avatarUrl}&_t=${cacheBuster}`;
+  }
+  
   // If user has a valid external image URL, use it with cache busting
   if (user.image && !user.imageType && user.image.startsWith('http')) {
     const separator = user.image.includes('?') ? '&' : '?';
@@ -55,7 +69,7 @@ export function getUserAvatarUrl(user: {
 
 // Generate a deterministic but random-looking seed based on user data
 function generateSeed(userId: string, email?: string): string {
-  const input = `${userId}-${email || 'default'}-${Date.now()}`;
+  const input = `${userId}-${email || 'default'}`;
   return createHash('md5').update(input).digest('hex').substring(0, 16);
 }
 
