@@ -243,7 +243,8 @@ export default function AccountSettingsPage() {
       });
 
       if (response.ok) {
-        await update();
+        const data = await response.json();
+        await update({ updatedAt: data.updatedAt });
         setMessage({ type: 'success', text: 'Profile avatar regenerated successfully' });
       } else {
         const data = await response.json();
@@ -268,7 +269,8 @@ export default function AccountSettingsPage() {
       });
 
       if (response.ok) {
-        await update();
+        const data = await response.json();
+        await update({ updatedAt: data.updatedAt });
         setMessage({ type: 'success', text: 'Profile picture uploaded successfully' });
       } else {
         const data = await response.json();
@@ -291,7 +293,8 @@ export default function AccountSettingsPage() {
       });
 
       if (response.ok) {
-        await update();
+        const data = await response.json();
+        await update({ updatedAt: data.updatedAt });
         setMessage({ type: 'success', text: 'Profile picture removed successfully' });
       } else {
         const data = await response.json();

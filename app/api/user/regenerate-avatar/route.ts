@@ -26,14 +26,22 @@ export async function POST(req: NextRequest) {
       where: { id: userId },
       data: { 
         image: newAvatarUrl,
-        imageType: 'generated'
+        imageType: 'generated',
+        updatedAt: new Date()
       },
+      select: {
+        id: true,
+        image: true,
+        imageType: true,
+        updatedAt: true
+      }
     });
 
     return NextResponse.json({
       success: true,
       message: "Avatar regenerated successfully",
       avatarUrl: newAvatarUrl,
+      updatedAt: updatedUser.updatedAt
     });
   } catch (error) {
     console.error("Error regenerating avatar:", error);

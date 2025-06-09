@@ -21,6 +21,7 @@ interface UserProfileProps {
 export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = false }: UserProfileProps) {
   const { data: session, status, update } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [avatarKey, setAvatarKey] = useState(Date.now()); // For forcing avatar refresh
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +36,13 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Force avatar refresh when session user data changes
+  useEffect(() => {
+    if (session?.user) {
+      setAvatarKey(Date.now());
+    }
+  }, [session?.user?.image, session?.user?.imageType, (session?.user as any)?.updatedAt]);
 
   // Link session to user when they log in
   useEffect(() => {
@@ -142,17 +150,21 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
       >
         <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted flex-shrink-0`}>
           <Image
+            key={`avatar-${session.user?.id}-${avatarKey}`}
             src={getUserAvatarUrl({
               id: session.user?.id,
               image: session.user?.image,
               imageType: (session.user as any)?.imageType,
               email: session.user?.email,
-              name: session.user?.name
+              name: session.user?.name,
+              updatedAt: (session.user as any)?.updatedAt
             })}
             alt={session.user?.name || "Profile"}
             width={showOnlyAvatar ? 40 : 32}
             height={showOnlyAvatar ? 40 : 32}
             className="w-full h-full object-cover"
+            unoptimized={true}
+            priority={false}
             onError={(e) => {
               // Fallback to DiceBear avatar if image fails to load
               const target = e.target as HTMLImageElement;
@@ -176,17 +188,21 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted flex-shrink-0">
                 <Image
+                  key={`dropdown-avatar-${session.user?.id}-${avatarKey}`}
                   src={getUserAvatarUrl({
                     id: session.user?.id,
                     image: session.user?.image,
                     imageType: (session.user as any)?.imageType,
                     email: session.user?.email,
-                    name: session.user?.name
+                    name: session.user?.name,
+                    updatedAt: (session.user as any)?.updatedAt
                   })}
                   alt={session.user?.name || "Profile"}
                   width={40}
                   height={40}
                   className="w-full h-full object-cover"
+                  unoptimized={true}
+                  priority={false}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     const userId = (session.user as any)?.id;

@@ -41,19 +41,22 @@ export async function POST(request: NextRequest) {
       where: { id: session.user.id },
       data: { 
         image: processedImage.base64,
-        imageType: 'uploaded'
+        imageType: 'uploaded',
+        updatedAt: new Date()
       },
       select: {
         id: true,
         image: true,
-        imageType: true
+        imageType: true,
+        updatedAt: true
       }
     });
 
     return NextResponse.json({
       success: true,
       message: 'Profile picture updated successfully',
-      image: updatedUser.image
+      image: updatedUser.image,
+      updatedAt: updatedUser.updatedAt
     });
 
   } catch (error) {
@@ -87,18 +90,21 @@ export async function DELETE(request: NextRequest) {
       where: { id: session.user.id },
       data: { 
         image: null,
-        imageType: null
+        imageType: null,
+        updatedAt: new Date()
       },
       select: {
         id: true,
         name: true,
-        email: true
+        email: true,
+        updatedAt: true
       }
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Profile picture removed successfully'
+      message: 'Profile picture removed successfully',
+      updatedAt: updatedUser.updatedAt
     });
 
   } catch (error) {

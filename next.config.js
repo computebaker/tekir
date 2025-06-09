@@ -3,7 +3,18 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  images: { unoptimized: true },
+  images: { 
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+    minimumCacheTTL: 0, // Disable caching for profile images
+  },
   transpilePackages: ['undici'],
   webpack: (config, { isServer }) => {
     config.module.rules.push({

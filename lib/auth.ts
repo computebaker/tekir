@@ -54,6 +54,7 @@ export const authOptions: NextAuthOptions = {
           username: user.username,
           image: user.image,
           imageType: user.imageType,
+          updatedAt: user.updatedAt,
         };
       },
     }),
@@ -70,6 +71,7 @@ export const authOptions: NextAuthOptions = {
           username: (user as any).username,
           image: (user as any).image,
           imageType: (user as any).imageType,
+          updatedAt: (user as any).updatedAt,
         };
       }
       
@@ -81,6 +83,7 @@ export const authOptions: NextAuthOptions = {
           username: session.username || token.username,
           image: session.image || token.image,
           imageType: session.imageType || token.imageType,
+          updatedAt: session.updatedAt || token.updatedAt,
         };
       }
       
@@ -96,6 +99,7 @@ export const authOptions: NextAuthOptions = {
           username: token.username as string | null,
           image: token.image as string | null,
           imageType: token.imageType as string | null,
+          updatedAt: token.updatedAt as string | null,
         },
       };
     },

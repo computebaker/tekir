@@ -18,6 +18,7 @@ const AVATAR_STYLES = [
 /**
  * Gets the appropriate avatar URL for a user
  * Prioritizes custom uploaded images, then falls back to generated avatars
+ * Adds cache-busting parameter to prevent stale images
  */
 export function getUserAvatarUrl(user: {
   id?: string;
@@ -25,20 +26,27 @@ export function getUserAvatarUrl(user: {
   imageType?: string | null;
   email?: string | null;
   name?: string | null;
+  updatedAt?: string | Date | null;
 }, size: number = 150): string {
-  // If user has a custom uploaded image, use it
+  // If user has a custom uploaded image, use it with cache busting
   if (user.image && user.imageType === 'uploaded' && isValidDataUrl(user.image)) {
-    return user.image;
+    // For data URLs, add a cache-busting fragment
+    const cacheBuster = user.updatedAt ? new Date(user.updatedAt).getTime() : Date.now();
+    return `${user.image}#t=${cacheBuster}`;
   }
   
-  // If user has a valid external image URL, use it
+  // If user has a valid external image URL, use it with cache busting
   if (user.image && !user.imageType && user.image.startsWith('http')) {
-    return user.image;
+    const separator = user.image.includes('?') ? '&' : '?';
+    const cacheBuster = user.updatedAt ? new Date(user.updatedAt).getTime() : Date.now();
+    return `${user.image}${separator}_t=${cacheBuster}`;
   }
   
-  // Fall back to generated avatar
+  // Fall back to generated avatar with cache busting
   if (user.id) {
-    return generateAvatarUrl(user.id, user.email || undefined, size);
+    const avatarUrl = generateAvatarUrl(user.id, user.email || undefined, size);
+    const cacheBuster = user.updatedAt ? new Date(user.updatedAt).getTime() : Date.now();
+    return `${avatarUrl}&_t=${cacheBuster}`;
   }
   
   // Final fallback to initials avatar

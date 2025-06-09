@@ -46,14 +46,22 @@ export async function POST(request: NextRequest) {
       },
       data: {
         image: newAvatarUrl,
-        imageType: 'generated'
+        imageType: 'generated',
+        updatedAt: new Date()
+      },
+      select: {
+        id: true,
+        image: true,
+        imageType: true,
+        updatedAt: true
       }
     });
 
     return NextResponse.json(
       { 
         message: 'Avatar regenerated successfully', 
-        avatar: updatedUser.image 
+        avatar: updatedUser.image,
+        updatedAt: updatedUser.updatedAt
       },
       { status: 200 }
     );
