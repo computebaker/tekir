@@ -147,7 +147,9 @@ export default function AccountSettingsPage() {
       });
 
       if (response.ok) {
-        await update();
+        const data = await response.json();
+        // Update the session with the new name
+        await update({ name: data.name });
         setMessage({ type: 'success', text: 'Name updated successfully' });
       } else {
         const data = await response.json();
@@ -175,7 +177,9 @@ export default function AccountSettingsPage() {
       });
 
       if (response.ok) {
-        await update();
+        const data = await response.json();
+        // Update the session with the new username
+        await update({ username: data.username });
         setMessage({ type: 'success', text: 'Username updated successfully' });
       } else {
         const data = await response.json();

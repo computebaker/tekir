@@ -75,7 +75,13 @@ export const authOptions: NextAuthOptions = {
       
       // Update token when session is updated
       if (trigger === "update" && session) {
-        return { ...token, ...session };
+        return { 
+          ...token, 
+          name: session.name || token.name,
+          username: session.username || token.username,
+          image: session.image || token.image,
+          imageType: session.imageType || token.imageType,
+        };
       }
       
       return token;

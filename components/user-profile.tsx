@@ -64,7 +64,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
 
   if (status === "loading") {
     return (
-      <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-muted animate-pulse`}></div>
+      <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-muted animate-pulse flex-shrink-0`}></div>
     );
   }
 
@@ -75,7 +75,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
           onClick={() => setIsOpen(!isOpen)}
           className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
         >
-          <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center`}>
+          <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0`}>
             <User className={`${showOnlyAvatar ? 'w-5 h-5' : 'w-4 h-4'} text-muted-foreground`} />
           </div>
           {!showOnlyAvatar && (
@@ -86,15 +86,15 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         {isOpen && (
           <div className="absolute right-0 mt-2 w-48 rounded-lg bg-background border border-border shadow-lg z-50">
             <div className="p-3 border-b border-border">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0">
                   <User className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">
                     Guest User
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground truncate">
                     Welcome to Tekir ID
                   </p>
                 </div>
@@ -140,7 +140,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
       >
-        <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted`}>
+        <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted flex-shrink-0`}>
           <Image
             src={getUserAvatarUrl({
               id: session.user?.id,
@@ -164,7 +164,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
           />
         </div>
         {!showOnlyAvatar && (
-          <span className="hidden sm:block">
+          <span className="hidden sm:block truncate">
             {session.user?.name || "User"}
           </span>
         )}
@@ -173,8 +173,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 rounded-lg bg-background border border-border shadow-lg z-50">
           <div className="p-3 border-b border-border">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted flex-shrink-0">
                 <Image
                   src={getUserAvatarUrl({
                     id: session.user?.id,
@@ -196,11 +196,11 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   }}
                 />
               </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">
                   {session.user?.name}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {(session.user as any)?.username ? `@${(session.user as any)?.username}` : session.user?.email}
                 </p>
               </div>
