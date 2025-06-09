@@ -23,7 +23,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
 import Link from "next/link";
 import Image from "next/image";
-import { generateInitialsAvatar, generateAvatarUrl } from "@/lib/avatar";
+import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
+import ImageUpload from "@/components/image-upload";
 
 // Define mobile navigation items for settings
 const settingsMobileNavItems = [
@@ -67,6 +68,7 @@ export default function AccountSettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isRegeneratingAvatar, setIsRegeneratingAvatar] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Load user data when session is available
   useEffect(() => {
@@ -220,6 +222,56 @@ export default function AccountSettingsPage() {
     }
   };
 
+  const handleUploadAvatar = async (imageData: string) => {
+    setIsUploadingAvatar(true);
+    try {
+      const response = await fetch('/api/user/avatar/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: imageData }),
+      });
+
+      if (response.ok) {
+        await update();
+        setMessage({ type: 'success', text: 'Profile picture uploaded successfully' });
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to upload profile picture');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while uploading';
+      setMessage({ type: 'error', text: errorMessage });
+      throw error; // Re-throw to let ImageUpload component handle the error state
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setIsUploadingAvatar(true);
+    try {
+      const response = await fetch('/api/user/avatar/upload', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await update();
+        setMessage({ type: 'success', text: 'Profile picture removed successfully' });
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to remove profile picture');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while removing';
+      setMessage({ type: 'error', text: errorMessage });
+      throw error; // Re-throw to let ImageUpload component handle the error state
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== "DELETE MY ACCOUNT") {
       setMessage({ type: 'error', text: 'Please type "DELETE MY ACCOUNT" to confirm' });
@@ -272,7 +324,13 @@ export default function AccountSettingsPage() {
     );
   }
 
-  const userAvatarUrl = session.user?.image || generateAvatarUrl(session.user?.name || session.user?.email || "User");
+  const userAvatarUrl = getUserAvatarUrl({
+    id: session.user?.id,
+    image: session.user?.image,
+    imageType: (session.user as any)?.imageType,
+    email: session.user?.email,
+    name: session.user?.name
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -429,32 +487,37 @@ export default function AccountSettingsPage() {
               <div className="space-y-6">
                 {/* Profile Information */}
                 <div className="rounded-lg border border-border bg-card p-6">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="relative">
-                      <Image
-                        src={userAvatarUrl}
-                        alt="Profile"
-                        width={80}
-                        height={80}
-                        className="rounded-full"
+                  <h3 className="text-lg font-medium mb-6">Profile Picture</h3>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Image Upload Section */}
+                    <div>
+                      <ImageUpload
+                        currentImage={userAvatarUrl}
+                        onImageUpload={handleUploadAvatar}
+                        onImageRemove={handleRemoveAvatar}
+                        disabled={isUploadingAvatar || isLoading}
+                        size={120}
                       />
-                      {isRegeneratingAvatar && (
-                        <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                          <RefreshCw className="w-6 h-6 text-white animate-spin" />
-                        </div>
-                      )}
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-medium">{session.user?.name || "User"}</h3>
-                      <p className="text-sm text-muted-foreground">{session.user?.email}</p>
-                      <button
-                        onClick={handleRegenerateAvatar}
-                        disabled={isRegeneratingAvatar || isLoading}
-                        className="mt-2 inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${isRegeneratingAvatar ? 'animate-spin' : ''}`} />
-                        Regenerate Avatar
-                      </button>
+                    
+                    {/* Alternative Options */}
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">Alternative Options</h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Don't have a photo? You can use a generated avatar instead.
+                        </p>
+                        
+                        <button
+                          onClick={handleRegenerateAvatar}
+                          disabled={isRegeneratingAvatar || isLoading || isUploadingAvatar}
+                          className="inline-flex items-center gap-2 text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50 px-4 py-2 rounded-lg border"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${isRegeneratingAvatar ? 'animate-spin' : ''}`} />
+                          Generate New Avatar
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

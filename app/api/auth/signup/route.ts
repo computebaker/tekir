@@ -52,7 +52,10 @@ export async function POST(request: NextRequest) {
     // Update user with avatar
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { image: avatarUrl },
+      data: { 
+        image: avatarUrl,
+        imageType: 'generated'
+      },
     });
 
     // Send verification email using Prelude

@@ -1,9 +1,49 @@
 import { createHash } from 'crypto';
 
+// Simple client-safe data URL validation
+function isValidDataUrl(url: string): boolean {
+  try {
+    const regex = /^data:image\/(jpeg|jpg|png);base64,/;
+    return regex.test(url);
+  } catch {
+    return false;
+  }
+}
+
 // Available avatar styles from DiceBear API
 const AVATAR_STYLES = [
   'identicon'
 ];
+
+/**
+ * Gets the appropriate avatar URL for a user
+ * Prioritizes custom uploaded images, then falls back to generated avatars
+ */
+export function getUserAvatarUrl(user: {
+  id?: string;
+  image?: string | null;
+  imageType?: string | null;
+  email?: string | null;
+  name?: string | null;
+}, size: number = 150): string {
+  // If user has a custom uploaded image, use it
+  if (user.image && user.imageType === 'uploaded' && isValidDataUrl(user.image)) {
+    return user.image;
+  }
+  
+  // If user has a valid external image URL, use it
+  if (user.image && !user.imageType && user.image.startsWith('http')) {
+    return user.image;
+  }
+  
+  // Fall back to generated avatar
+  if (user.id) {
+    return generateAvatarUrl(user.id, user.email || undefined, size);
+  }
+  
+  // Final fallback to initials avatar
+  return generateInitialsAvatar(user.name || user.email || "User", size);
+}
 
 // Generate a deterministic but random-looking seed based on user data
 function generateSeed(userId: string, email?: string): string {
@@ -90,4 +130,9 @@ export function regenerateAvatar(userId: string, email?: string): string {
   return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&${params.toString()}`;
 }
 
-export default { generateAvatarUrl, generateInitialsAvatar, regenerateAvatar };
+export default { 
+  generateAvatarUrl, 
+  generateInitialsAvatar, 
+  regenerateAvatar, 
+  getUserAvatarUrl 
+};

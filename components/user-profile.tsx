@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { User, LogOut, LogIn, Settings, LucideIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { generateInitialsAvatar, generateAvatarUrl } from "@/lib/avatar";
+import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
 
 interface MobileNavItem {
   href: string;
@@ -141,36 +141,27 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
       >
         <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted`}>
-          {session.user?.image ? (
-            <Image
-              src={session.user.image}
-              alt={session.user.name || "Profile"}
-              width={showOnlyAvatar ? 40 : 32}
-              height={showOnlyAvatar ? 40 : 32}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Fallback to DiceBear avatar if image fails to load
-                const target = e.target as HTMLImageElement;
-                const userId = (session.user as any)?.id;
-                target.src = userId 
-                  ? generateAvatarUrl(userId, session.user?.email || undefined)
-                  : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
-              }}
-            />
-          ) : (
-            <Image
-              src={(() => {
-                const userId = (session.user as any)?.id;
-                return userId 
-                  ? generateAvatarUrl(userId, session.user?.email || undefined)
-                  : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
-              })()}
-              alt={session.user?.name || "Profile"}
-              width={showOnlyAvatar ? 40 : 32}
-              height={showOnlyAvatar ? 40 : 32}
-              className="w-full h-full object-cover"
-            />
-          )}
+          <Image
+            src={getUserAvatarUrl({
+              id: session.user?.id,
+              image: session.user?.image,
+              imageType: (session.user as any)?.imageType,
+              email: session.user?.email,
+              name: session.user?.name
+            })}
+            alt={session.user?.name || "Profile"}
+            width={showOnlyAvatar ? 40 : 32}
+            height={showOnlyAvatar ? 40 : 32}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to DiceBear avatar if image fails to load
+              const target = e.target as HTMLImageElement;
+              const userId = (session.user as any)?.id;
+              target.src = userId 
+                ? generateAvatarUrl(userId, session.user?.email || undefined)
+                : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
+            }}
+          />
         </div>
         {!showOnlyAvatar && (
           <span className="hidden sm:block">
@@ -184,35 +175,26 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
           <div className="p-3 border-b border-border">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted">
-                {session.user?.image ? (
-                  <Image
-                    src={session.user.image}
-                    alt={session.user.name || "Profile"}
-                    width={40}
-                    height={40}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      const userId = (session.user as any)?.id;
-                      target.src = userId 
-                        ? generateAvatarUrl(userId, session.user?.email || undefined)
-                        : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
-                    }}
-                  />
-                ) : (
-                  <Image
-                    src={(() => {
-                      const userId = (session.user as any)?.id;
-                      return userId 
-                        ? generateAvatarUrl(userId, session.user?.email || undefined)
-                        : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
-                    })()}
-                    alt={session.user?.name || "Profile"}
-                    width={40}
-                    height={40}
-                    className="w-full h-full object-cover"
-                  />
-                )}
+                <Image
+                  src={getUserAvatarUrl({
+                    id: session.user?.id,
+                    image: session.user?.image,
+                    imageType: (session.user as any)?.imageType,
+                    email: session.user?.email,
+                    name: session.user?.name
+                  })}
+                  alt={session.user?.name || "Profile"}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const userId = (session.user as any)?.id;
+                    target.src = userId 
+                      ? generateAvatarUrl(userId, session.user?.email || undefined)
+                      : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
+                  }}
+                />
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">

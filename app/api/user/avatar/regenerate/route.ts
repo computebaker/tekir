@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
         id: session.user.id
       },
       data: {
-        image: newAvatarUrl
+        image: newAvatarUrl,
+        imageType: 'generated'
       }
     });
 

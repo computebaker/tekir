@@ -24,7 +24,10 @@ export async function POST(req: NextRequest) {
     // Update user's avatar in database
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { image: newAvatarUrl },
+      data: { 
+        image: newAvatarUrl,
+        imageType: 'generated'
+      },
     });
 
     return NextResponse.json({

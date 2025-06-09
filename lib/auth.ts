@@ -66,6 +66,7 @@ export const authOptions: NextAuthOptions = {
           ...token,
           username: (user as any).username,
           image: (user as any).image,
+          imageType: (user as any).imageType,
         };
       }
       return token;
@@ -75,7 +76,7 @@ export const authOptions: NextAuthOptions = {
       if (token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { image: true },
+          select: { image: true, imageType: true },
         });
         
         return {
@@ -85,6 +86,7 @@ export const authOptions: NextAuthOptions = {
             id: token.sub,
             username: token.username,
             image: dbUser?.image || session.user?.image,
+            imageType: dbUser?.imageType,
           },
         };
       }
