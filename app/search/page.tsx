@@ -56,6 +56,7 @@ interface WikipediaData {
   };
   pageUrl: string;
   description?: string;
+  language?: string;
 }
 
 interface ImageSearchResult {
@@ -635,9 +636,10 @@ function SearchPageContent() {
         
         const suggestionData = await suggestionResponse.json();
         const articleTitle = suggestionData.article;
-        
+        const language = suggestionData.language || 'en';
+
         if (articleTitle) {
-          const detailsUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(articleTitle)}`;
+          const detailsUrl = `https://${language}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(articleTitle)}`;
           const detailsResponse = await fetch(detailsUrl);
           const details = await detailsResponse.json();
 
@@ -645,34 +647,30 @@ function SearchPageContent() {
             const wikipediaData: WikipediaData = {
               title: details.title,
               extract: details.extract,
-              pageUrl: details.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(details.title)}`,
+              pageUrl: details.content_urls?.desktop?.page || `https://${language}.wikipedia.org/wiki/${encodeURIComponent(details.title)}`,
               ...(details.thumbnail && { thumbnail: details.thumbnail }),
               description: details.description,
+              language: language,
             };
 
             setWikiData(wikipediaData);
           } else {
-            await fallbackToWikipediaSearch();
+            await fallbackToWikipediaSearch(language);
           }
         } else {
-          await fallbackToWikipediaSearch();
+          await fallbackToWikipediaSearch(language);
         }
       } catch (error) {
         console.error("Failed to fetch Wikipedia data:", error);
-        try {
-          await fallbackToWikipediaSearch();
-        } catch (fallbackError) {
-          console.error("Fallback Wikipedia search also failed:", fallbackError);
-          setWikiData(null);
-        }
+        setWikiData(null);
       } finally {
         setWikiLoading(false);
       }
     };
 
-    const fallbackToWikipediaSearch = async () => {
+    const fallbackToWikipediaSearch = async (language: string = 'en') => {
       try {
-        const searchUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=${encodeURIComponent(
+        const searchUrl = `https://${language}.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=${encodeURIComponent(
           query
         )}&format=json&utf8=1`;
 
@@ -683,7 +681,7 @@ function SearchPageContent() {
           const topResult = searchData.query.search[0];
           const pageTitle = topResult.title;
 
-          const detailsUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+          const detailsUrl = `https://${language}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
           const detailsResponse = await fetch(detailsUrl);
           const details = await detailsResponse.json();
 
@@ -691,9 +689,10 @@ function SearchPageContent() {
             const wikipediaData: WikipediaData = {
               title: details.title,
               extract: details.extract,
-              pageUrl: details.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(details.title)}`,
+              pageUrl: details.content_urls?.desktop?.page || `https://${language}.wikipedia.org/wiki/${encodeURIComponent(details.title)}`,
               ...(details.thumbnail && { thumbnail: details.thumbnail }),
               description: details.description,
+              language: language,
             };
 
             setWikiData(wikipediaData);
@@ -1064,7 +1063,7 @@ function SearchPageContent() {
                     className="w-full flex items-center justify-between p-4 text-left"
                   >
                     <div className="flex items-center">
-                    <span className="font-medium">From Wikipedia: {wikiData.title}</span>
+                    <span className="font-medium">From Wikipedia ({wikiData.language?.toUpperCase() || 'EN'}): {wikiData.title}</span>
                     </div>
                     <ChevronDown className={`w-5 h-5 transition-transform ${wikiExpanded ? 'rotate-180' : ''}`} />
                   </button>
@@ -1093,7 +1092,7 @@ function SearchPageContent() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                     >
-                      Learn more
+                      Learn more on Wikipedia ({wikiData.language?.toUpperCase() || 'EN'})
                       <ExternalLink className="w-3 h-3" />
                     </a>
                     </div>
@@ -1340,7 +1339,7 @@ function SearchPageContent() {
                         rel="noopener noreferrer"
                         className="text-blue-600 dark:text-blue-400 hover:underline"
                       >
-                        Wikipedia
+                        Wikipedia ({wikiData.language?.toUpperCase() || 'EN'})
                       </a>
                     </div>
                   </div>
