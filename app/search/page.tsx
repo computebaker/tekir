@@ -162,10 +162,7 @@ function SearchPageContent() {
   const [diveLoading, setDiveLoading] = useState(false);
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
-
-  // ...existing code...
-
-  // ...existing code...
+  const aiRequestInProgressRef = useRef<string | null>(null);
 
   useEffect(() => {
     const checkQueryForBangs = async () => {
@@ -345,12 +342,16 @@ function SearchPageContent() {
   }, [searchType, query, searchEngine, imageResults.length, imageLoading]);
 
   useEffect(() => {
-    if (!query) return;
+    if (!query) {
+      aiRequestInProgressRef.current = null;
+      return;
+    }
 
     if (!aiEnabled) {
       setAiResponse(null);
       setDiveResponse(null);
       setDiveSources([]);
+      aiRequestInProgressRef.current = null;
       return;
     }
 
@@ -359,6 +360,14 @@ function SearchPageContent() {
     }
 
     const modelToUse = aiModel || "gemini";
+    
+    const requestKey = `${query}-${aiDiveEnabled ? 'dive' : 'ai'}-${modelToUse}`;
+    
+    if (aiRequestInProgressRef.current === requestKey) {
+      return;
+    }
+    
+    aiRequestInProgressRef.current = requestKey;
     setAiLoading(true);
     setDiveLoading(true);
 
@@ -379,17 +388,31 @@ function SearchPageContent() {
             setDiveLoading(false);
             setAiResponse(null); // Clear regular AI response when dive is active
             setAiLoading(false);
+            aiRequestInProgressRef.current = null;
             return;
           }
 
-          // Check if we have search results available to avoid duplicate API call
-          if (!results || results.length === 0) {
-            // Wait for search results to be available
-            console.log("Waiting for search results before making Dive AI request...");
+          const waitForResults = async (maxAttempts = 10, delay = 300) => {
+            for (let i = 0; i < maxAttempts; i++) {
+              if (results && results.length > 0) {
+                return results;
+              }
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            return null;
+          };
+
+          const searchResults = await waitForResults();
+          
+          if (!searchResults || searchResults.length === 0) {
+            console.log("No search results available for Dive AI request, skipping...");
+            setDiveLoading(false);
+            setAiLoading(false);
+            aiRequestInProgressRef.current = null;
             return;
           }
 
-          const top2Results = results.slice(0, 2).map((r: any) => ({
+          const top2Results = searchResults.slice(0, 2).map((r: any) => ({
             url: r.url,
             title: r.title,
             snippet: r.description
@@ -424,6 +447,7 @@ function SearchPageContent() {
             setDiveSources([]);
             setAiLoading(false);
             setDiveLoading(false);
+            aiRequestInProgressRef.current = null;
             return;
           }
 
@@ -451,6 +475,7 @@ function SearchPageContent() {
         
         setAiLoading(false);
         setDiveLoading(false);
+        aiRequestInProgressRef.current = null;
       } catch (error) {
         console.error(`AI response failed for model ${model}:`, error);
 
@@ -460,6 +485,7 @@ function SearchPageContent() {
         } else {
           setAiLoading(false);
           setDiveLoading(false);
+          aiRequestInProgressRef.current = null;
         }
       }
     };
@@ -468,8 +494,10 @@ function SearchPageContent() {
 
     if (selectedModelEnabled) {
       makeAIRequest(modelToUse);
+    } else {
+      aiRequestInProgressRef.current = null;
     }
-  }, [query, aiEnabled, aiModel, aiDiveEnabled, results]);
+  }, [query, aiEnabled, aiModel, aiDiveEnabled]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -486,6 +514,8 @@ function SearchPageContent() {
   };
 
   const handleToggleAiDive = () => {
+    // Clear any in-progress request when switching modes
+    aiRequestInProgressRef.current = null;
     setAiDiveEnabled(prevAiDiveEnabled => !prevAiDiveEnabled);
   };
 
