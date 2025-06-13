@@ -91,6 +91,42 @@ function SearchPageContent() {
   const router = useRouter();
   const query = searchParams.get("q") || "";
 
+  // Helper function to check if a response should hide Karakulak
+  const shouldHideKarakulak = (response: string | null): boolean => {
+    if (!response) return true;
+    
+    const trimmedResponse = response.trim();
+    if (trimmedResponse === '') return true;
+    
+    // Common phrases that indicate the AI can't help in various languages
+    const cantHelpPhrases = [
+      "Sorry, I can't help you with that",
+      "I can't help you with that",
+      "I cannot help you with that",
+      "I'm sorry, but I can't help",
+      "I'm unable to help",
+      "I cannot assist with that",
+      "Sorry, I cannot help",
+      "I'm sorry, I can't",
+      "Üzgünüm, bu konuda yardımcı olamam", // Turkish
+      "Yardımcı olamam",
+      "Bu konuda yardımcı olamıyorum",
+      "Lo siento, no puedo ayudarte", // Spanish
+      "No puedo ayudarte",
+      "Désolé, je ne peux pas vous aider", // French
+      "Je ne peux pas vous aider",
+      "Entschuldigung, ich kann nicht helfen", // German
+      "Ich kann nicht helfen",
+      "申し訳ありませんが、お手伝いできません", // Japanese
+      "抱歉，我无法帮助您", // Chinese
+      "Мне жаль, но я не могу помочь", // Russian
+    ];
+    
+    return cantHelpPhrases.some(phrase => 
+      trimmedResponse.toLowerCase().includes(phrase.toLowerCase())
+    );
+  };
+
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
@@ -881,9 +917,14 @@ function SearchPageContent() {
 
           <div className="flex flex-col md:flex-row md:gap-8">
             <div className="flex-1 md:w-4/5 xl:w-2/3">
-              {searchType === 'web' && aiEnabled && (aiResponse || diveResponse || aiLoading || diveLoading) && 
-               !((aiResponse && aiResponse.includes("Sorry, I can't help you with that.")) || 
-                 (diveResponse && diveResponse.includes("Sorry, I can't help you with that."))) ? (
+              {(() => {
+                if (searchType !== 'web' || !aiEnabled) return false;
+                const hasLoadingOrResponse = aiResponse || diveResponse || aiLoading || diveLoading;
+                if (!hasLoadingOrResponse) return false;
+                if (aiLoading || diveLoading) return true;
+                const activeResponse = diveResponse || aiResponse;
+                return !shouldHideKarakulak(activeResponse);
+              })() ? (
                 <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">

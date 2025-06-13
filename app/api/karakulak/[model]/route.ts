@@ -64,7 +64,7 @@ async function llama(message: string): Promise<string> {
       {
         role: 'system',
         content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, say: "Sorry, I can\'t help you with that." or its equivalent in the input\'s language.',
+          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response.',
       },
       {
         role: 'user',
@@ -75,8 +75,8 @@ async function llama(message: string): Promise<string> {
   });
 
   const answer = response.choices[0].message.content;
-  cache.set(message, { response: answer ?? 'Sorry, I can\'t help you with that.', timestamp: now });
-  return answer ?? "Sorry, I can't help you with that.";
+  cache.set(message, { response: answer ?? '', timestamp: now });
+  return answer ?? "";
 }
 
 async function mistral(message: string): Promise<string> {
@@ -93,7 +93,7 @@ async function mistral(message: string): Promise<string> {
       {
         role: 'system',
         content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, say: "Sorry, I can\'t help you with that." or its equivalent in the input\'s language.',
+          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response.',
       },
       {
         role: 'user',
@@ -104,8 +104,8 @@ async function mistral(message: string): Promise<string> {
   });
 
   const answer = response.choices[0].message.content;
-  cache.set(message, { response: answer ?? 'Sorry, I can\'t help you with that.', timestamp: now });
-  return answer ?? "Sorry, I can't help you with that.";
+  cache.set(message, { response: answer ?? '', timestamp: now });
+  return answer ?? "";
 }
 
 async function chatgpt(message: string): Promise<string> {
@@ -122,7 +122,7 @@ async function chatgpt(message: string): Promise<string> {
       {
         role: 'system',
         content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, say: "Sorry, I can\'t help you with that." or its equivalent in the input\'s language. Sometimes, the users might provide single words like "reddit", "cat" etc., provide them with information about the string user submitted.',
+          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response. Sometimes, the users might provide single words like "reddit", "cat" etc., provide them with information about the string user submitted.',
       },
       {
         role: 'user',
@@ -133,8 +133,8 @@ async function chatgpt(message: string): Promise<string> {
   });
 
   const answer = response.choices[0].message.content;
-  cache.set(`chatgpt-${message}`, { response: answer ?? 'Sorry, I can\'t help you with that.', timestamp: now });
-  return answer ?? "Sorry, I can't help you with that.";
+  cache.set(`chatgpt-${message}`, { response: answer ?? '', timestamp: now });
+  return answer ?? "";
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
