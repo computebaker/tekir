@@ -626,15 +626,32 @@ function SearchPageContent() {
     const fetchWikipediaData = async () => {
       setWikiLoading(true);
       try {
-        const suggestionResponse = await fetchWithSessionRefreshAndCache(
-          `/api/suggest/wikipedia?q=${encodeURIComponent(query)}`
-        );
+        // Get browser language (first 2 characters of the locale)
+        const browserLanguage = navigator.language?.slice(0, 2);
+        
+        // Get search country from localStorage
+        const searchCountry = localStorage.getItem("searchCountry") || "ALL";
+        
+        // Build Wikipedia suggestion API URL with priority parameters
+        const suggestionUrl = new URL(`/api/suggest/wikipedia`, window.location.origin);
+        suggestionUrl.searchParams.set('q', query);
+        
+        if (browserLanguage) {
+          suggestionUrl.searchParams.set('lang', browserLanguage);
+        }
+        
+        if (searchCountry) {
+          suggestionUrl.searchParams.set('country', searchCountry);
+        }
+
+        const suggestionResponse = await fetchWithSessionRefreshAndCache(suggestionUrl.toString());
         
         if (!suggestionResponse.ok) {
           throw new Error(`Wikipedia suggestion API failed: ${suggestionResponse.status}`);
         }
         
         const suggestionData = await suggestionResponse.json();
+        
         const articleTitle = suggestionData.article;
         const language = suggestionData.language || 'en';
 
