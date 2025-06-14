@@ -43,6 +43,7 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [autocompleteSource] = useState(() =>
@@ -257,7 +258,20 @@ export default function Home() {
         <div className="w-full max-w-3xl space-y-8 text-center">
           {/* Logo */}
           <div className="flex justify-center">
-            <Image src="/tekir-head.png" alt="Tekir logo" width={200} height={66} loading="eager" priority />
+            <div 
+              onMouseEnter={() => setIsLogoHovered(true)}
+              onMouseLeave={() => setIsLogoHovered(false)}
+              className="cursor-pointer"
+            >
+              <Image 
+                src={isLogoHovered ? "/head-animated.gif" : "/tekir-head.png"} 
+                alt="Tekir logo" 
+                width={200} 
+                height={66} 
+                loading="eager" 
+                priority 
+              />
+            </div>
           </div>
 
           {/* Search Bar */}
