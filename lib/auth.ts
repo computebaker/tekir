@@ -59,22 +59,46 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: "database", // Changed from "jwt" to "database" to populate Session table
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    strategy: "jwt",
   },
   callbacks: {
-    async session({ session, user }) {
-      // With database strategy, we get user from database, not token
+    async jwt({ token, user, trigger, session }) {
+      if (user) {
+        return {
+          ...token,
+          name: (user as any).name,
+          username: (user as any).username,
+          image: (user as any).image,
+          imageType: (user as any).imageType,
+          updatedAt: (user as any).updatedAt,
+        };
+      }
+      
+      // Update token when session is updated
+      if (trigger === "update" && session) {
+        return { 
+          ...token, 
+          name: session.name || token.name,
+          username: session.username || token.username,
+          image: session.image || token.image,
+          imageType: session.imageType || token.imageType,
+          updatedAt: session.updatedAt || token.updatedAt,
+        };
+      }
+      
+      return token;
+    },
+    async session({ session, token }) {
       return {
         ...session,
         user: {
           ...session.user,
-          id: user.id,
-          name: user.name,
-          username: (user as any).username,
-          image: user.image,
-          imageType: (user as any).imageType,
-          updatedAt: (user as any).updatedAt,
+          id: token.sub,
+          name: token.name as string | null,
+          username: token.username as string | null,
+          image: token.image as string | null,
+          imageType: token.imageType as string | null,
+          updatedAt: token.updatedAt as string | null,
         },
       };
     },

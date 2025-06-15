@@ -289,6 +289,16 @@ export async function incrementAndCheckRequestCount(token: string): Promise<{ al
     requestLimit = MAX_REQUESTS_PER_USER_SESSION;
   }
   
+  if (cached && cached.expiresAt > Date.now()) {
+    const timeSinceLastUpdate = Date.now() - cached.lastUpdated;
+    
+    if (timeSinceLastUpdate < 60000 && cached.requestCount < requestLimit) {
+      cached.requestCount++;
+      cached.lastUpdated = Date.now();
+      return { allowed: cached.requestCount <= requestLimit, currentCount: cached.requestCount };
+    }
+  }
+
   if (!redis) {
     console.warn("Redis client is not initialized. Cannot check request count.");
     return { allowed: false, currentCount: 0 };
