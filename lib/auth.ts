@@ -57,11 +57,13 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-  ],
-  session: {
+    ],
+    session: {
     strategy: "jwt",
-  },
-  callbacks: {
+    maxAge: 15 * 24 * 60 * 60,
+    updateAge: 5 * 60, 
+    },
+    callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         return {
