@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Search, Lock, MessageCircleMore } from "lucide-react";
 import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
+import WeatherWidget from "@/components/weather-widget";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -334,7 +335,7 @@ export default function Home() {
             )}
           </form>
           
-            <div className="flex items-center justify-center gap-3 mt-4 text-muted-foreground mx-auto">
+            <div className="flex items-center justify-center gap-3 mt-4 text-muted-foreground mx-auto flex-wrap">
             <Link href="/about" className="hover:text-foreground transition-colors">
               <div className="flex items-center gap-2">
               <Lock className="w-4 h-4" />
@@ -350,6 +351,10 @@ export default function Home() {
               <span className="font-medium">AI Chat</span>
               </div>
             </Link>
+            
+            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
+            
+            <WeatherWidget />
             </div>
           
           </div>
