@@ -18,7 +18,7 @@ interface LocationData {
 // Define mobile navigation items for settings
 const settingsMobileNavItems = [
   {
-    href: "/search",
+    href: "/",
     icon: Search,
     label: "Back to Search"
   },
@@ -83,6 +83,7 @@ export default function SearchSettingsPage() {
   const [weatherLocationQuery, setWeatherLocationQuery] = useState("");
   const [weatherLocationSuggestions, setWeatherLocationSuggestions] = useState<LocationData[]>([]);
   const [showWeatherLocationSuggestions, setShowWeatherLocationSuggestions] = useState(false);
+  const [weatherUnits, setWeatherUnits] = useState("metric");
   const [searchEngine] = useState("brave"); // Unchangeable
   const [autocompleteSource, setAutocompleteSource] = useState("brave");
   const [aiModel, setAiModel] = useState("gemini");
@@ -94,6 +95,7 @@ export default function SearchSettingsPage() {
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
   const [safesearchDropdownOpen, setSafesearchDropdownOpen] = useState(false);
+  const [weatherUnitsDropdownOpen, setWeatherUnitsDropdownOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
 
   // Refs for click outside handling
@@ -102,6 +104,7 @@ export default function SearchSettingsPage() {
   const countryDropdownRef = useRef<HTMLDivElement>(null);
   const safesearchDropdownRef = useRef<HTMLDivElement>(null);
   const weatherLocationRef = useRef<HTMLDivElement>(null);
+  const weatherUnitsDropdownRef = useRef<HTMLDivElement>(null);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
   // Load settings from localStorage on mount
@@ -145,6 +148,11 @@ export default function SearchSettingsPage() {
     if (storedSafesearch) {
       setSafesearch(storedSafesearch);
     }
+
+    const storedWeatherUnits = localStorage.getItem("weatherUnits");
+    if (storedWeatherUnits) {
+      setWeatherUnits(storedWeatherUnits);
+    }
   }, []);
 
   // Update query display when custom location changes
@@ -187,6 +195,12 @@ export default function SearchSettingsPage() {
         setShowWeatherLocationSuggestions(false);
       }
 
+      if (weatherUnitsDropdownRef.current &&
+          !weatherUnitsDropdownRef.current.contains(event.target as Node) &&
+          weatherUnitsDropdownOpen) {
+        setWeatherUnitsDropdownOpen(false);
+      }
+
       if (mobileSettingsRef.current && !mobileSettingsRef.current.contains(event.target as Node)) {
         setIsMobileSettingsOpen(false);
       }
@@ -196,7 +210,7 @@ export default function SearchSettingsPage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions]);
+  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions, weatherUnitsDropdownOpen]);
 
   // Handlers for settings changes
   const handleKarakulakToggle = () => {
@@ -282,6 +296,12 @@ export default function SearchSettingsPage() {
     setSafesearch(safesearchValue);
     localStorage.setItem("safesearch", safesearchValue);
     setSafesearchDropdownOpen(false);
+  };
+
+  const handleWeatherUnitsChange = (units: string) => {
+    setWeatherUnits(units);
+    localStorage.setItem("weatherUnits", units);
+    setWeatherUnitsDropdownOpen(false);
   };
 
   const getModelDisplay = (model: string) => {
@@ -700,6 +720,67 @@ export default function SearchSettingsPage() {
                         <span className="text-sm">
                           Selected: {customWeatherLocation.name}, {customWeatherLocation.country}
                         </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Weather Units */}
+            {clim8Enabled && (
+              <div className="rounded-lg border border-border bg-card p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-lg font-medium">Weather Units</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Choose between metric (°C, km/h) or imperial (°F, mph) units
+                    </p>
+                  </div>
+                  <div className="relative" ref={weatherUnitsDropdownRef}>
+                    <button
+                      onClick={() => setWeatherUnitsDropdownOpen(!weatherUnitsDropdownOpen)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
+                    >
+                      <span className="text-sm font-medium capitalize">
+                        {weatherUnits === 'metric' ? 'Metric (°C)' : 'Imperial (°F)'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${weatherUnitsDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {weatherUnitsDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-60 rounded-lg bg-background border border-border shadow-lg z-10">
+                        <div className="p-1">
+                          <button
+                            onClick={() => handleWeatherUnitsChange('metric')}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                              weatherUnits === 'metric' ? 'bg-muted' : ''
+                            }`}
+                          >
+                            <div className="flex flex-col items-start flex-1">
+                              <span className="font-medium text-sm">Metric</span>
+                              <span className="text-xs text-muted-foreground">°C, km/h, mm</span>
+                            </div>
+                            {weatherUnits === 'metric' && (
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            )}
+                          </button>
+                          
+                          <button
+                            onClick={() => handleWeatherUnitsChange('imperial')}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                              weatherUnits === 'imperial' ? 'bg-muted' : ''
+                            }`}
+                          >
+                            <div className="flex flex-col items-start flex-1">
+                              <span className="font-medium text-sm">Imperial</span>
+                              <span className="text-xs text-muted-foreground">°F, mph, in</span>
+                            </div>
+                            {weatherUnits === 'imperial' && (
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

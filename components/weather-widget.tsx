@@ -39,12 +39,25 @@ function getWeatherIcon(condition: string) {
   }
 }
 
+// Temperature conversion functions
+function celsiusToFahrenheit(celsius: number): number {
+  return (celsius * 9/5) + 32;
+}
+
+function formatTemperature(temperature: number, units: string): string {
+  if (units === 'imperial') {
+    return `${Math.round(celsiusToFahrenheit(temperature))}°F`;
+  }
+  return `${Math.round(temperature)}°C`;
+}
+
 export default function WeatherWidget() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clim8Enabled, setClim8Enabled] = useState(true);
   const [locationKey, setLocationKey] = useState<string>("");
+  const [weatherUnits, setWeatherUnits] = useState("metric");
 
   // Effect to track custom location changes
   useEffect(() => {
@@ -59,6 +72,14 @@ export default function WeatherWidget() {
       }
     }
     setLocationKey(newKey);
+  }, []);
+
+  // Effect to load weather units from localStorage
+  useEffect(() => {
+    const storedWeatherUnits = localStorage.getItem("weatherUnits");
+    if (storedWeatherUnits) {
+      setWeatherUnits(storedWeatherUnits);
+    }
   }, []);
 
   useEffect(() => {
@@ -117,7 +138,7 @@ export default function WeatherWidget() {
         // Determine API endpoint and request body
         let apiUrl, requestBody;
         if (customLocation) {
-          apiUrl = "https://clim8.tekir.co/api/weather/coordinates";
+          apiUrl = `https://clim8.tekir.co/api/weather/current?lat=${customLocation.lat}&lon=${customLocation.lon}&units=${localStorage.getItem("weatherUnits") || "metric"}`;
           requestBody = {
             lat: customLocation.lat,
             lon: customLocation.lon
@@ -191,6 +212,26 @@ export default function WeatherWidget() {
     };
   }, [locationKey]);
 
+  // Listen for weather units changes
+  useEffect(() => {
+    const handleWeatherUnitsChange = () => {
+      const storedWeatherUnits = localStorage.getItem("weatherUnits");
+      if (storedWeatherUnits && storedWeatherUnits !== weatherUnits) {
+        setWeatherUnits(storedWeatherUnits);
+      }
+    };
+
+    window.addEventListener('storage', handleWeatherUnitsChange);
+    
+    // Also check periodically for changes (in case localStorage is changed in the same tab)
+    const interval = setInterval(handleWeatherUnitsChange, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleWeatherUnitsChange);
+      clearInterval(interval);
+    };
+  }, [weatherUnits]);
+
   // If Clim8 is disabled, show static weather button
   if (!clim8Enabled) {
     return (
@@ -238,7 +279,7 @@ export default function WeatherWidget() {
       >
         {getWeatherIcon(weather.weather.condition)}
         <span className="font-medium">
-          {weather.location.city} • {Math.round(weather.weather.temperature)}°C
+          {weather.location.city} • {formatTemperature(weather.weather.temperature, weatherUnits)}
         </span>
       </a>
       

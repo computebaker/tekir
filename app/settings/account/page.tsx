@@ -378,11 +378,11 @@ export default function AccountSettingsPage() {
           <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
           <p className="text-muted-foreground mb-6">Please sign in to access account settings.</p>
           <Link 
-            href="/search" 
+            href="/settings/search" 
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Search
+            Back to settings
           </Link>
         </div>
       </div>
