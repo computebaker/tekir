@@ -155,6 +155,14 @@ export default function WeatherWidget() {
                         localStorage.removeItem(key);
                     }
                 });
+                
+                // When switching back to IP-based, also clear any existing weather state
+                // to ensure fresh data is fetched
+                if (locationKey !== "ip-based" && locationKey !== "") {
+                    console.log("Clearing weather state when switching to IP-based location");
+                    setWeather(null);
+                    setError(null);
+                }
             }
         };
 
@@ -315,13 +323,15 @@ export default function WeatherWidget() {
         };
 
         fetchWeather();
-    }, [locationKey]);
+    }, [locationKey, weatherUnits]);
 
     // Listen for localStorage changes
     useEffect(() => {
         const handleStorageChange = () => {
             const storedLocation = localStorage.getItem("customWeatherLocation");
             let newKey = "ip-based";
+            const previousKey = locationKey;
+            
             if (storedLocation) {
                 try {
                     const location = JSON.parse(storedLocation);
@@ -337,7 +347,18 @@ export default function WeatherWidget() {
                     newKey = "ip-based";
                 }
             }
+            
             if (newKey !== locationKey) {
+                console.log(`Location key changing from ${previousKey} to ${newKey}`);
+                
+                // If switching from custom location to IP-based, clear weather data to force refetch
+                if (previousKey !== "ip-based" && newKey === "ip-based") {
+                    console.log("Switching from custom to IP-based location, clearing weather data");
+                    setWeather(null);
+                    setError(null);
+                    setLoading(true);
+                }
+                
                 setLocationKey(newKey);
             }
         };
@@ -358,7 +379,25 @@ export default function WeatherWidget() {
         const handleWeatherUnitsChange = () => {
             const storedWeatherUnits = localStorage.getItem("weatherUnits");
             if (storedWeatherUnits && storedWeatherUnits !== weatherUnits) {
+                console.log(`Weather units changing from ${weatherUnits} to ${storedWeatherUnits}`);
                 setWeatherUnits(storedWeatherUnits);
+                
+                // Clear weather data to force refetch with new units
+                setWeather(null);
+                setError(null);
+                
+                // Also clear cache since units changed
+                localStorage.removeItem('weather-data');
+                localStorage.removeItem('weather-timestamp');
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.startsWith('weather-data-')) {
+                        localStorage.removeItem(key);
+                    }
+                    if (key.startsWith('weather-timestamp-')) {
+                        localStorage.removeItem(key);
+                    }
+                });
             }
         };
 
