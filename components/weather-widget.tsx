@@ -67,12 +67,20 @@ export default function WeatherWidget() {
           console.warn("Cache access failed:", cacheError);
         }
         
-        // Use our API route which handles IP detection server-side
-        const response = await fetch("/api/weather", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json"
-          }
+        // fetch client IP first
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        if (!ipRes.ok) {
+            throw new Error(`IP lookup responded with status: ${ipRes.status}`);
+        }
+        const { ip } = await ipRes.json();
+
+        const response = await fetch("https://clim8.tekir.co/weather/ip-lookup", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Origin": "https://tekir.co",
+            },
+            body: JSON.stringify({ ip }),
         });
 
         if (!response.ok) {
