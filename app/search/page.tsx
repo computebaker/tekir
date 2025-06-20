@@ -837,6 +837,7 @@ function SearchPageContent() {
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="Search anything..."
+                maxLength={800}
                 className="flex-1 px-4 py-2 pr-4 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
                 style={{ minWidth: 0 }}
               />
@@ -1047,6 +1048,7 @@ function SearchPageContent() {
                             value={followUpQuestion}
                             onChange={(e) => setFollowUpQuestion(e.target.value)}
                             placeholder="Ask a follow-up question..."
+                            maxLength={400}
                             className="flex-1 px-3 py-2 rounded-md border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                           <button
