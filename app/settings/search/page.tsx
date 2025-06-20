@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, Settings, ArrowLeft, Search, User, Shield, Bell, MessageCircleMore, Lock } from "lucide-react";
+import { ChevronDown, Settings, ArrowLeft, Search, User, Shield, Bell, MessageCircleMore, Lock, MapPin, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import Image from "next/image";
+
+interface LocationData {
+  lat: number;
+  lon: number;
+  name: string;
+  country: string;
+}
 
 // Define mobile navigation items for settings
 const settingsMobileNavItems = [
@@ -72,6 +79,10 @@ export default function SearchSettingsPage() {
   // State for all settings
   const [karakulakEnabled, setKarakulakEnabled] = useState(true);
   const [clim8Enabled, setClim8Enabled] = useState(true);
+  const [customWeatherLocation, setCustomWeatherLocation] = useState<LocationData | null>(null);
+  const [weatherLocationQuery, setWeatherLocationQuery] = useState("");
+  const [weatherLocationSuggestions, setWeatherLocationSuggestions] = useState<LocationData[]>([]);
+  const [showWeatherLocationSuggestions, setShowWeatherLocationSuggestions] = useState(false);
   const [searchEngine] = useState("brave"); // Unchangeable
   const [autocompleteSource, setAutocompleteSource] = useState("brave");
   const [aiModel, setAiModel] = useState("gemini");
@@ -90,6 +101,7 @@ export default function SearchSettingsPage() {
   const modelDropdownRef = useRef<HTMLDivElement>(null);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
   const safesearchDropdownRef = useRef<HTMLDivElement>(null);
+  const weatherLocationRef = useRef<HTMLDivElement>(null);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
   // Load settings from localStorage on mount
@@ -102,6 +114,16 @@ export default function SearchSettingsPage() {
     const storedClim8 = localStorage.getItem("clim8Enabled");
     if (storedClim8 !== null) {
       setClim8Enabled(storedClim8 === "true");
+    }
+
+    const storedWeatherLocation = localStorage.getItem("customWeatherLocation");
+    if (storedWeatherLocation) {
+      try {
+        const location = JSON.parse(storedWeatherLocation);
+        setCustomWeatherLocation(location);
+      } catch (error) {
+        console.warn("Failed to parse stored weather location:", error);
+      }
     }
 
     const storedAutocomplete = localStorage.getItem("autocompleteSource");
@@ -124,6 +146,13 @@ export default function SearchSettingsPage() {
       setSafesearch(storedSafesearch);
     }
   }, []);
+
+  // Update query display when custom location changes
+  useEffect(() => {
+    if (customWeatherLocation) {
+      setWeatherLocationQuery(`${customWeatherLocation.name}, ${customWeatherLocation.country}`);
+    }
+  }, [customWeatherLocation]);
 
   // Click outside handler
   useEffect(() => {
@@ -152,6 +181,12 @@ export default function SearchSettingsPage() {
         setSafesearchDropdownOpen(false);
       }
 
+      if (weatherLocationRef.current &&
+          !weatherLocationRef.current.contains(event.target as Node) &&
+          showWeatherLocationSuggestions) {
+        setShowWeatherLocationSuggestions(false);
+      }
+
       if (mobileSettingsRef.current && !mobileSettingsRef.current.contains(event.target as Node)) {
         setIsMobileSettingsOpen(false);
       }
@@ -161,7 +196,7 @@ export default function SearchSettingsPage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen]);
+  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions]);
 
   // Handlers for settings changes
   const handleKarakulakToggle = () => {
@@ -174,6 +209,55 @@ export default function SearchSettingsPage() {
     const newValue = !clim8Enabled;
     setClim8Enabled(newValue);
     localStorage.setItem("clim8Enabled", newValue.toString());
+  };
+
+  // Weather location handlers
+  const searchWeatherLocations = async (query: string) => {
+    if (query.length < 2) {
+      setWeatherLocationSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://clim8.tekir.co/api/weather/search?q=${encodeURIComponent(query)}&limit=5`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': 'https://tekir.co',
+        },
+      });
+
+      if (response.ok) {
+        const locations = await response.json();
+        setWeatherLocationSuggestions(locations);
+      } else {
+        console.error('Failed to search weather locations:', response.status);
+        setWeatherLocationSuggestions([]);
+      }
+    } catch (error) {
+      console.error('Error searching weather locations:', error);
+      setWeatherLocationSuggestions([]);
+    }
+  };
+
+  const handleWeatherLocationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setWeatherLocationQuery(value);
+    setShowWeatherLocationSuggestions(true);
+    searchWeatherLocations(value);
+  };
+
+  const handleWeatherLocationSelect = (location: LocationData) => {
+    setCustomWeatherLocation(location);
+    setWeatherLocationQuery(`${location.name}, ${location.country}`);
+    setShowWeatherLocationSuggestions(false);
+    localStorage.setItem("customWeatherLocation", JSON.stringify(location));
+  };
+
+  const handleClearWeatherLocation = () => {
+    setCustomWeatherLocation(null);
+    setWeatherLocationQuery("");
+    localStorage.removeItem("customWeatherLocation");
   };
 
   const handleAutocompleteChange = (source: string) => {
@@ -433,6 +517,67 @@ export default function SearchSettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Custom Weather Location */}
+            {clim8Enabled && (
+              <div className="rounded-lg border border-border bg-card p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium">Custom Weather Location</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Set a preferred location for weather reports instead of using your IP location
+                    </p>
+                  </div>
+                  
+                  <div className="relative" ref={weatherLocationRef}>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Search for a city..."
+                        value={weatherLocationQuery}
+                        onChange={handleWeatherLocationInput}
+                        onFocus={() => setShowWeatherLocationSuggestions(true)}
+                        className="w-full pl-10 pr-10 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                      {customWeatherLocation && (
+                        <button
+                          onClick={handleClearWeatherLocation}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Location suggestions dropdown */}
+                    {showWeatherLocationSuggestions && weatherLocationSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                        {weatherLocationSuggestions.map((location, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleWeatherLocationSelect(location)}
+                            className="w-full px-4 py-2 text-left hover:bg-muted transition-colors flex items-center gap-2"
+                          >
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span>{location.name}, {location.country}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {customWeatherLocation && (
+                      <div className="mt-2 p-2 bg-muted rounded-md flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          Selected: {customWeatherLocation.name}, {customWeatherLocation.country}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Search Provider */}
             <div className="rounded-lg border border-border bg-card p-6">

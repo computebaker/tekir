@@ -44,6 +44,22 @@ export default function WeatherWidget() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clim8Enabled, setClim8Enabled] = useState(true);
+  const [locationKey, setLocationKey] = useState<string>("");
+
+  // Effect to track custom location changes
+  useEffect(() => {
+    const storedLocation = localStorage.getItem("customWeatherLocation");
+    let newKey = "ip-based";
+    if (storedLocation) {
+      try {
+        const location = JSON.parse(storedLocation);
+        newKey = `${location.lat}-${location.lon}`;
+      } catch (error) {
+        console.warn("Failed to parse stored weather location:", error);
+      }
+    }
+    setLocationKey(newKey);
+  }, []);
 
   useEffect(() => {
     // Check if Clim8 is enabled in settings
@@ -62,10 +78,29 @@ export default function WeatherWidget() {
         setLoading(true);
         setError(null);
         
+        // Check for custom weather location
+        const storedLocation = localStorage.getItem("customWeatherLocation");
+        let customLocation = null;
+        if (storedLocation) {
+          try {
+            customLocation = JSON.parse(storedLocation);
+          } catch (error) {
+            console.warn("Failed to parse custom weather location:", error);
+          }
+        }
+        
+        // Create cache key based on location type
+        const cacheKey = customLocation 
+          ? `weather-data-${customLocation.lat}-${customLocation.lon}`
+          : 'weather-data';
+        const timestampKey = customLocation
+          ? `weather-timestamp-${customLocation.lat}-${customLocation.lon}`
+          : 'weather-timestamp';
+        
         // Check for cached weather data (valid for 10 minutes)
         try {
-          const cachedData = localStorage.getItem('weather-data');
-          const cachedTimestamp = localStorage.getItem('weather-timestamp');
+          const cachedData = localStorage.getItem(cacheKey);
+          const cachedTimestamp = localStorage.getItem(timestampKey);
           
           if (cachedData && cachedTimestamp) {
             const age = Date.now() - parseInt(cachedTimestamp);
@@ -79,12 +114,26 @@ export default function WeatherWidget() {
           console.warn("Cache access failed:", cacheError);
         }
 
-        const response = await fetch("https://clim8.tekir.co/api/weather/ip-lookup", {
+        // Determine API endpoint and request body
+        let apiUrl, requestBody;
+        if (customLocation) {
+          apiUrl = "https://clim8.tekir.co/api/weather/coordinates";
+          requestBody = {
+            lat: customLocation.lat,
+            lon: customLocation.lon
+          };
+        } else {
+          apiUrl = "https://clim8.tekir.co/api/weather/ip-lookup";
+          requestBody = {};
+        }
+
+        const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Origin": "https://tekir.co",
             },
+            body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -95,8 +144,8 @@ export default function WeatherWidget() {
         
         // Cache the weather data
         try {
-          localStorage.setItem('weather-data', JSON.stringify(data));
-          localStorage.setItem('weather-timestamp', Date.now().toString());
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          localStorage.setItem(timestampKey, Date.now().toString());
         } catch (cacheError) {
           console.warn("Cache write failed:", cacheError);
         }
@@ -111,7 +160,36 @@ export default function WeatherWidget() {
     };
 
     fetchWeather();
-  }, []);
+  }, [locationKey]);
+
+  // Listen for localStorage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const storedLocation = localStorage.getItem("customWeatherLocation");
+      let newKey = "ip-based";
+      if (storedLocation) {
+        try {
+          const location = JSON.parse(storedLocation);
+          newKey = `${location.lat}-${location.lon}`;
+        } catch (error) {
+          console.warn("Failed to parse stored weather location:", error);
+        }
+      }
+      if (newKey !== locationKey) {
+        setLocationKey(newKey);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for changes (in case localStorage is changed in the same tab)
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [locationKey]);
 
   // If Clim8 is disabled, show static weather button
   if (!clim8Enabled) {
