@@ -450,46 +450,174 @@ export default function SearchSettingsPage() {
                 <p className="text-muted-foreground mt-2">
                   Customize your search experience and AI preferences.
                 </p>
-              </div>          {/* Settings Cards */}
-          <div className="space-y-6">
-            {/* Karakulak AI Mode */}
-            <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Karakulak AI Mode</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Enable AI-powered responses for your search queries
-                  </p>
+              </div>          
+          
+          {/* Settings Categories */}
+          <div className="space-y-8">
+            
+            {/* AI Features Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold">AI Features</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Configure AI-powered search and response features
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Karakulak AI Mode */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-lg font-medium">Karakulak AI Mode</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Enable AI-powered responses for your search queries
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox" 
+                        id="karakulak-toggle" 
+                        className="sr-only" 
+                        checked={karakulakEnabled}
+                        onChange={handleKarakulakToggle}
+                      />
+                      <label 
+                        htmlFor="karakulak-toggle" 
+                        className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
+                          karakulakEnabled ? 'bg-primary' : 'bg-muted'
+                        }`}
+                      >
+                        <div
+                          className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${
+                            karakulakEnabled ? "translate-x-6" : ""
+                          }`}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="checkbox" 
-                    id="karakulak-toggle" 
-                    className="sr-only" 
-                    checked={karakulakEnabled}
-                    onChange={handleKarakulakToggle}
-                  />
-                  <label 
-                    htmlFor="karakulak-toggle" 
-                    className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                      karakulakEnabled ? 'bg-primary' : 'bg-muted'
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${
-                        karakulakEnabled ? "translate-x-6" : ""
-                      }`}
-                    />
-                  </label>
-                </div>
+
+                {/* AI Model Selection */}
+                {karakulakEnabled && (
+                  <div className="rounded-lg border border-border bg-card p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-lg font-medium">AI Model</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Select your preferred AI model for responses
+                        </p>
+                      </div>
+                      <div className="relative" ref={modelDropdownRef}>
+                        <button
+                          onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                          className="flex items-center gap-3 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Image 
+                              src={currentModel.icon} 
+                              alt={`${currentModel.name} Logo`} 
+                              width={20} 
+                              height={20} 
+                              className="rounded" 
+                            />
+                            <span className="text-sm font-medium">{currentModel.name}</span>
+                          </div>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        
+                        {modelDropdownOpen && (
+                          <div className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10">
+                            <div className="p-1">
+                              <button
+                                onClick={() => handleModelChange('llama')}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
+                                  aiModel === 'llama' ? 'bg-muted' : ''
+                                }`}
+                              >
+                                <Image src="/meta.png" alt="Meta Logo" width={24} height={24} className="rounded" />
+                                <div className="flex flex-col items-start flex-1">
+                                  <span className="font-medium text-sm">Llama 3.1 7B</span>
+                                  <span className="text-xs text-muted-foreground text-left">A powerful and open-source model by Meta</span>
+                                </div>
+                                {aiModel === 'llama' && (
+                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                )}
+                              </button>
+                              
+                              <button
+                                onClick={() => handleModelChange('gemini')}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
+                                  aiModel === 'gemini' ? 'bg-muted' : ''
+                                }`}
+                              >
+                                <Image src="/google.png" alt="Google Logo" width={24} height={24} className="rounded" />
+                                <div className="flex flex-col items-start flex-1">
+                                  <span className="font-medium text-sm">Gemini 2.0 Flash</span>
+                                  <span className="text-xs text-muted-foreground text-left">A fast and intelligent model by Google</span>
+                                </div>
+                                {aiModel === 'gemini' && (
+                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => handleModelChange('chatgpt')}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
+                                  aiModel === 'chatgpt' ? 'bg-muted' : ''
+                                }`}
+                              >
+                                <Image src="/openai.png" alt="OpenAI Logo" width={24} height={24} className="rounded" />
+                                <div className="flex flex-col items-start flex-1">
+                                  <span className="font-medium text-sm">GPT 4o-mini</span>
+                                  <span className="text-xs text-muted-foreground text-left">Powerful, efficient model by OpenAI</span>
+                                </div>
+                                {aiModel === 'chatgpt' && (
+                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => handleModelChange('mistral')}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
+                                  aiModel === 'mistral' ? 'bg-muted' : ''
+                                }`}
+                              >
+                                <Image src="/mistral.png" alt="Mistral Logo" width={24} height={24} className="rounded" />
+                                <div className="flex flex-col items-start flex-1">
+                                  <span className="font-medium text-sm">Mistral Nemo</span>
+                                  <span className="text-xs text-muted-foreground text-left">A lightweight and efficient model by Mistral AI</span>
+                                </div>
+                                {aiModel === 'mistral' && (
+                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* External Services Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold">External Services</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Configure integrations with external services
+                </p>
+              </div>
+              
+              <div className="space-y-4">
 
             {/* Clim8 Weather Service */}
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium">Clim8 Weather Service</h3>
+                  <h4 className="text-lg font-medium">Clim8 Weather Service</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Enable weather data from Clim8 based on your IP location
                   </p>
@@ -578,12 +706,25 @@ export default function SearchSettingsPage() {
                 </div>
               </div>
             )}
+              </div>
+            </div>
+
+            {/* Search Options Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold">Search Options</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Configure your search provider and filtering preferences
+                </p>
+              </div>
+              
+              <div className="space-y-4">
 
             {/* Search Provider */}
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium">Search Provider</h3>
+                  <h4 className="text-lg font-medium">Search Provider</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Your search engine provider (unchangeable)
                   </p>
@@ -598,7 +739,7 @@ export default function SearchSettingsPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium">Autocomplete Provider</h3>
+                  <h4 className="text-lg font-medium">Autocomplete Provider</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Choose your search suggestion provider
                   </p>
@@ -651,111 +792,11 @@ export default function SearchSettingsPage() {
               </div>
             </div>
 
-            {/* AI Model Selection */}
-            <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Karakulak AI Model</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Select your preferred AI model for responses
-                  </p>
-                </div>
-                <div className="relative" ref={modelDropdownRef}>
-                  <button
-                    onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Image 
-                        src={currentModel.icon} 
-                        alt={`${currentModel.name} Logo`} 
-                        width={20} 
-                        height={20} 
-                        className="rounded" 
-                      />
-                      <span className="text-sm font-medium">{currentModel.name}</span>
-                    </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {modelDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10">
-                      <div className="p-1">
-                        <button
-                          onClick={() => handleModelChange('llama')}
-                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                            aiModel === 'llama' ? 'bg-muted' : ''
-                          }`}
-                        >
-                          <Image src="/meta.png" alt="Meta Logo" width={24} height={24} className="rounded" />
-                          <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">Llama 3.1 7B</span>
-                            <span className="text-xs text-muted-foreground text-left">A powerful and open-source model by Meta</span>
-                          </div>
-                          {aiModel === 'llama' && (
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                          )}
-                        </button>
-                        
-                        <button
-                          onClick={() => handleModelChange('gemini')}
-                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                            aiModel === 'gemini' ? 'bg-muted' : ''
-                          }`}
-                        >
-                          <Image src="/google.png" alt="Google Logo" width={24} height={24} className="rounded" />
-                          <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">Gemini 2.0 Flash</span>
-                            <span className="text-xs text-muted-foreground text-left">A fast and intelligent model by Google</span>
-                          </div>
-                          {aiModel === 'gemini' && (
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                          )}
-                        </button>
-
-                        <button
-                          onClick={() => handleModelChange('chatgpt')}
-                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                            aiModel === 'chatgpt' ? 'bg-muted' : ''
-                          }`}
-                        >
-                          <Image src="/openai.png" alt="OpenAI Logo" width={24} height={24} className="rounded" />
-                          <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">GPT 4o-mini</span>
-                            <span className="text-xs text-muted-foreground text-left">Powerful, efficient model by OpenAI</span>
-                          </div>
-                          {aiModel === 'chatgpt' && (
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                          )}
-                        </button>
-
-                        <button
-                          onClick={() => handleModelChange('mistral')}
-                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                            aiModel === 'mistral' ? 'bg-muted' : ''
-                          }`}
-                        >
-                          <Image src="/mistral.png" alt="Mistral Logo" width={24} height={24} className="rounded" />
-                          <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">Mistral Nemo</span>
-                            <span className="text-xs text-muted-foreground text-left">A lightweight and efficient model by Mistral AI</span>
-                          </div>
-                          {aiModel === 'mistral' && (
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* Search Region/Country */}
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium">Search Region</h3>
+                  <h4 className="text-lg font-medium">Search Region</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Choose your preferred search region for localized results
                   </p>
@@ -800,7 +841,7 @@ export default function SearchSettingsPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium">SafeSearch</h3>
+                  <h4 className="text-lg font-medium">SafeSearch</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Filter explicit content from your search results
                   </p>
@@ -865,6 +906,8 @@ export default function SearchSettingsPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
               </div>
             </div>
           </div>
