@@ -3,7 +3,29 @@
 import { useEffect, useState } from "react";
 import { Cloud, Sun, CloudRain, CloudSnow, Wind, Eye, Droplets, Thermometer } from "lucide-react";
 
-interface WeatherData {
+// IP-lookup endpoint data structure
+interface IPWeatherData {
+    location: {
+        city: string;
+        country: string;
+        coordinates: { lat: number; lon: number };
+    };
+    weather: {
+        temperature: number;
+        feelsLike: number;
+        condition: string;
+        description: string;
+        humidity: number;
+        windSpeed: number;
+        pressure: number;
+        visibility: number;
+    };
+    timestamp: string;
+    source: string;
+}
+
+// OpenWeatherMap coordinates endpoint data structure
+interface OpenWeatherData {
     coord: {
         lon: number;
         lat: number;
@@ -48,6 +70,9 @@ interface WeatherData {
     cod: number;
 }
 
+// Unified weather data type
+type WeatherData = IPWeatherData | OpenWeatherData;
+
 function getWeatherIcon(condition: string) {
     const normalizedCondition = condition.toLowerCase();
     
@@ -79,6 +104,56 @@ function formatTemperature(temperature: number, units: string): string {
         return `${Math.round(celsiusToFahrenheit(temperature))}°F`;
     }
     return `${Math.round(temperature)}°C`;
+}
+
+// Helper functions to handle both data structures
+function isIPWeatherData(data: WeatherData): data is IPWeatherData {
+    return 'location' in data && 'weather' in data && typeof data.weather === 'object' && !Array.isArray(data.weather);
+}
+
+function isOpenWeatherData(data: WeatherData): data is OpenWeatherData {
+    return 'coord' in data && 'main' in data && 'weather' in data && Array.isArray(data.weather);
+}
+
+function getLocationName(data: WeatherData): string {
+    if (isIPWeatherData(data)) {
+        return data.location.city;
+    } else if (isOpenWeatherData(data)) {
+        return data.name;
+    }
+    return 'Unknown';
+}
+
+function getTemperature(data: WeatherData): number {
+    if (isIPWeatherData(data)) {
+        return data.weather.temperature;
+    } else if (isOpenWeatherData(data)) {
+        return data.main.temp;
+    }
+    return 0;
+}
+
+function getWeatherCondition(data: WeatherData): string {
+    if (isIPWeatherData(data)) {
+        return data.weather.condition;
+    } else if (isOpenWeatherData(data)) {
+        return data.weather[0]?.main || '';
+    }
+    return '';
+}
+
+function validateWeatherData(data: any): data is WeatherData {
+    // Check for IP weather data structure
+    if (data && data.location && data.weather && typeof data.weather === 'object' && !Array.isArray(data.weather)) {
+        return !!(data.location.city && data.weather.temperature !== undefined);
+    }
+    
+    // Check for OpenWeather data structure
+    if (data && data.coord && data.main && data.weather && Array.isArray(data.weather)) {
+        return !!(data.name && data.main.temp !== undefined && data.weather.length > 0);
+    }
+    
+    return false;
 }
 
 export default function WeatherWidget() {
@@ -273,7 +348,7 @@ export default function WeatherWidget() {
                 const data: WeatherData = await response.json();
                 
                 // Validate the response data
-                if (!data || !data.weather || !data.main) {
+                if (!validateWeatherData(data)) {
                     throw new Error("Invalid weather data received from API");
                 }
                 
@@ -436,7 +511,7 @@ export default function WeatherWidget() {
         );
     }
 
-    if (error || !weather || !weather.weather || !weather.main) {
+    if (error || !weather || !validateWeatherData(weather)) {
         return (
             <a 
                 href="https://clim8.tekir.co" 
@@ -457,9 +532,9 @@ export default function WeatherWidget() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
-                {getWeatherIcon(weather.weather[0]?.main || '')}
+                {getWeatherIcon(getWeatherCondition(weather))}
                 <span className="font-medium">
-                    {weather.name || 'Unknown'} • {formatTemperature(weather.main?.temp, weatherUnits)}
+                    {getLocationName(weather)} • {formatTemperature(getTemperature(weather), weatherUnits)}
                 </span>
             </a>
             
