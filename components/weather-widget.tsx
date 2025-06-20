@@ -66,13 +66,6 @@ export default function WeatherWidget() {
         } catch (cacheError) {
           console.warn("Cache access failed:", cacheError);
         }
-        
-        // fetch client IP first
-        const ipRes = await fetch("https://api.ipify.org?format=json");
-        if (!ipRes.ok) {
-            throw new Error(`IP lookup responded with status: ${ipRes.status}`);
-        }
-        const { ip } = await ipRes.json();
 
         const response = await fetch("https://clim8.tekir.co/weather/ip-lookup", {
             method: "POST",
@@ -80,7 +73,6 @@ export default function WeatherWidget() {
                 "Content-Type": "application/json",
                 "Origin": "https://tekir.co",
             },
-            body: JSON.stringify({ ip }),
         });
 
         if (!response.ok) {
