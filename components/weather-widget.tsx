@@ -45,6 +45,11 @@ function celsiusToFahrenheit(celsius: number): number {
 }
 
 function formatTemperature(temperature: number, units: string): string {
+  // Safety check for undefined or invalid temperature
+  if (typeof temperature !== 'number' || isNaN(temperature)) {
+    return '--°';
+  }
+  
   if (units === 'imperial') {
     return `${Math.round(celsiusToFahrenheit(temperature))}°F`;
   }
@@ -66,9 +71,18 @@ export default function WeatherWidget() {
     if (storedLocation) {
       try {
         const location = JSON.parse(storedLocation);
-        newKey = `${location.lat}-${location.lon}`;
+        // Validate the location object
+        if (location && typeof location.lat === 'number' && typeof location.lon === 'number') {
+          newKey = `${location.lat}-${location.lon}`;
+        } else {
+          console.warn("Invalid stored weather location data:", location);
+          // Clear invalid data
+          localStorage.removeItem("customWeatherLocation");
+        }
       } catch (error) {
         console.warn("Failed to parse stored weather location:", error);
+        // Clear invalid data
+        localStorage.removeItem("customWeatherLocation");
       }
     }
     setLocationKey(newKey);
@@ -104,9 +118,19 @@ export default function WeatherWidget() {
         let customLocation = null;
         if (storedLocation) {
           try {
-            customLocation = JSON.parse(storedLocation);
+            const parsed = JSON.parse(storedLocation);
+            // Validate that the parsed object has the required properties
+            if (parsed && typeof parsed.lat === 'number' && typeof parsed.lon === 'number') {
+              customLocation = parsed;
+            } else {
+              console.warn("Invalid custom weather location data:", parsed);
+              // Clear invalid data
+              localStorage.removeItem("customWeatherLocation");
+            }
           } catch (error) {
             console.warn("Failed to parse custom weather location:", error);
+            // Clear invalid data
+            localStorage.removeItem("customWeatherLocation");
           }
         }
         
@@ -136,22 +160,25 @@ export default function WeatherWidget() {
         }
 
         // Determine API endpoint and request body
-        let apiUrl, requestBody, method;
+        let apiUrl, requestBody;
         if (customLocation) {
-          method = "GET";
-          apiUrl = `https://clim8.tekir.co/api/weather/current?lat=${customLocation.lat}&lon=${customLocation.lon}&units=${localStorage.getItem("weatherUnits") || "metric"}`;
+          apiUrl = "https://clim8.tekir.co/api/weather/coordinates";
+          requestBody = {
+            lat: customLocation.lat,
+            lon: customLocation.lon
+          };
         } else {
-          method = "POST"  
           apiUrl = "https://clim8.tekir.co/api/weather/ip-lookup";
           requestBody = {};
         }
 
         const response = await fetch(apiUrl, {
-            method: method,
+            method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Origin": "https://tekir.co",
             },
+            body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -188,9 +215,16 @@ export default function WeatherWidget() {
       if (storedLocation) {
         try {
           const location = JSON.parse(storedLocation);
-          newKey = `${location.lat}-${location.lon}`;
+          // Validate the location object
+          if (location && typeof location.lat === 'number' && typeof location.lon === 'number') {
+            newKey = `${location.lat}-${location.lon}`;
+          } else {
+            console.warn("Invalid stored weather location data:", location);
+            newKey = "ip-based";
+          }
         } catch (error) {
           console.warn("Failed to parse stored weather location:", error);
+          newKey = "ip-based";
         }
       }
       if (newKey !== locationKey) {
@@ -253,7 +287,7 @@ export default function WeatherWidget() {
     );
   }
 
-  if (error || !weather) {
+  if (error || !weather || !weather.weather || !weather.location) {
     return (
       <a 
         href="https://clim8.tekir.co" 
@@ -274,9 +308,9 @@ export default function WeatherWidget() {
         rel="noopener noreferrer"
         className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
-        {getWeatherIcon(weather.weather.condition)}
+        {getWeatherIcon(weather.weather?.condition || '')}
         <span className="font-medium">
-          {weather.location.city} • {formatTemperature(weather.weather.temperature, weatherUnits)}
+          {weather.location?.city || 'Unknown'} • {formatTemperature(weather.weather?.temperature, weatherUnits)}
         </span>
       </a>
       
