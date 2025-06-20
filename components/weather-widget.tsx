@@ -212,21 +212,15 @@ export default function WeatherWidget() {
         }
 
         // Determine API endpoint and request body based on location type
-        let apiUrl, requestBody, method;
+        let apiUrl, method;
         if (customLocation) {
-          // Use coordinates endpoint for custom location
-          method = "POST";
-          apiUrl = "https://clim8.tekir.co/api/weather/coordinates";
-          requestBody = {
-            lat: customLocation.lat,
-            lon: customLocation.lon
-          };
+          method = "GET";  
+          apiUrl = `https://clim8.tekir.co/api/weather/current?lat=${customLocation.lat}&lon=${customLocation.lon}&units=${localStorage.getItem("weatherUnits") || "metric"}`;
           console.log("Fetching weather for custom location:", customLocation);
         } else {
           // Use IP lookup endpoint for automatic location
           method = "POST";
           apiUrl = "https://clim8.tekir.co/api/weather/ip-lookup";
-          requestBody = {};
           console.log("Fetching weather for IP-based location");
         }
 
@@ -237,12 +231,6 @@ export default function WeatherWidget() {
             "Origin": "https://tekir.co",
           },
         };
-
-        // Add body for POST requests
-        if (method === "POST") {
-          fetchOptions.body = JSON.stringify(requestBody);
-        }
-
         const response = await fetch(apiUrl, fetchOptions);
 
         if (!response.ok) {
