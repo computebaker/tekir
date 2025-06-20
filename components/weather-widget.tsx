@@ -136,16 +136,18 @@ export default function WeatherWidget() {
         }
 
         // Determine API endpoint and request body
-        let apiUrl, requestBody;
+        let apiUrl, requestBody, method;
         if (customLocation) {
+          method = "GET";
           apiUrl = `https://clim8.tekir.co/api/weather/current?lat=${customLocation.lat}&lon=${customLocation.lon}&units=${localStorage.getItem("weatherUnits") || "metric"}`;
         } else {
+          method = "POST"  
           apiUrl = "https://clim8.tekir.co/api/weather/ip-lookup";
           requestBody = {};
         }
 
         const response = await fetch(apiUrl, {
-            method: "GET",
+            method: method,
             headers: {
                 "Content-Type": "application/json",
                 "Origin": "https://tekir.co",
