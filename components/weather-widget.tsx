@@ -67,7 +67,7 @@ export default function WeatherWidget() {
           console.warn("Cache access failed:", cacheError);
         }
 
-        const response = await fetch("https://clim8.tekir.co/weather/ip-lookup", {
+        const response = await fetch("https://clim8.tekir.co/api/weather/ip-lookup", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
