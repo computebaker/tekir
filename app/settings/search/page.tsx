@@ -71,6 +71,7 @@ const COUNTRIES = [
 export default function SearchSettingsPage() {
   // State for all settings
   const [karakulakEnabled, setKarakulakEnabled] = useState(true);
+  const [clim8Enabled, setClim8Enabled] = useState(true);
   const [searchEngine] = useState("brave"); // Unchangeable
   const [autocompleteSource, setAutocompleteSource] = useState("brave");
   const [aiModel, setAiModel] = useState("gemini");
@@ -96,6 +97,11 @@ export default function SearchSettingsPage() {
     const storedKarakulak = localStorage.getItem("karakulakEnabled");
     if (storedKarakulak !== null) {
       setKarakulakEnabled(storedKarakulak === "true");
+    }
+
+    const storedClim8 = localStorage.getItem("clim8Enabled");
+    if (storedClim8 !== null) {
+      setClim8Enabled(storedClim8 === "true");
     }
 
     const storedAutocomplete = localStorage.getItem("autocompleteSource");
@@ -162,6 +168,12 @@ export default function SearchSettingsPage() {
     const newValue = !karakulakEnabled;
     setKarakulakEnabled(newValue);
     localStorage.setItem("karakulakEnabled", newValue.toString());
+  };
+
+  const handleClim8Toggle = () => {
+    const newValue = !clim8Enabled;
+    setClim8Enabled(newValue);
+    localStorage.setItem("clim8Enabled", newValue.toString());
   };
 
   const handleAutocompleteChange = (source: string) => {
@@ -382,6 +394,39 @@ export default function SearchSettingsPage() {
                     <div
                       className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${
                         karakulakEnabled ? "translate-x-6" : ""
+                      }`}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Clim8 Weather Service */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Clim8 Weather Service</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Enable weather data from Clim8 based on your IP location
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="checkbox" 
+                    id="clim8-toggle" 
+                    className="sr-only" 
+                    checked={clim8Enabled}
+                    onChange={handleClim8Toggle}
+                  />
+                  <label 
+                    htmlFor="clim8-toggle" 
+                    className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
+                      clim8Enabled ? 'bg-primary' : 'bg-muted'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${
+                        clim8Enabled ? "translate-x-6" : ""
                       }`}
                     />
                   </label>

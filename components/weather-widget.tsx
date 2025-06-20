@@ -43,8 +43,20 @@ export default function WeatherWidget() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clim8Enabled, setClim8Enabled] = useState(true);
 
   useEffect(() => {
+    // Check if Clim8 is enabled in settings
+    const storedClim8Setting = localStorage.getItem("clim8Enabled");
+    const isClim8Enabled = storedClim8Setting !== null ? storedClim8Setting === "true" : true;
+    setClim8Enabled(isClim8Enabled);
+
+    // If Clim8 is disabled, don't fetch weather data
+    if (!isClim8Enabled) {
+      setLoading(false);
+      return;
+    }
+
     const fetchWeather = async () => {
       try {
         setLoading(true);
@@ -100,6 +112,21 @@ export default function WeatherWidget() {
 
     fetchWeather();
   }, []);
+
+  // If Clim8 is disabled, show static weather button
+  if (!clim8Enabled) {
+    return (
+      <a 
+        href="https://clim8.tekir.co" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Cloud className="w-4 h-4" />
+        <span className="font-medium">Weather</span>
+      </a>
+    );
+  }
 
   if (loading) {
     return (
