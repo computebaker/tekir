@@ -125,11 +125,24 @@ export default function WeatherWidget() {
   }
 
   return (
-    <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-      {getWeatherIcon(weather.weather.condition)}
-      <span className="font-medium">
-        {weather.location.city} • {Math.round(weather.weather.temperature)}°C
-      </span>
+    <div className="relative group">
+      <a 
+        href="https://clim8.tekir.co" 
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {getWeatherIcon(weather.weather.condition)}
+        <span className="font-medium">
+          {weather.location.city} • {Math.round(weather.weather.temperature)}°C
+        </span>
+      </a>
+      
+      {/* Tooltip */}
+    {/* Tooltip */}
+    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+      Based on your IP, provided by Clim8.
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+      </div>
     </div>
   );
 }
