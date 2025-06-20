@@ -74,6 +74,7 @@ export default function WeatherWidget() {
         // Validate the location object
         if (location && typeof location.lat === 'number' && typeof location.lon === 'number') {
           newKey = `${location.lat}-${location.lon}`;
+          console.log("Custom weather location detected:", location);
         } else {
           console.warn("Invalid stored weather location data:", location);
           // Clear invalid data
@@ -84,7 +85,10 @@ export default function WeatherWidget() {
         // Clear invalid data
         localStorage.removeItem("customWeatherLocation");
       }
+    } else {
+      console.log("No custom weather location set, using IP-based location");
     }
+    console.log("Setting location key to:", newKey);
     setLocationKey(newKey);
   }, []);
 
@@ -107,6 +111,29 @@ export default function WeatherWidget() {
       setLoading(false);
       return;
     }
+
+    // Clear any conflicting cache data on initialization
+    const clearConflictingCache = () => {
+      const storedLocation = localStorage.getItem("customWeatherLocation");
+      if (storedLocation) {
+        // Custom location is set, clear IP-based cache
+        localStorage.removeItem('weather-data');
+        localStorage.removeItem('weather-timestamp');
+      } else {
+        // No custom location, clear all custom location caches
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('weather-data-') && key !== 'weather-data') {
+            localStorage.removeItem(key);
+          }
+          if (key.startsWith('weather-timestamp-') && key !== 'weather-timestamp') {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+    };
+
+    clearConflictingCache();
 
     const fetchWeather = async () => {
       try {
@@ -143,38 +170,80 @@ export default function WeatherWidget() {
           : 'weather-timestamp';
         
         // Check for cached weather data (valid for 10 minutes)
-        try {
-          const cachedData = localStorage.getItem(cacheKey);
-          const cachedTimestamp = localStorage.getItem(timestampKey);
-          
-          if (cachedData && cachedTimestamp) {
-            const age = Date.now() - parseInt(cachedTimestamp);
-            if (age < 10 * 60 * 1000) { // 10 minutes
-              setWeather(JSON.parse(cachedData));
-              setLoading(false);
-              return;
-            }
-          }
-        } catch (cacheError) {
-          console.warn("Cache access failed:", cacheError);
-        }
-
-        // Determine API endpoint and request body
-        let apiUrl, method;
+        // ALWAYS prioritize custom location cache if custom location is set
         if (customLocation) {
-          method = "GET";  
-          apiUrl = `https://clim8.tekir.co/api/weather/current?lat=${customLocation.lat}&lon=${customLocation.lon}&units=${localStorage.getItem("weatherUnits") || "metric"}`;
+          // Try custom location cache first
+          try {
+            const customCacheKey = `weather-data-${customLocation.lat}-${customLocation.lon}`;
+            const customTimestampKey = `weather-timestamp-${customLocation.lat}-${customLocation.lon}`;
+            const cachedData = localStorage.getItem(customCacheKey);
+            const cachedTimestamp = localStorage.getItem(customTimestampKey);
+            
+            if (cachedData && cachedTimestamp) {
+              const age = Date.now() - parseInt(cachedTimestamp);
+              if (age < 10 * 60 * 1000) { // 10 minutes
+                console.log("Using cached custom location weather data");
+                setWeather(JSON.parse(cachedData));
+                setLoading(false);
+                return;
+              }
+            }
+          } catch (cacheError) {
+            console.warn("Custom location cache access failed:", cacheError);
+          }
         } else {
-          apiUrl = "https://clim8.tekir.co/api/weather/ip-lookup";
+          // Only check IP-based cache if no custom location is set
+          try {
+            const cachedData = localStorage.getItem('weather-data');
+            const cachedTimestamp = localStorage.getItem('weather-timestamp');
+            
+            if (cachedData && cachedTimestamp) {
+              const age = Date.now() - parseInt(cachedTimestamp);
+              if (age < 10 * 60 * 1000) { // 10 minutes
+                console.log("Using cached IP-based weather data");
+                setWeather(JSON.parse(cachedData));
+                setLoading(false);
+                return;
+              }
+            }
+          } catch (cacheError) {
+            console.warn("IP-based cache access failed:", cacheError);
+          }
         }
 
-        const response = await fetch(apiUrl, {
-            method: method,
-            headers: {
-                "Content-Type": "application/json",
-                "Origin": "https://tekir.co",
-            },
-        });
+        // Determine API endpoint and request body based on location type
+        let apiUrl, requestBody, method;
+        if (customLocation) {
+          // Use coordinates endpoint for custom location
+          method = "POST";
+          apiUrl = "https://clim8.tekir.co/api/weather/coordinates";
+          requestBody = {
+            lat: customLocation.lat,
+            lon: customLocation.lon
+          };
+          console.log("Fetching weather for custom location:", customLocation);
+        } else {
+          // Use IP lookup endpoint for automatic location
+          method = "POST";
+          apiUrl = "https://clim8.tekir.co/api/weather/ip-lookup";
+          requestBody = {};
+          console.log("Fetching weather for IP-based location");
+        }
+
+        const fetchOptions: RequestInit = {
+          method: method,
+          headers: {
+            "Content-Type": "application/json",
+            "Origin": "https://tekir.co",
+          },
+        };
+
+        // Add body for POST requests
+        if (method === "POST") {
+          fetchOptions.body = JSON.stringify(requestBody);
+        }
+
+        const response = await fetch(apiUrl, fetchOptions);
 
         if (!response.ok) {
           throw new Error(`Weather API responded with status: ${response.status}`);
@@ -182,10 +251,43 @@ export default function WeatherWidget() {
 
         const data: WeatherData = await response.json();
         
-        // Cache the weather data
+        // Validate the response data
+        if (!data || !data.weather || !data.location) {
+          throw new Error("Invalid weather data received from API");
+        }
+        
+        console.log("Weather data received:", data);
+        
+        // Cache the weather data with appropriate keys
         try {
-          localStorage.setItem(cacheKey, JSON.stringify(data));
-          localStorage.setItem(timestampKey, Date.now().toString());
+          if (customLocation) {
+            // Store custom location data with coordinates-based keys
+            const customCacheKey = `weather-data-${customLocation.lat}-${customLocation.lon}`;
+            const customTimestampKey = `weather-timestamp-${customLocation.lat}-${customLocation.lon}`;
+            localStorage.setItem(customCacheKey, JSON.stringify(data));
+            localStorage.setItem(customTimestampKey, Date.now().toString());
+            console.log("Cached custom location weather data");
+            
+            // Clear any old IP-based cache to avoid conflicts
+            localStorage.removeItem('weather-data');
+            localStorage.removeItem('weather-timestamp');
+          } else {
+            // Store IP-based data with standard keys
+            localStorage.setItem('weather-data', JSON.stringify(data));
+            localStorage.setItem('weather-timestamp', Date.now().toString());
+            console.log("Cached IP-based weather data");
+            
+            // Clear any old custom location cache to avoid conflicts
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+              if (key.startsWith('weather-data-') && key !== 'weather-data') {
+                localStorage.removeItem(key);
+              }
+              if (key.startsWith('weather-timestamp-') && key !== 'weather-timestamp') {
+                localStorage.removeItem(key);
+              }
+            });
+          }
         } catch (cacheError) {
           console.warn("Cache write failed:", cacheError);
         }
