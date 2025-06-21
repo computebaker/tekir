@@ -505,11 +505,11 @@ export default function SearchSettingsPage() {
                       <label 
                         htmlFor="karakulak-toggle" 
                         className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                          karakulakEnabled ? 'bg-primary' : 'bg-muted'
+                          karakulakEnabled ? 'bg-blue-500' : 'bg-muted'
                         }`}
                       >
                         <div
-                          className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${
+                          className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm ${
                             karakulakEnabled ? "translate-x-6" : ""
                           }`}
                         />
@@ -653,11 +653,11 @@ export default function SearchSettingsPage() {
                   <label 
                     htmlFor="clim8-toggle" 
                     className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                      clim8Enabled ? 'bg-primary' : 'bg-muted'
+                      clim8Enabled ? 'bg-blue-500' : 'bg-muted'
                     }`}
                   >
                     <div
-                      className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${
+                      className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm ${
                         clim8Enabled ? "translate-x-6" : ""
                       }`}
                     />
