@@ -118,7 +118,9 @@ export default function AboutPage() {
               
               <div className="relative">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200">
-                  <Image src="/google.png" alt="Google Logo" width={20} height={20} className="rounded" />
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{backgroundColor: '#0f0f0f'}}>
+                    <Image src="/google.png" alt="Google Logo" width={16} height={16} className="rounded" />
+                  </div>
                   <span>Gemini 2.0 Flash</span>
                 </div>
               </div>
@@ -253,12 +255,12 @@ export default function AboutPage() {
               transition={{ duration: 0.4 }}
               className="flex flex-col items-center"
             >
-              <div className="relative w-16 h-16 md:w-20 md:h-20">
+              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center p-3" style={{backgroundColor: '#0f0f0f'}}>
                 <Image 
                   src="/google.png" 
                   alt="Google Gemini" 
                   fill
-                  className="object-contain"
+                  className="object-contain p-1"
                 />
               </div>
               <p className="mt-2 text-sm font-medium">Gemini</p>
@@ -270,12 +272,12 @@ export default function AboutPage() {
               transition={{ duration: 0.4, delay: 0.1 }}
               className="flex flex-col items-center"
             >
-              <div className="relative w-16 h-16 md:w-20 md:h-20">
+              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center p-3" style={{backgroundColor: '#0f0f0f'}}>
                 <Image 
                   src="/meta.png" 
                   alt="Meta Llama" 
                   fill
-                  className="object-contain"
+                  className="object-contain p-1"
                 />
               </div>
               <p className="mt-2 text-sm font-medium">Llama</p>
@@ -287,12 +289,12 @@ export default function AboutPage() {
               transition={{ duration: 0.4, delay: 0.2 }}
               className="flex flex-col items-center"
             >
-              <div className="relative w-16 h-16 md:w-20 md:h-20">
+              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center p-3" style={{backgroundColor: '#0f0f0f'}}>
                 <Image 
                   src="/mistral.png" 
                   alt="Mistral AI" 
                   fill
-                  className="object-contain"
+                  className="object-contain p-1"
                 />
               </div>
               <p className="mt-2 text-sm font-medium">Mistral</p>
@@ -304,12 +306,12 @@ export default function AboutPage() {
               transition={{ duration: 0.4, delay: 0.2 }}
               className="flex flex-col items-center"
             >
-              <div className="relative w-16 h-16 md:w-20 md:h-20">
+              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center p-3" style={{backgroundColor: '#0f0f0f'}}>
                 <Image 
                   src="/openai.png" 
                   alt="OpenAI" 
                   fill
-                  className="object-contain"
+                  className="object-contain p-1"
                 />
               </div>
               <p className="mt-2 text-sm font-medium">ChatGPT</p>
