@@ -1,7 +1,7 @@
 let bangsCache: Record<string, {name: string, url: string, main?: string}> | null = null;
 const BANGS_CACHE_KEY = 'tekir_bangs_cache';
 const BANGS_CACHE_EXPIRY_KEY = 'tekir_bangs_cache_expiry';
-const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 1 week in milliseconds
+const CACHE_TTL = 1 * 24 * 60 * 60 * 1000; // 1 day in milliseconds
 
 /**
  * Prefetch the bangs data and store it in memory and localStorage
