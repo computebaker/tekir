@@ -38,7 +38,7 @@ function LazyStatusBadge() {
   return (
     <div 
       ref={iframeRef}
-      className="rounded max-w-full h-auto"
+      className="rounded max-w-full"
       style={{ width: '250px', height: '30px' }}
     >
       {isVisible ? (
