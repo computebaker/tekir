@@ -37,6 +37,53 @@ async function fetchPageContent(url: string): Promise<string> {
   }
 }
 
+async function fetchPagesWithFallback(pages: PageContent[]): Promise<PageContent[]> {
+  const results: PageContent[] = [];
+  
+  const initialPages = pages.slice(0, 2);
+  const initialPromises = initialPages.map(async (page) => {
+    const content = await fetchPageContent(page.url);
+    return {
+      ...page,
+      htmlContent: content,
+    };
+  });
+  
+  const initialResults = await Promise.all(initialPromises);
+  const validInitialResults = initialResults.filter(page => page.htmlContent && page.htmlContent.trim().length > 0);
+  
+  // If we got 2 valid pages from the initial fetch, we're done
+  if (validInitialResults.length >= 2) {
+    return validInitialResults.slice(0, 2);
+  }
+  
+  results.push(...validInitialResults);
+  
+  // Calculate how many more pages we need to reach 2 total
+  const needed = 2 - validInitialResults.length;
+  
+  if (needed > 0 && pages.length > 2) {
+    console.log(`Only ${validInitialResults.length} of first 2 pages fetched successfully. Trying fallback pages...`);
+    
+    const remainingPages = pages.slice(2);
+    
+    for (const page of remainingPages) {
+      if (results.length >= 2) break;
+      
+      const content = await fetchPageContent(page.url);
+      if (content && content.trim().length > 0) {
+        results.push({
+          ...page,
+          htmlContent: content,
+        });
+        console.log(`Successfully fetched fallback page: ${page.url}`);
+      }
+    }
+  }
+  
+  return results;
+}
+
 export async function POST(req: NextRequest) {
   if (isRedisConfigured) { // Only check token if Redis is configured
     const sessionToken = req.cookies.get('session-token')?.value;
@@ -63,20 +110,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing query or pages for Dive mode.' }, { status: 400 });
     }
 
-    const fetchedPagesPromises = pages.map(async (page) => {
-      const content = await fetchPageContent(page.url);
-      return {
-        ...page,
-        htmlContent: content, 
-      };
-    });
-
-    const fetchedPages = await Promise.all(fetchedPagesPromises);
-    const validPages = fetchedPages.filter(page => page.htmlContent && page.htmlContent.trim().length > 0);
+    // Use the new fallback mechanism to fetch pages
+    const validPages = await fetchPagesWithFallback(pages);
 
     if (validPages.length === 0) {
       return NextResponse.json({ error: 'Could not fetch meaningful content from any of the provided URLs.' }, { status: 500 });
     }
+
+    console.log(`Dive mode: Successfully fetched ${validPages.length} pages out of ${pages.length} candidate pages`);
 
     // Prepare prompt for LLM
     let contextForLlm = "";

@@ -413,7 +413,7 @@ function SearchPageContent() {
             return;
           }
 
-          const top2Results = searchResults.slice(0, 2).map((r: any) => ({
+          const candidateResults = searchResults.slice(0, 6).map((r: any) => ({
             url: r.url,
             title: r.title,
             snippet: r.description
@@ -423,7 +423,7 @@ function SearchPageContent() {
           const diveResponse = await fetchWithSessionRefreshAndCache('/api/dive', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, pages: top2Results })
+            body: JSON.stringify({ query, pages: candidateResults })
           });
 
           if (!diveResponse.ok) {
