@@ -820,7 +820,7 @@ function SearchPageContent() {
   return (
     <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">
-        <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 mb-8 relative">
+        <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 md:mr-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full space-x-2 md:space-x-4">
             <Link href="/">
               <Image src="/tekir-head.png" alt="Tekir Logo" width={40} height={40} />
@@ -906,7 +906,7 @@ function SearchPageContent() {
 
         </div>
 
-        <div className="max-w-6xl w-full md:ml-8 relative">
+        <div className="max-w-6xl w-full md:ml-8 md:mr-8 relative">
           {query && (
             <p className="text-muted-foreground mb-4 md:w-4/5 xl:w-2/3">
               Showing results for: <span className="font-medium text-foreground">{query}</span>
@@ -962,8 +962,8 @@ function SearchPageContent() {
             </div>
           )}
 
-          <div className="flex flex-col md:flex-row md:gap-8">
-            <div className="flex-1 md:w-4/5 xl:w-2/3">
+          <div className="flex flex-col md:flex-row md:gap-6 lg:gap-8">
+            <div className="flex-1 md:w-2/3 lg:w-3/4 xl:w-2/3 2xl:w-3/4">
               {(() => {
                 if (searchType !== 'web' || !aiEnabled) return false;
                 const hasLoadingOrResponse = aiResponse || diveResponse || aiLoading || diveLoading;
@@ -1312,9 +1312,9 @@ function SearchPageContent() {
             </div>
             
             {searchType === 'web' && (
-              <div className="hidden md:block md:w-1/3">
+              <div className="hidden md:block md:w-1/3 lg:w-1/4 xl:w-1/3 2xl:w-1/4">
                 {wikiLoading ? (
-                  <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                  <div className="p-4 lg:p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
                     <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
                     <div className="w-full h-40 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
                     <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full mb-2"></div>
@@ -1322,35 +1322,35 @@ function SearchPageContent() {
                     <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
                   </div>
                 ) : wikiData ? (
-                  <div className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md">
+                  <div className="p-4 lg:p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-xl font-semibold mb-1">{wikiData.title}</h3>
+                      <h3 className="text-lg lg:text-xl font-semibold mb-1 leading-tight">{wikiData.title}</h3>
                     </div>
                     {wikiData.description && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{wikiData.description}</p>
+                      <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 mb-3 lg:mb-4">{wikiData.description}</p>
                     )}
                     
                     {wikiData.thumbnail && (
-                      <div className="mb-4 w-full">
+                      <div className="mb-3 lg:mb-4 w-full">
                         <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg">
                           <Image 
                             src={wikiData.thumbnail.source} 
                             alt={wikiData.title}
                             className="object-cover"
                             fill
-                            sizes="(max-width: 768px) 100vw, 33vw"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 25vw, (max-width: 1280px) 33vw, 25vw"
                           />
                         </div>
                       </div>
                     )}
                     
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <div className="mb-3 lg:mb-4">
+                      <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                         {wikiData.extract}
                       </p>
                     </div>
                     
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">
                       <span>Read more in </span>
                       <a 
                         href={wikiData.pageUrl} 

@@ -132,7 +132,7 @@ Based on the following content from up to 2 web pages, provide a comprehensive a
 ${contextForLlm}Respond directly to the user's query: "${query}".`;
 
     const llmResponse = await openai.chat.completions.create({
-      model: 'nousresearch/deephermes-3-mistral-24b-preview:free', 
+      model: 'mistralai/mistral-small-3.2-24b-instruct:free', 
       messages: [
         {
           role: 'system',
