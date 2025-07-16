@@ -136,14 +136,14 @@ ${contextForLlm}Respond directly to the user's query: "${query}".`;
       messages: [
         {
           role: 'system',
-          content: 'You are an AI assistant for Tekir Dive mode. You will be given a user query and content from several web pages. Your task is to synthesize this information to provide a comprehensive answer to the user query. Cite the sources used by referring to their URL when relevant. If information is conflicting or insufficient, state that clearly.'
+          content: 'You are an AI assistant for Tekir Dive mode. You will be given a user query and content from several web pages. Your task is to synthesize this information to provide a comprehensive answer to the user query. Cite the sources used by referring to their URL when relevant. If information is conflicting or insufficient, state that clearly. Do not use markdown in your answers. Keep your responses concise and focused on the user query. Keep it short and to the point. Maximum 90 tokens.',
         },
         {
           role: 'user',
           content: llmPrompt,
         },
       ],
-      max_tokens: 800,
+      max_tokens: 100,
       temperature: 0.5,
     });
 
