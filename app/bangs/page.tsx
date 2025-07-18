@@ -84,67 +84,69 @@ export default function BangsPage() {
   const bangsCount = Object.keys(bangs).length;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-800">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <Link
                 href="/"
-                className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
                 <span>Back to Search</span>
               </Link>
             </div>
-            <Link href="/" className="flex items-center space-x-2">
-              <Image
-                src="/tekir-head.png"
-                alt="Tekir"
-                width={32}
-                height={32}
-                className="w-8 h-8"
-              />
-              <span className="text-xl font-bold">Tekir</span>
-            </Link>
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <Link href="/" className="flex items-center">
+                <Image
+                  src="/tekir-head.png"
+                  alt="Tekir"
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  className="w-auto h-10"
+                />
+              </Link>
+            </div>
             <UserProfile />
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-b from-background via-background to-purple-50/30 dark:to-purple-950/10">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="p-4 bg-blue-100 dark:bg-blue-900/20 rounded-full">
-              <Zap className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+            <div className="p-4 bg-orange-500/10 rounded-full">
+              <Zap className="w-12 h-12 text-orange-600" />
             </div>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-6">
             Quick access to everything
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
             Bangs are shortcuts that instantly take you to search results on other sites. 
-            Just type <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-blue-600 dark:text-blue-400">!w</code> for Wikipedia, 
-            <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-blue-600 dark:text-blue-400 ml-1">!g</code> for Google, 
+            Just type <code className="bg-muted px-2 py-1 rounded text-orange-600">!w</code> for Wikipedia, 
+            <code className="bg-muted px-2 py-1 rounded text-orange-600 ml-1">!g</code> for Google, 
             or any of the thousands of other bangs.
           </p>
           
           {/* Example Usage */}
-          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-6 max-w-2xl mx-auto">
+          <div className="bg-muted/50 rounded-lg p-6 max-w-2xl mx-auto">
             <h3 className="text-lg font-semibold mb-4 flex items-center justify-center">
               <Search className="w-5 h-5 mr-2" />
               How it works
             </h3>
             <div className="space-y-3 text-left">
               <div className="flex items-center space-x-3">
-                <span className="text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">Example</span>
-                <code className="bg-white dark:bg-gray-800 px-3 py-2 rounded border flex-1 font-mono text-sm">!w quantum physics</code>
+                <span className="text-sm bg-orange-500/10 text-orange-600 px-2 py-1 rounded">Example</span>
+                <code className="bg-background px-3 py-2 rounded border border-border flex-1 font-mono text-sm">!w quantum physics</code>
               </div>
               <div className="flex items-center space-x-3">
-                <span className="text-sm bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded">Result</span>
-                <span className="text-gray-600 dark:text-gray-400 text-sm">Instantly searches Wikipedia for "quantum physics"</span>
+                <span className="text-sm bg-green-500/10 text-green-600 px-2 py-1 rounded">Result</span>
+                <span className="text-muted-foreground text-sm">Instantly searches Wikipedia for "quantum physics"</span>
               </div>
             </div>
           </div>
@@ -163,13 +165,13 @@ export default function BangsPage() {
             
             {/* Search Box */}
             <div className="relative w-full sm:w-96">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search bangs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -190,10 +192,10 @@ export default function BangsPage() {
               {filteredBangs.slice(0, 100).map(([command, bang]) => (
                 <div
                   key={command}
-                  className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md dark:hover:shadow-gray-800/50 transition-shadow"
+                  className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <code className="text-blue-600 dark:text-blue-400 font-mono font-semibold text-lg">
+                    <code className="text-orange-600 font-mono font-semibold text-lg">
                       {command}
                     </code>
                     {bang.main && (
@@ -201,17 +203,17 @@ export default function BangsPage() {
                         href={bang.main}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        className="text-muted-foreground hover:text-foreground"
                         title="Visit main site"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     )}
                   </div>
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
+                  <h3 className="font-medium text-foreground mb-2 line-clamp-2">
                     {bang.name}
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-mono break-all">
+                  <p className="text-sm text-muted-foreground font-mono break-all">
                     {bang.url.replace('{search}', '...')}
                   </p>
                 </div>
@@ -222,7 +224,7 @@ export default function BangsPage() {
           {/* Show more button for large results */}
           {!isLoading && filteredBangs.length > 100 && (
             <div className="text-center mt-8">
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-muted-foreground">
                 Showing 100 of {filteredBangs.length} results. Use search to narrow down results.
               </p>
             </div>
@@ -231,7 +233,7 @@ export default function BangsPage() {
           {/* No results */}
           {!isLoading && filteredBangs.length === 0 && searchQuery && (
             <div className="text-center py-12">
-              <div className="text-gray-500 dark:text-gray-400">
+              <div className="text-muted-foreground">
                 <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No bangs found matching "{searchQuery}"</p>
                 <p className="text-sm mt-2">Try a different search term</p>
@@ -241,28 +243,28 @@ export default function BangsPage() {
         </div>
 
         {/* Tips Section */}
-        <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-6 mb-8">
+        <div className="bg-orange-500/10 rounded-lg p-6 mb-8">
           <h3 className="text-lg font-semibold mb-4">💡 Pro Tips</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <strong>Pure bang:</strong> <code className="bg-white dark:bg-gray-800 px-2 py-1 rounded">!w cats</code>
+              <strong>Pure bang:</strong> <code className="bg-muted px-2 py-1 rounded">!w cats</code>
               <br />
-              <span className="text-gray-600 dark:text-gray-400">Searches Wikipedia for "cats"</span>
+              <span className="text-muted-foreground">Searches Wikipedia for "cats"</span>
             </div>
             <div>
-              <strong>Embedded bang:</strong> <code className="bg-white dark:bg-gray-800 px-2 py-1 rounded">cats !w</code>
+              <strong>Embedded bang:</strong> <code className="bg-muted px-2 py-1 rounded">cats !w</code>
               <br />
-              <span className="text-gray-600 dark:text-gray-400">Also searches Wikipedia for "cats"</span>
+              <span className="text-muted-foreground">Also searches Wikipedia for "cats"</span>
             </div>
             <div>
-              <strong>Just the bang:</strong> <code className="bg-white dark:bg-gray-800 px-2 py-1 rounded">!w</code>
+              <strong>Just the bang:</strong> <code className="bg-muted px-2 py-1 rounded">!w</code>
               <br />
-              <span className="text-gray-600 dark:text-gray-400">Takes you to Wikipedia's homepage</span>
+              <span className="text-muted-foreground">Takes you to Wikipedia's homepage</span>
             </div>
             <div>
-              <strong>Mixed search:</strong> <code className="bg-white dark:bg-gray-800 px-2 py-1 rounded">cute !w cats</code>
+              <strong>Mixed search:</strong> <code className="bg-muted px-2 py-1 rounded">cute !w cats</code>
               <br />
-              <span className="text-gray-600 dark:text-gray-400">Searches Wikipedia for "cute cats"</span>
+              <span className="text-muted-foreground">Searches Wikipedia for "cute cats"</span>
             </div>
           </div>
         </div>
