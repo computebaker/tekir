@@ -839,7 +839,7 @@ function SearchPageContent() {
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="Search anything..."
                 maxLength={800}
-                className="flex-1 px-4 py-2 pr-4 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
+                className="flex-1 px-4 py-2 pr-16 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
                 style={{ minWidth: 0 }}
               />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
