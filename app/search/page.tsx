@@ -393,7 +393,7 @@ function SearchPageContent() {
             return;
           }
 
-          const waitForResults = async (maxAttempts = 10, delay = 300) => {
+          const waitForResults = async (maxAttempts = 8, delay = 200) => {
             for (let i = 0; i < maxAttempts; i++) {
               if (results && results.length > 0) {
                 return results;
@@ -413,7 +413,8 @@ function SearchPageContent() {
             return;
           }
 
-          const candidateResults = searchResults.slice(0, 6).map((r: any) => ({
+          // Send more candidates for better fallback options
+          const candidateResults = searchResults.slice(0, 8).map((r: any) => ({
             url: r.url,
             title: r.title,
             snippet: r.description
@@ -1001,7 +1002,11 @@ function SearchPageContent() {
                   </div>
                   
                   {(aiLoading || diveLoading) ? (
-                    <div className="animate-pulse">
+                    <div className="animate-pulse space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-blue-600/70 dark:text-blue-300/70">
+                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                        <span>{aiDiveEnabled ? "Fetching web sources..." : "Processing request..."}</span>
+                      </div>
                       <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
                       <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2 mb-3"></div>
                     </div>

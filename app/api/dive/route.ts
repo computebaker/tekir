@@ -21,16 +21,65 @@ interface PageContent {
 
 async function fetchPageContent(url: string): Promise<string> {
   try {
-    const response = await fetch(url, { headers: { 'User-Agent': 'TekirDiveBot/1.0' } });
+    // Set aggressive timeout for faster responses
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    
+    const response = await fetch(url, { 
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' 
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
       console.warn(`Failed to fetch ${url}: ${response.statusText}`);
       return ""; // Return empty string on failure
     }
+    
     const html = await response.text();
     const $ = load(html);
-    let mainContent = $('main').text() || $('article').text() || $('body').text();
-    mainContent = mainContent.replace(/\n{2,}/g, '\n').replace(/\s{2,}/g, ' ').trim();
-    return mainContent.substring(0, 5000); 
+    
+    // Remove unwanted elements for faster processing
+    $('script, style, nav, header, footer, aside, .ad, .advertisement, .sidebar').remove();
+    
+    // Try to get the most relevant content first
+    let mainContent = '';
+    
+    // Priority order for content extraction
+    const selectors = [
+      'article',
+      '[role="main"]',
+      '.content',
+      '.post-content', 
+      '.entry-content',
+      'main',
+      '.main-content'
+    ];
+    
+    for (const selector of selectors) {
+      const element = $(selector);
+      if (element.length > 0) {
+        mainContent = element.text();
+        break;
+      }
+    }
+    
+    // Fallback to body if no specific content found
+    if (!mainContent) {
+      mainContent = $('body').text();
+    }
+    
+    // Clean and optimize content
+    mainContent = mainContent
+      .replace(/\n{2,}/g, '\n')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+    
+    // Return smaller content for faster processing
+    return mainContent.substring(0, 2000); // Reduced from 5000 to 2000
   } catch (error) {
     console.warn(`Error fetching or processing ${url}:`, error);
     return ""; 
@@ -38,53 +87,75 @@ async function fetchPageContent(url: string): Promise<string> {
 }
 
 async function fetchPagesWithFallback(pages: PageContent[]): Promise<PageContent[]> {
-  const results: PageContent[] = [];
+  const TARGET_PAGES = 2;
+  const MAX_CONCURRENT = 4; // Increase concurrent requests
   
-  const initialPages = pages.slice(0, 2);
-  const initialPromises = initialPages.map(async (page) => {
+  console.log(`Starting fetch for ${pages.length} candidate pages`);
+  
+  // Phase 1: Try multiple pages concurrently (not just first 2)
+  const firstBatch = pages.slice(0, MAX_CONCURRENT);
+  const fetchPromises = firstBatch.map(async (page) => {
+    const startTime = Date.now();
     const content = await fetchPageContent(page.url);
-    return {
-      ...page,
-      htmlContent: content,
-    };
+    const duration = Date.now() - startTime;
+    
+    if (content && content.trim().length > 100) { // Minimum content threshold
+      console.log(`Successfully fetched: ${page.title} (${duration}ms)`);
+      return {
+        ...page,
+        htmlContent: content,
+      };
+    } else {
+      console.log(`Failed to fetch: ${page.title} (${duration}ms)`);
+      return null;
+    }
   });
   
-  const initialResults = await Promise.all(initialPromises);
-  const validInitialResults = initialResults.filter(page => page.htmlContent && page.htmlContent.trim().length > 0);
+  const results = await Promise.all(fetchPromises);
+  const validResults = results.filter(result => result !== null) as PageContent[];
   
-  // If we got 2 valid pages from the initial fetch, we're done
-  if (validInitialResults.length >= 2) {
-    return validInitialResults.slice(0, 2);
+  // If we have enough pages, return them
+  if (validResults.length >= TARGET_PAGES) {
+    console.log(`Got ${validResults.length} pages from first batch`);
+    return validResults.slice(0, TARGET_PAGES);
   }
   
-  results.push(...validInitialResults);
-  
-  // Calculate how many more pages we need to reach 2 total
-  const needed = 2 - validInitialResults.length;
-  
-  if (needed > 0 && pages.length > 2) {
-    console.log(`Only ${validInitialResults.length} of first 2 pages fetched successfully. Trying fallback pages...`);
+  // Phase 2: If we need more pages, try remaining ones in parallel
+  if (validResults.length < TARGET_PAGES && pages.length > MAX_CONCURRENT) {
+    const needed = TARGET_PAGES - validResults.length;
+    console.log(`Need ${needed} more pages, trying remaining candidates...`);
     
-    const remainingPages = pages.slice(2);
-    
-    for (const page of remainingPages) {
-      if (results.length >= 2) break;
-      
+    const remainingPages = pages.slice(MAX_CONCURRENT);
+    const remainingPromises = remainingPages.slice(0, needed * 2).map(async (page) => {
+      const startTime = Date.now();
       const content = await fetchPageContent(page.url);
-      if (content && content.trim().length > 0) {
-        results.push({
+      const duration = Date.now() - startTime;
+      
+      if (content && content.trim().length > 100) {
+        console.log(`Successfully fetched fallback: ${page.title} (${duration}ms)`);
+        return {
           ...page,
           htmlContent: content,
-        });
-        console.log(`Successfully fetched fallback page: ${page.url}`);
+        };
+      } else {
+        console.log(`Failed to fetch fallback: ${page.title} (${duration}ms)`);
+        return null;
       }
-    }
+    });
+    
+    const remainingResults = await Promise.all(remainingPromises);
+    const validRemainingResults = remainingResults.filter(result => result !== null) as PageContent[];
+    
+    validResults.push(...validRemainingResults.slice(0, needed));
   }
   
-  return results;
+  console.log(`Final result: ${validResults.length} pages successfully fetched`);
+  return validResults;
 }
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  
   if (isRedisConfigured) { // Only check token if Redis is configured
     const sessionToken = req.cookies.get('session-token')?.value;
     if (!sessionToken) {
@@ -110,52 +181,69 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing query or pages for Dive mode.' }, { status: 400 });
     }
 
-    // Use the new fallback mechanism to fetch pages
+    console.log(`Dive request: "${query}" with ${pages.length} candidate pages`);
+
+    // Use the new optimized fallback mechanism to fetch pages
+    const fetchStartTime = Date.now();
     const validPages = await fetchPagesWithFallback(pages);
+    const fetchDuration = Date.now() - fetchStartTime;
 
     if (validPages.length === 0) {
       return NextResponse.json({ error: 'Could not fetch meaningful content from any of the provided URLs.' }, { status: 500 });
     }
 
-    console.log(`Dive mode: Successfully fetched ${validPages.length} pages out of ${pages.length} candidate pages`);
+    console.log(`Page fetching completed in ${fetchDuration}ms`);
 
-    // Prepare prompt for LLM
+    // Prepare optimized prompt for LLM
     let contextForLlm = "";
     validPages.forEach((page, index) => {
-      contextForLlm += `Source ${index + 1} (URL: ${page.url}):\n${page.htmlContent}\n\n`;
+      // Truncate content for faster processing
+      const truncatedContent = page.htmlContent ? page.htmlContent.substring(0, 1000) : '';
+      contextForLlm += `Source ${index + 1}: ${truncatedContent}\n\n`;
     });
 
-    const llmPrompt = `The user is asking: "${query}". 
+    const llmPrompt = `Query: "${query}"\n\nContent:\n${contextForLlm}\n\nProvide a concise, accurate answer based on the above sources.`;
 
-Based on the following content from up to 2 web pages, provide a comprehensive answer. Synthesize the information and present it clearly. Do not just summarize each source. If the sources contradict, point it out. If the sources don't provide enough information, say so. Be objective and informative. Here is the content:
-
-${contextForLlm}Respond directly to the user's query: "${query}".`;
-
+    const aiStartTime = Date.now();
     const llmResponse = await openai.chat.completions.create({
-      model: 'mistralai/mistral-small-3.2-24b-instruct:free', 
+      model: 'mistralai/ministral-3b', 
       messages: [
         {
           role: 'system',
-          content: 'You are an AI assistant for Tekir Dive mode. You will be given a user query and content from several web pages. Your task is to synthesize this information to provide a comprehensive answer to the user query. Cite the sources used by referring to their URL when relevant. If information is conflicting or insufficient, state that clearly. Do not use markdown in your answers. Keep your responses concise and focused on the user query. Keep it short and to the point. Maximum 90 tokens.',
+          content: 'You are an AI assistant for Tekir Dive mode. Provide concise, accurate answers based on web sources. Be direct and helpful. Maximum 80 words.',
         },
         {
           role: 'user',
           content: llmPrompt,
         },
       ],
-      max_tokens: 100,
-      temperature: 0.5,
+      max_tokens: 80,
+      temperature: 0.3,
     });
+    
+    const aiDuration = Date.now() - aiStartTime;
+    const totalDuration = Date.now() - startTime;
+
+    console.log(`AI processing completed in ${aiDuration}ms`);
+    console.log(`Total dive request completed in ${totalDuration}ms`);
 
     const answer = llmResponse.choices[0].message.content;
 
     return NextResponse.json({ 
       response: answer || "The AI could not generate a response based on the provided content.", 
-      sources: validPages.map(p => ({ url: p.url, title: p.title, description: p.snippet })) // Return original page info as sources
+      sources: validPages.map(p => ({ url: p.url, title: p.title, description: p.snippet })),
+      metadata: {
+        totalDuration,
+        fetchDuration,
+        aiDuration,
+        pagesAttempted: pages.length,
+        pagesSuccessful: validPages.length
+      }
     });
 
   } catch (error: any) {
-    console.error("Error in /api/dive:", error);
+    const totalDuration = Date.now() - startTime;
+    console.error(`Error in /api/dive after ${totalDuration}ms:`, error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
