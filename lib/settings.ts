@@ -289,17 +289,27 @@ export function useSettings() {
       console.log('useSettings: session still loading, waiting...');
       return;
     }
-    
+
+    let pollInterval: NodeJS.Timeout | null = null;
+
     // Initialize settings manager when session changes
     const initializeSettings = async () => {
       console.log('useSettings initialization - session:', session?.user?.id, 'status:', status);
       await settingsManager.initialize(session?.user?.id);
       setIsInitialized(true);
+
+      // Start polling every 10 minutes if sync is enabled and user is logged in
+      if (settingsManager.getSyncEnabled() && session?.user?.id) {
+        pollInterval = setInterval(async () => {
+          console.log('Polling for latest settings from server...');
+          await settingsManager.initialize(session?.user?.id);
+        }, 600000); // 10 minutes
+      }
     };
-    
+
     setIsInitialized(false);
     initializeSettings();
-    
+
     // Subscribe to settings changes
     const unsubscribe = settingsManager.subscribe(() => {
       setSettings(settingsManager.getAll());
@@ -308,6 +318,7 @@ export function useSettings() {
 
     return () => {
       unsubscribe();
+      if (pollInterval) clearInterval(pollInterval);
     };
   }, [session?.user?.id, status]);
 
