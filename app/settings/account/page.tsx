@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { 
   ChevronDown, 
   Settings, 
@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   Trash2,
   Save,
-  RefreshCw
+  RefreshCw,
+  Cloud
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
@@ -25,6 +26,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
 import ImageUpload from "@/components/image-upload";
+import { useSettings } from "@/lib/settings";
 
 // Define mobile navigation items for settings
 const settingsMobileNavItems = [
@@ -47,8 +49,12 @@ const settingsMobileNavItems = [
 
 export default function AccountSettingsPage() {
   const { data: session, status, update } = useSession();
+  const { syncEnabled, toggleSync, isInitialized } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  // Debug logging
+  console.log('AccountSettingsPage - session:', session?.user?.id, 'status:', status);
   
   // Mobile settings dropdown state
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
@@ -358,6 +364,44 @@ export default function AccountSettingsPage() {
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'An error occurred while deleting account' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSettingsSyncToggle = async () => {
+    if (!isInitialized) {
+      setMessage({ type: 'error', text: 'Settings are still loading. Please wait a moment.' });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const success = await toggleSync(!syncEnabled);
+      if (success) {
+        setMessage({ 
+          type: 'success', 
+          text: syncEnabled 
+            ? 'Settings sync disabled. Your settings are now stored locally only.' 
+            : 'Settings sync enabled. Your settings will now be synced across devices.' 
+        });
+      } else {
+        setMessage({ type: 'error', text: 'Failed to toggle settings sync' });
+      }
+    } catch (error) {
+      let errorMessage = 'An error occurred while toggling settings sync';
+      
+      // Check if it's a user record not found error
+      if (error instanceof Error && error.message.includes('User record not found')) {
+        errorMessage = 'Your session is outdated. Please sign out and sign in again to continue.';
+        // Automatically trigger sign out after a delay to give user time to read the message
+        setTimeout(() => {
+          signOut({ callbackUrl: '/auth/signin' });
+        }, 3000);
+      }
+      
+      setMessage({ type: 'error', text: errorMessage });
+      console.log(error)
     } finally {
       setIsLoading(false);
     }
@@ -769,6 +813,64 @@ export default function AccountSettingsPage() {
                       <Lock className="w-4 h-4" />
                       Change Password
                     </button>
+                  </div>
+                </div>
+
+                {/* Settings Sync */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="text-lg font-medium mb-4">Settings Sync</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Enable settings sync to keep your search preferences, AI options, theme, and other settings synchronized across all your devices.
+                      </p>
+                      
+                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Cloud className="w-5 h-5 text-blue-500" />
+                          <div>
+                            <div className="font-medium">Sync Settings</div>
+                            <div className="text-sm text-muted-foreground">
+                              {syncEnabled 
+                                ? "Your settings are synced across devices" 
+                                : "Settings are stored locally only"
+                              }
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          <input 
+                            type="checkbox" 
+                            id="settings-sync-toggle" 
+                            className="sr-only" 
+                            checked={syncEnabled}
+                            onChange={handleSettingsSyncToggle}
+                            disabled={isLoading || !isInitialized}
+                          />
+                          <label 
+                            htmlFor="settings-sync-toggle" 
+                            className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
+                              syncEnabled ? 'bg-blue-500' : 'bg-muted'
+                            } ${(isLoading || !isInitialized) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <div
+                              className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm ${
+                                syncEnabled ? "translate-x-6" : ""
+                              }`}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                      
+                      {syncEnabled && (
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <p className="text-sm text-blue-800 dark:text-blue-200">
+                            <strong>Synced settings include:</strong> Search engine preferences, AI model choices, weather settings, theme, autocomplete provider, search regions, and SafeSearch settings.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

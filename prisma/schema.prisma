@@ -46,6 +46,8 @@ model User {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
   imageType              String?
+  settingsSync           Boolean   @default(false)
+  settings               Json?
   accounts               Account[]
   sessions               Session[]
 }
