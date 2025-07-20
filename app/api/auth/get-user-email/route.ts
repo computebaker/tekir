@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getConvexClient } from "@/lib/convex-client";
 import { z } from "zod";
+import { api } from "@/convex/_generated/api";
 
 const getUserEmailSchema = z.object({
   username: z.string().min(1),
@@ -11,11 +12,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { username } = getUserEmailSchema.parse(body);
 
+    const convex = getConvexClient();
+
     // Find user by username
-    const user = await prisma.user.findUnique({
-      where: { username },
-      select: { email: true }, // Only select email for privacy
-    });
+    const user = await convex.query(api.users.getUserByUsername, { username });
 
     if (!user) {
       return NextResponse.json(

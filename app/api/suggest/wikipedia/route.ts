@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis';
+import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis-fallback';
 import OpenAI from 'openai';
 
 // Country code to language code mapping for Wikipedia

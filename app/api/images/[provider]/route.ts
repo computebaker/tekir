@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis';
+import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
 
 interface ImageResult {
   title: string;
@@ -56,23 +56,27 @@ async function getBraveImages(q: string, count: number = 20): Promise<ImageResul
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
-    if (isRedisConfigured) { // Only check token if Redis is configured
-      const sessionToken = req.cookies.get('session-token')?.value;
-      if (!sessionToken) {
-        return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
-      }
-      const isValid = await isValidSessionToken(sessionToken);
-      if (!isValid) {
-        return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
-      }
-      const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
-      if (!allowed) {
-        console.warn(`Session token ${sessionToken} exceeded request limit for /api/images. Count: ${currentCount}`);
-        return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429 });
-      }
-    } else {
-      console.warn("Redis is not configured. Skipping session token validation and request counting for /api/images. This should be addressed in production.");
+  
+  // Check session token with Convex
+  const sessionToken = req.cookies.get('session-token')?.value;
+  if (!sessionToken) {
+    return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
+  }
+
+  try {
+    const isValid = await isValidSessionToken(sessionToken);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
     }
+
+    const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
+    if (!allowed) {
+      console.warn(`Session token ${sessionToken} exceeded request limit for /api/images. Count: ${currentCount}`);
+      return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429 });
+    }
+  } catch (convexError) {
+    console.warn("Convex is not configured. Skipping session token validation and request counting for /api/images. This should be addressed in production.");
+  }
 
   const query = req.nextUrl.searchParams.get('q');
   const countParam = req.nextUrl.searchParams.get('count');
@@ -83,7 +87,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   }
 
   let results: ImageResult[] = [];
-  const now = Date.now();
 
   switch (provider.toLowerCase()) {
     case 'brave': {

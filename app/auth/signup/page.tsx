@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -65,18 +64,8 @@ export default function SignUpPage() {
       if (data.requiresVerification) {
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } else {
-        // Fallback: sign in the user after successful signup
-        const result = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
-
-        if (result?.error) {
-          setError("Account created but sign-in failed. Please try signing in manually.");
-        } else {
-          router.push("/search");
-        }
+        // Redirect to signin page after successful signup
+        router.push("/auth/signin?message=Account created successfully. Please sign in.");
       }
     } catch (error) {
       setError("An error occurred. Please try again.");

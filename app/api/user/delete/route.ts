@@ -1,39 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getJWTUser } from '@/lib/jwt-auth';
+import { getConvexClient } from '@/lib/convex-client';
+import { api } from '@/convex/_generated/api';
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: {
-        id: session.user.id
-      },
-    });
+    const convex = getConvexClient();
 
-    if (!user) {
+    // Check if user exists
+    const userRecord = await convex.query(api.users.getUserById, { id: user.userId as any });
+
+    if (!userRecord) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    // Delete the user (this will cascade delete related data based on your schema)
-    await prisma.user.delete({
-      where: {
-        id: session.user.id
-      }
-    });
+    // Delete the user (this will cascade delete related data in our deleteUser mutation)
+    await convex.mutation(api.users.deleteUser, { id: user.userId as any });
 
     return NextResponse.json(
       { message: 'Account deleted successfully' },

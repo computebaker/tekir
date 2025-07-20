@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getJWTUser } from '@/lib/jwt-auth';
+import { getConvexClient } from '@/lib/convex-client';
 import { validateAndProcessImage } from '@/lib/image-processing';
 import { z } from 'zod';
+import { api } from '@/convex/_generated/api';
 
 const uploadSchema = z.object({
   image: z.string().min(1, 'Image data is required')
@@ -11,9 +11,9 @@ const uploadSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -36,39 +36,34 @@ export async function POST(request: NextRequest) {
     // Validate and process the image
     const processedImage = await validateAndProcessImage(image);
 
+    const convex = getConvexClient();
+
     // Update user's profile picture in the database
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: { 
-        image: processedImage.base64,
-        imageType: 'uploaded',
-        updatedAt: new Date()
-      },
-      select: {
-        id: true,
-        image: true,
-        imageType: true,
-        updatedAt: true
-      }
+    await convex.mutation(api.users.updateUser, {
+      id: user.userId as any,
+      image: processedImage.base64,
+      imageType: 'uploaded'
     });
 
     return NextResponse.json({
       success: true,
       message: 'Profile picture updated successfully',
-      avatar: updatedUser.image,
-      updatedAt: updatedUser.updatedAt
+      image: processedImage.base64,
+      updatedAt: Date.now()
     });
 
   } catch (error) {
-    console.error('Error uploading profile picture:', error);
+    console.error('Profile picture upload error:', error);
     
-    let errorMessage = 'Failed to upload profile picture';
-    if (error instanceof Error) {
-      errorMessage = error.message;
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.issues },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json(
-      { error: errorMessage },
+      { error: 'Failed to upload profile picture' },
       { status: 500 }
     );
   }
@@ -76,35 +71,28 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    const convex = getConvexClient();
+
     // Remove the user's custom profile picture and reset to generated avatar
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: { 
-        image: null,
-        imageType: null,
-        updatedAt: new Date()
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        updatedAt: true
-      }
+    await convex.mutation(api.users.updateUser, {
+      id: user.userId as any,
+      image: undefined, // This will be set to null in the mutation
+      imageType: undefined
     });
 
     return NextResponse.json({
       success: true,
       message: 'Profile picture removed successfully',
-      updatedAt: updatedUser.updatedAt
+      updatedAt: Date.now()
     });
 
   } catch (error) {

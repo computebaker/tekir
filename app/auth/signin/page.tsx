@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,7 +12,6 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [userEmail, setUserEmail] = useState(""); // Store actual email for verification link
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,46 +20,27 @@ export default function SignInPage() {
     setError("");
 
     try {
-      const result = await signIn("credentials", {
-        emailOrUsername,
-        password,
-        redirect: false,
+      const response = await fetch("/api/auth/signin-convex", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          emailOrUsername,
+          password,
+        }),
       });
 
-      if (result?.error) {
-        // Handle email verification error specifically
-        if (result.error.includes("verify your email")) {
-          // If user signed in with username, we need to get their email for verification
-          const isEmail = emailOrUsername.includes("@");
-          if (!isEmail) {
-            // Fetch user's email by username for verification link
-            try {
-              const userResponse = await fetch("/api/auth/get-user-email", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: emailOrUsername }),
-              });
-              const userData = await userResponse.json();
-              if (userResponse.ok && userData.email) {
-                setUserEmail(userData.email);
-              }
-            } catch (e) {
-              console.error("Failed to fetch user email:", e);
-            }
-          } else {
-            setUserEmail(emailOrUsername);
-          }
-          setError(`${result.error}. Need to verify your email?`);
-        } else {
-          setError("Invalid email/username or password");
-        }
-      } else {
-        // Wait for session to be established
-        await getSession();
+      const data = await response.json();
+
+      if (response.ok) {
         router.push("/");
+        router.refresh();
+      } else {
+        setError(data.error || "Invalid credentials");
       }
-    } catch (error) {
-      setError("An error occurred. Please try again.");
+    } catch (error: any) {
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -81,51 +60,38 @@ export default function SignInPage() {
             />
           </Link>
           <h2 className="mt-6 text-3xl font-bold text-foreground">
-            Sign in to Tekir
+            Sign in to your account
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter your email or username to sign in.{" "}
-            <Link
-              href="/auth/signup"
-              className="text-primary hover:underline"
-            >
-              Need an account?
+            Already have an account?{" "}
+            <Link className="text-primary hover:underline" href="/auth/signup">
+              Sign up
             </Link>
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm">
-              {error}
-              {error.includes("verify your email") && (
-                <div className="mt-2">
-                  <Link 
-                    href={`/auth/verify-email?email=${encodeURIComponent(userEmail || emailOrUsername)}`}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    Go to email verification →
-                  </Link>
-                </div>
-              )}
+            <div className="rounded-md bg-red-50 border border-red-200 p-4">
+              <div className="text-sm text-red-700">{error}</div>
             </div>
           )}
 
           <div className="space-y-4">
             <div>
               <label htmlFor="emailOrUsername" className="sr-only">
-                Email address or username
+                Email or Username
               </label>
               <input
                 id="emailOrUsername"
-                name="emailOrUsername"
                 type="text"
                 autoComplete="username"
                 required
+                className="relative block w-full px-3 py-3 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                placeholder="Email or Username"
+                name="emailOrUsername"
                 value={emailOrUsername}
                 onChange={(e) => setEmailOrUsername(e.target.value)}
-                className="relative block w-full px-3 py-3 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
-                placeholder="Email address or username"
               />
             </div>
 
@@ -135,14 +101,14 @@ export default function SignInPage() {
               </label>
               <input
                 id="password"
-                name="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 className="relative block w-full px-3 py-3 pr-10 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
                 placeholder="Password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
               <button
                 type="button"
@@ -170,8 +136,8 @@ export default function SignInPage() {
 
           <div className="text-center">
             <Link
-              href="/"
               className="text-sm text-muted-foreground hover:text-primary"
+              href="/"
             >
               ← Back to home
             </Link>

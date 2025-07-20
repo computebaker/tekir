@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prelude } from "@/lib/prelude";
-import { prisma } from "@/lib/prisma";
+import { getConvexClient } from "@/lib/convex-client";
 import { z } from "zod";
+import { api } from "@/convex/_generated/api";
 
 const sendVerificationSchema = z.object({
   email: z.string().email(),
@@ -12,10 +13,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email } = sendVerificationSchema.parse(body);
 
+    const convex = getConvexClient();
+
     // Check if user exists but is not verified
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await convex.query(api.users.getUserByEmail, { email });
 
     if (!user) {
       return NextResponse.json(
@@ -40,15 +41,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Store verification ID in user record
-    await prisma.user.update({
-      where: { email },
-      data: {
-        emailVerificationToken: verification.id,
-      },
+    await convex.mutation(api.users.updateUser, {
+      id: user._id,
+      emailVerificationToken: verification.id,
     });
 
     return NextResponse.json(
-      { message: "Verification code sent successfully", verificationId: verification.id },
+      { message: "Verification code sent successfully" },
       { status: 200 }
     );
   } catch (error) {

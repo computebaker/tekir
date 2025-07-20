@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { load } from 'cheerio';
 import iconv from 'iconv-lite';
-import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis';
+import { isValidSessionToken, isConvexConfigured, incrementAndCheckRequestCount } from '@/lib/convex-session';
 
 interface Results {
   title: string;
@@ -43,7 +43,7 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
       results.push(result);
     });
   } catch (error) {
-    console.error('Error fetching Brave search data:', error);
+    console.error('Error fetching Brave results:', error);
   }
   return results;
 }
@@ -51,101 +51,41 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
 async function getDuck(q: string): Promise<Results[]> {
   const results: Results[] = [];
   try {
-    const res = await fetch('https://html.duckduckgo.com/html?q=' + q, {
+    const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}&kl=us-en&p=1&s=0&dc=14&bing_market=US`, {
+      method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
     });
-    const buffer = await res.arrayBuffer();
-    const html = Buffer.from(buffer).toString();
+    if (!res.ok) throw new Error('Network response was not ok');
+    
+    const arrayBuffer = await res.arrayBuffer();
+    const html = iconv.decode(Buffer.from(arrayBuffer), 'utf-8');
     const $ = load(html);
-    if ($('.result--no-result').length > 0) {
-      return results;
-    }
-    $('.results_links_deep').each((_, productHTMLElement) => {
-      const title: string = $(productHTMLElement)
-        .find('.result__title a')
-        .text() as string;
-      let displayUrl: string = $(productHTMLElement)
-        .find('.result__url')
-        .text() as string;
-      const desc: string = $(productHTMLElement)
-        .find('.result__snippet')
-        .text()
-        .trim() as string;
-
-      displayUrl = displayUrl.replace(/\s/g, '');
-      const urlnospace = displayUrl.replace(/ /g, '');
-      let url = urlnospace.replace(/\u203a/g, '/');
-
-      if (!/^https?:\/\//i.test(url)) {
-        url = 'https://' + url;
+    
+    $('.web-result').each((_, element) => {
+      const titleElement = $(element).find('.result__title a');
+      const snippetElement = $(element).find('.result__snippet');
+      const urlElement = $(element).find('.result__url');
+      
+      const title = titleElement.text().trim();
+      const description = snippetElement.text().trim();
+      const url = titleElement.attr('href') || '';
+      const displayUrl = urlElement.text().trim().replace(/^https?:\/\//, '');
+      
+      if (title && url) {
+        results.push({
+          title,
+          description,
+          displayUrl,
+          url,
+          source: 'DuckDuckGo'
+        });
       }
-      if (url.includes('...') || displayUrl.includes('...')) {
-        url = url.substring(0, url.indexOf('...'));
-        displayUrl = displayUrl.substring(0, displayUrl.indexOf('...'));
-      }
-      if (url.endsWith('/')) {
-        url = url.slice(0, -1);
-      }
-      const description = desc.replace(/<[^>]+>/g, '').replace(/(\r\n|\n|\r)/gm, '');
-      if (title === '' || displayUrl === '' || url === '') {
-        return;
-      }
-      const result: Results = {
-        title: title,
-        description: description,
-        displayUrl: displayUrl,
-        url: url,
-        source: 'DuckDuckGo'
-      };
-      results.push(result);
     });
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error('Error fetching DuckDuckGo results:', error);
   }
-  return results;
-}
-
-async function getGoogle(q: string, n: number): Promise<Results[]> {
-  const results: Results[] = [];
-  const res = await fetch("https://www.google.com/search?q=" + q + "&start=" + n);
-  const buffer = await res.arrayBuffer();
-  const html = iconv.decode(Buffer.from(buffer), 'ISO-8859-1');
-  const $ = load(html);
-  $("div.Gx5Zad.xpd.EtOod.pkphOe").each((div, productHTMLElement) => {
-    const title: string = $(productHTMLElement).find("div.BNeawe.vvjwJb.AP7Wnd").text() as string;
-    const displayUrl: string = $(productHTMLElement).find("div.BNeawe.UPmit.AP7Wnd.lRVwie").text() as string;
-    const trackerurl: string = $(productHTMLElement).find("div.egMi0.kCrYT a").attr("href") as string;
-    const description: string = $(productHTMLElement).find("div.BNeawe.s3v9rd.AP7Wnd").text() as string;
-
-    const prefix = '/url?q=';
-    const suffix = '&sa=';
-    let url: string = '';
-    if (trackerurl) {
-      if (trackerurl.startsWith(prefix)) {
-        const startIndex = prefix.length;
-        const endIndex = trackerurl.indexOf(suffix);
-        if (endIndex !== -1) {
-          url = trackerurl.substring(startIndex, endIndex);
-        } else {
-          url = trackerurl.substring(startIndex);
-        }
-      } else {
-        url = trackerurl;
-      }
-    } else {
-      return;
-    }
-    const result: Results = {
-      title: title,
-      description: description,
-      displayUrl: displayUrl,
-      url: url,
-      source: "Google"
-    };
-    results.push(result);
-  });
   return results;
 }
 
@@ -155,7 +95,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const country = req.nextUrl.searchParams.get('country') || 'ALL';
   const safesearch = req.nextUrl.searchParams.get('safesearch') || 'moderate';
 
-  if (isRedisConfigured) { // Only check token if Redis is configured
+  if (isConvexConfigured) { // Only check token if Convex is configured
     const sessionToken = req.cookies.get('session-token')?.value;
     if (!sessionToken) {
       return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
@@ -170,7 +110,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429 });
     }
   } else {
-    console.warn("Redis is not configured. Skipping session token validation and request counting for /api/pars. This should be addressed in production.");
+    console.warn("Convex is not configured. Skipping session token validation and request counting for /api/pars. This should be addressed in production.");
   }
 
   if (!query) {
@@ -187,11 +127,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     case 'brave':
       results = await getBrave(query, country, safesearch);
       break;
-    case 'google':
-      results = await getGoogle(query, 0);
-      break;
     default:
-      return NextResponse.json({ error: 'Invalid source' }, { status: 400 });
+      return NextResponse.json({ error: 'Unsupported provider.' }, { status: 400 });
   }
-  return NextResponse.json(results, { status: 200 });
+
+  const responseTime = Date.now() - now;
+  
+  return NextResponse.json({ 
+    results, 
+    metadata: { 
+      provider: provider.toLowerCase(), 
+      query, 
+      responseTime: `${responseTime}ms`,
+      totalResults: results.length 
+    } 
+  });
 }

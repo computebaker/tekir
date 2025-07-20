@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis';
-
+import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
 
 async function brave(query: string, count: number = 4) {
     const url = `https://api.search.brave.com/res/v1/suggest/search?q=${query}&count=${count}`;
@@ -56,22 +55,26 @@ async function duck(query: string, count: number = 8) {
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
     const { provider } = await params;
-    if (isRedisConfigured) { // Only check token if Redis is configured
-        const sessionToken = req.cookies.get('session-token')?.value;
-        if (!sessionToken) {
-            return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
-        }
+    
+    // Check session token with Convex
+    const sessionToken = req.cookies.get('session-token')?.value;
+    if (!sessionToken) {
+        return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
+    }
+
+    try {
         const isValid = await isValidSessionToken(sessionToken);
         if (!isValid) {
             return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
         }
+
         const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
         if (!allowed) {
             console.warn(`Session token ${sessionToken} exceeded request limit for /api/autocomplete. Count: ${currentCount}`);
             return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429 });
         }
-    } else {
-        console.warn("Redis is not configured. Skipping session token validation and request counting for /api/autocomplete. This should be addressed in production.");
+    } catch (convexError) {
+        console.warn("Convex is not configured. Skipping session token validation and request counting for /api/autocomplete. This should be addressed in production.");
     }
     
     const query = req.nextUrl.searchParams.get('q');

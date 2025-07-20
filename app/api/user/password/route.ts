@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getJWTUser } from '@/lib/jwt-auth';
+import { getConvexClient } from '@/lib/convex-client';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { api } from '@/convex/_generated/api';
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
@@ -14,9 +14,9 @@ const passwordSchema = z.object({
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -26,18 +26,12 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { currentPassword, newPassword } = passwordSchema.parse(body);
 
-    // Get the user with their current password
-    const user = await prisma.user.findUnique({
-      where: {
-        id: session.user.id
-      },
-      select: {
-        id: true,
-        password: true
-      },
-    });
+    const convex = getConvexClient();
 
-    if (!user || !user.password) {
+    // Get the user with their current password
+    const userRecord = await convex.query(api.users.getUserById, { id: user.userId as any });
+
+    if (!userRecord || !userRecord.password) {
       return NextResponse.json(
         { error: 'User not found or password not set' },
         { status: 404 }
@@ -45,7 +39,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, userRecord.password);
     
     if (!isCurrentPasswordValid) {
       return NextResponse.json(
@@ -59,13 +53,9 @@ export async function PUT(request: NextRequest) {
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Update user password
-    await prisma.user.update({
-      where: {
-        id: session.user.id
-      },
-      data: {
-        password: hashedNewPassword
-      }
+    await convex.mutation(api.users.updateUser, {
+      id: user.userId as any, // Cast to Convex ID type
+      password: hashedNewPassword
     });
 
     return NextResponse.json(

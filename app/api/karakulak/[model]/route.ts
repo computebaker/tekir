@@ -2,7 +2,7 @@
 
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis';
+import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis-fallback';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',

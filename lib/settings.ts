@@ -1,4 +1,4 @@
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/auth-provider";
 import { useCallback, useEffect, useState } from "react";
 
 // Define the settings structure
@@ -278,31 +278,31 @@ export const settingsManager = new SettingsManager();
 
 // React hook for using settings
 export function useSettings() {
-  const { data: session, status } = useSession();
+  const { user, status } = useAuth();
   const [settings, setSettings] = useState<UserSettings>(() => settingsManager.getAll());
   const [syncEnabled, setSyncEnabledState] = useState(() => settingsManager.getSyncEnabled());
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Only initialize when session status is not loading
+    // Only initialize when auth status is not loading
     if (status === 'loading') {
-      console.log('useSettings: session still loading, waiting...');
+      console.log('useSettings: auth still loading, waiting...');
       return;
     }
 
     let pollInterval: NodeJS.Timeout | null = null;
 
-    // Initialize settings manager when session changes
+    // Initialize settings manager when user changes
     const initializeSettings = async () => {
-      console.log('useSettings initialization - session:', session?.user?.id, 'status:', status);
-      await settingsManager.initialize(session?.user?.id);
+      console.log('useSettings initialization - user:', user?.id, 'status:', status);
+      await settingsManager.initialize(user?.id);
       setIsInitialized(true);
 
       // Start polling every 10 minutes if sync is enabled and user is logged in
-      if (settingsManager.getSyncEnabled() && session?.user?.id) {
+      if (settingsManager.getSyncEnabled() && user?.id) {
         pollInterval = setInterval(async () => {
           console.log('Polling for latest settings from server...');
-          await settingsManager.initialize(session?.user?.id);
+          await settingsManager.initialize(user?.id);
         }, 600000); // 10 minutes
       }
     };
@@ -320,7 +320,7 @@ export function useSettings() {
       unsubscribe();
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [session?.user?.id, status]);
+  }, [user?.id, status]);
 
   const updateSetting = useCallback(async <K extends keyof UserSettings>(
     key: K,

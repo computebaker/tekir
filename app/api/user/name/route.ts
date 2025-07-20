@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getJWTUser } from '@/lib/jwt-auth';
+import { getConvexClient } from '@/lib/convex-client';
 import { z } from 'zod';
+import { api } from '@/convex/_generated/api';
 
 const nameSchema = z.object({
   name: z.string()
@@ -13,9 +13,9 @@ const nameSchema = z.object({
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user?.userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -25,18 +25,16 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { name } = nameSchema.parse(body);
 
+    const convex = getConvexClient();
+
     // Update user name (display name)
-    const updatedUser = await prisma.user.update({
-      where: {
-        id: session.user.id
-      },
-      data: {
-        name: name
-      }
+    await convex.mutation(api.users.updateUser, {
+      id: user.userId as any, // Cast to Convex ID type
+      name: name
     });
 
     return NextResponse.json(
-      { message: 'Name updated successfully', name: updatedUser.name },
+      { message: 'Name updated successfully', name: name },
       { status: 200 }
     );
 

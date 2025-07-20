@@ -1,33 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getJWTUser } from '@/lib/jwt-auth';
+import { getConvexClient } from '@/lib/convex-client';
 import { generateAvatarUrl } from '@/lib/avatar';
+import { api } from '@/convex/_generated/api';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    // Get the user to use their name/email for avatar generation
-    const user = await prisma.user.findUnique({
-      where: {
-        id: session.user.id
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true
-      },
-    });
+    const convex = getConvexClient();
 
-    if (!user) {
+    // Get the user to use their name/email for avatar generation
+    const userRecord = await convex.query(api.users.getUserById, { id: user.userId as any });
+
+    if (!userRecord) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -35,41 +28,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a new avatar URL with current timestamp to ensure uniqueness
-    const avatarSeed = `${user.name || user.email || 'User'}-${Date.now()}`;
+    const avatarSeed = `${userRecord.name || userRecord.email || 'User'}-${Date.now()}`;
     const newAvatarUrl = generateAvatarUrl(avatarSeed);
 
     // Update user avatar
-    const updatedUser = await prisma.user.update({
-      where: {
-        id: session.user.id
-      },
-      data: {
-        image: newAvatarUrl,
-        imageType: 'generated',
-        updatedAt: new Date()
-      },
-      select: {
-        id: true,
-        image: true,
-        imageType: true,
-        updatedAt: true
-      }
+    await convex.mutation(api.users.updateUser, {
+      id: user.userId as any,
+      image: newAvatarUrl,
+      imageType: 'generated'
     });
 
-    return NextResponse.json(
-      { 
-        message: 'Avatar regenerated successfully', 
-        avatar: updatedUser.image,
-        updatedAt: updatedUser.updatedAt
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: "Avatar regenerated successfully",
+      avatar: newAvatarUrl,
+      updatedAt: Date.now()
+    });
 
   } catch (error) {
     console.error('Avatar regeneration error:', error);
     
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to regenerate avatar' },
       { status: 500 }
     );
   }

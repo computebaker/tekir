@@ -1,11 +1,10 @@
 import { NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { prisma } from "./prisma";
+import { getConvexClient } from "@/lib/convex-client";
+import { api } from "@/convex/_generated/api";
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+export const authOptionsConvex: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -18,15 +17,22 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const convex = getConvexClient();
+
         // Determine if input is email or username
         const isEmail = credentials.emailOrUsername.includes("@");
         
         // Query user by email or username
-        const user = await prisma.user.findUnique({
-          where: isEmail 
-            ? { email: credentials.emailOrUsername }
-            : { username: credentials.emailOrUsername },
-        });
+        let user;
+        if (isEmail) {
+          user = await convex.query(api.users.getUserByEmail, { 
+            email: credentials.emailOrUsername 
+          });
+        } else {
+          user = await convex.query(api.users.getUserByUsername, { 
+            username: credentials.emailOrUsername 
+          });
+        }
 
         if (!user) {
           return null;
@@ -47,23 +53,23 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: user.id,
+          id: user._id,
           email: user.email,
           name: user.name,
           username: user.username,
           image: user.image,
           imageType: user.imageType,
-          updatedAt: user.updatedAt,
+          updatedAt: new Date(user.updatedAt),
         };
       },
     }),
-    ],
-    session: {
+  ],
+  session: {
     strategy: "jwt",
-    maxAge: 15 * 24 * 60 * 60,
-    updateAge: 5 * 60, 
-    },
-    callbacks: {
+    maxAge: 15 * 24 * 60 * 60, // 15 days
+    updateAge: 5 * 60, // 5 minutes
+  },
+  callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         return {

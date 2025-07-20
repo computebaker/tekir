@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useAuth } from "@/components/auth-provider";
 import Link from "next/link";
 import Image from "next/image";
 import { User, LogOut, LogIn, Settings, LucideIcon } from "lucide-react";
@@ -19,7 +19,7 @@ interface UserProfileProps {
 }
 
 export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = false }: UserProfileProps) {
-  const { data: session, status, update } = useSession();
+  const { user, status, signOut, updateUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarKey, setAvatarKey] = useState(Date.now()); // For forcing avatar refresh
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -37,18 +37,17 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
     };
   }, []);
 
-  // Force avatar refresh when session user data changes
+  // Force avatar refresh when user data changes
   useEffect(() => {
-    if (session?.user) {
+    if (user) {
       setAvatarKey(Date.now());
     }
-  }, [session?.user?.image, session?.user?.imageType, (session?.user as any)?.updatedAt]);
+  }, [user?.image]);
 
   // Link session to user when they log in
   useEffect(() => {
     const linkSession = async () => {
-      const userId = (session?.user as any)?.id;
-      if (userId) {
+      if (user?.id) {
         try {
           const response = await fetch('/api/session/link', {
             method: 'POST',
@@ -68,7 +67,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
     };
 
     linkSession();
-  }, [(session?.user as any)?.id]); // Run when user ID changes (login/logout)
+  }, [user?.id]); // Run when user ID changes (login/logout)
 
   if (status === "loading") {
     return (
@@ -76,7 +75,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
     );
   }
 
-  if (!session) {
+  if (status === "unauthenticated" || !user) {
     return (
       <div className="relative" ref={dropdownRef}>
         <button
@@ -98,39 +97,18 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0">
                   <User className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    Guest User
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    Welcome to Tekir ID
-                  </p>
+                <div>
+                  <p className="text-sm font-medium">Guest</p>
+                  <p className="text-xs text-muted-foreground">Not signed in</p>
                 </div>
               </div>
             </div>
             
-            {/* Mobile navigation items - only show on mobile */}
-            {mobileNavItems.length > 0 && (
-              <div className="py-1 md:hidden border-b border-border">
-                {mobileNavItems.map((item, index) => (
-                  <Link
-                    key={index}
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  >
-                    <item.icon className="w-4 h-4" />
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-            
-            <div className="py-1">
+            <div className="p-1">
               <Link
                 href="/auth/signin"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left"
                 onClick={() => setIsOpen(false)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <LogIn className="w-4 h-4" />
                 Sign in
@@ -148,118 +126,111 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
       >
-        <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted flex-shrink-0`}>
+        <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-border flex-shrink-0`}>
           <Image
-            key={`avatar-${session.user?.id}-${avatarKey}`}
+            key={`avatar-${user.id}-${avatarKey}`}
             src={getUserAvatarUrl({
-              id: session.user?.id,
-              image: session.user?.image,
-              imageType: (session.user as any)?.imageType,
-              email: session.user?.email,
-              name: session.user?.name,
-              updatedAt: (session.user as any)?.updatedAt
+              id: user.id,
+              image: user.image,
+              imageType: (user as any).imageType,
+              email: user.email,
+              name: user.name,
+              updatedAt: (user as any).updatedAt
             })}
-            alt={session.user?.name || "Profile"}
+            alt={user.name || "Profile"}
             width={showOnlyAvatar ? 40 : 32}
             height={showOnlyAvatar ? 40 : 32}
             className="w-full h-full object-cover"
-            unoptimized={true}
-            priority={false}
+            unoptimized
             onError={(e) => {
-              // Fallback to DiceBear avatar if image fails to load
               const target = e.target as HTMLImageElement;
-              const userId = (session.user as any)?.id;
-              target.src = userId 
-                ? generateAvatarUrl(userId, session.user?.email || undefined)
-                : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
+              const userId = user.id;
+              target.src = user.image
+                ? generateAvatarUrl(userId, user.email || undefined)
+                : generateInitialsAvatar(user.name || user.email || "User");
             }}
           />
         </div>
         {!showOnlyAvatar && (
-          <span className="hidden sm:block truncate">
-            {session.user?.name || "User"}
+          <span className="hidden sm:block truncate max-w-24">
+            {user.name || "User"}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-lg bg-background border border-border shadow-lg z-50">
-          <div className="p-3 border-b border-border">
+        <div className="absolute right-0 mt-2 w-64 rounded-lg bg-background border border-border shadow-lg z-50">
+          <div className="p-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted flex-shrink-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
                 <Image
-                  key={`dropdown-avatar-${session.user?.id}-${avatarKey}`}
+                  key={`dropdown-avatar-${user.id}-${avatarKey}`}
                   src={getUserAvatarUrl({
-                    id: session.user?.id,
-                    image: session.user?.image,
-                    imageType: (session.user as any)?.imageType,
-                    email: session.user?.email,
-                    name: session.user?.name,
-                    updatedAt: (session.user as any)?.updatedAt
+                    id: user.id,
+                    image: user.image,
+                    imageType: (user as any).imageType,
+                    email: user.email,
+                    name: user.name,
+                    updatedAt: (user as any).updatedAt
                   })}
-                  alt={session.user?.name || "Profile"}
-                  width={40}
-                  height={40}
+                  alt={user.name || "Profile"}
+                  width={48}
+                  height={48}
                   className="w-full h-full object-cover"
-                  unoptimized={true}
-                  priority={false}
+                  unoptimized
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    const userId = (session.user as any)?.id;
-                    target.src = userId 
-                      ? generateAvatarUrl(userId, session.user?.email || undefined)
-                      : generateInitialsAvatar(session.user?.name || session.user?.email || "User");
+                    const userId = user.id;
+                    target.src = user.image
+                      ? generateAvatarUrl(userId, user.email || undefined)
+                      : generateInitialsAvatar(user.name || user.email || "User");
                   }}
                 />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {session.user?.name}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {(session.user as any)?.username ? `@${(session.user as any)?.username}` : session.user?.email}
-                </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user.name || "User"}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                {!user.isEmailVerified && (
+                  <p className="text-xs text-amber-600 mt-1">Email not verified</p>
+                )}
               </div>
             </div>
           </div>
           
-          {/* Mobile navigation items - only show on mobile */}
-          {mobileNavItems.length > 0 && (
-            <div className="py-1 md:hidden border-b border-border">
-              {mobileNavItems.map((item, index) => (
-                <Link
-                  key={index}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          )}
-          
-          <div className="py-1">
+          <div className="p-1">
             <Link
               href="/settings/account"
+              className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left"
               onClick={() => setIsOpen(false)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <Settings className="w-4 h-4" />
               Account Settings
             </Link>
             
-            <button
-              onClick={() => {
-                signOut({ callbackUrl: "/" });
-                setIsOpen(false);
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign out
-            </button>
+            {mobileNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left sm:hidden"
+                onClick={() => setIsOpen(false)}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.label}
+              </Link>
+            ))}
+            
+            <div className="border-t border-border mt-1 pt-1">
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  signOut();
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left text-red-600 hover:text-red-700"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       )}

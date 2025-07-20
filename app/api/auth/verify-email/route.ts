@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prelude } from "@/lib/prelude";
-import { prisma } from "@/lib/prisma";
+import { getConvexClient } from "@/lib/convex-client";
 import { z } from "zod";
+import { api } from "@/convex/_generated/api";
 
 const verifyCodeSchema = z.object({
   email: z.string().email(),
@@ -13,10 +14,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, code } = verifyCodeSchema.parse(body);
 
+    const convex = getConvexClient();
+
     // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await convex.query(api.users.getUserByEmail, { email });
 
     if (!user) {
       return NextResponse.json(
@@ -49,16 +50,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark email as verified
-    const updatedUser = await prisma.user.update({
-      where: { email },
-      data: {
-        emailVerified: new Date(),
-      },
-    });
+    await convex.mutation(api.users.verifyEmail, { email });
 
-    // Return success response
     return NextResponse.json(
-      { message: "Email verified successfully", user: { id: updatedUser.id, email: updatedUser.email, emailVerified: updatedUser.emailVerified } },
+      { message: "Email verified successfully" },
       { status: 200 }
     );
   } catch (error) {
@@ -69,9 +64,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error("Verify code error:", error);
+    console.error("Email verification error:", error);
     return NextResponse.json(
-      { error: "Failed to verify code" },
+      { error: "Failed to verify email" },
       { status: 500 }
     );
   }

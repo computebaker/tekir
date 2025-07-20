@@ -2,6 +2,8 @@
 
 import { ThemeProvider } from "@/components/theme-provider";
 import AuthProvider from "@/components/auth-provider";
+import { ConvexProvider } from "convex/react";
+import convex from "@/lib/convex";
 import { useEffect } from 'react';
 import { prefetchBangs } from '@/utils/bangs';
 
@@ -59,7 +61,7 @@ export default function ClientLayout({
             });
             const result = await response.json();
             if (!response.ok || !result.success) {
-              console.error("Failed to register session token with Redis:", result.error || response.statusText);
+              console.error("Failed to register session token with Convex:", result.error || response.statusText);
               removeCookie('session-token'); // Clear cookie if registration failed
             } else {
               console.log("Session token registered via API:", sessionToken);
@@ -77,15 +79,17 @@ export default function ClientLayout({
   }, []);
 
   return (
-    <AuthProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        {children}
-      </ThemeProvider>
-    </AuthProvider>
+    <ConvexProvider client={convex}>
+      <AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </AuthProvider>
+    </ConvexProvider>
   );
 }

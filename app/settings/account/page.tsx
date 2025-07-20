@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useAuth } from "@/components/auth-provider";
 import { 
   ChevronDown, 
   Settings, 
@@ -27,6 +27,7 @@ import Image from "next/image";
 import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
 import ImageUpload from "@/components/image-upload";
 import { useSettings } from "@/lib/settings";
+import { useRouter } from "next/navigation";
 
 // Define mobile navigation items for settings
 const settingsMobileNavItems = [
@@ -48,13 +49,14 @@ const settingsMobileNavItems = [
 ];
 
 export default function AccountSettingsPage() {
-  const { data: session, status, update } = useSession();
+  const { user, status, signOut, updateUser, refreshUser } = useAuth();
   const { syncEnabled, toggleSync, isInitialized } = useSettings();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   // Debug logging
-  console.log('AccountSettingsPage - session:', session?.user?.id, 'status:', status);
+  console.log('AccountSettingsPage - user:', user?.id, 'status:', status);
   
   // Mobile settings dropdown state
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
@@ -79,16 +81,16 @@ export default function AccountSettingsPage() {
 
   const [avatarRefreshKey, setAvatarRefreshKey] = useState(Date.now());
 
-  // Load user data when session is available
+  // Load user data when user is available
   useEffect(() => {
-    if (session?.user) {
-      setEmail(session.user.email || "");
-      setName(session.user.name || "");
-      setUsername((session.user as any)?.username || "");
-      // Force avatar refresh when session changes
+    if (user) {
+      setEmail(user.email || "");
+      setName(user.name || "");
+      setUsername(user.username || "");
+      // Force avatar refresh when user changes
       setAvatarRefreshKey(Date.now());
     }
-  }, [session]);
+  }, [user]);
 
   // Auto-hide messages after 5 seconds
   useEffect(() => {
@@ -126,10 +128,13 @@ export default function AccountSettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
+        credentials: 'include'
       });
 
       if (response.ok) {
-        await update();
+        const data = await response.json();
+        // Refresh user data from backend to get the latest info
+        await refreshUser();
         setMessage({ type: 'success', text: 'Email updated successfully' });
       } else {
         const data = await response.json();
@@ -154,12 +159,13 @@ export default function AccountSettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim() }),
+        credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Update the session with the new name
-        await update({ name: data.name });
+        // Refresh user data from backend to get the latest info
+        await refreshUser();
         setMessage({ type: 'success', text: 'Name updated successfully' });
       } else {
         const data = await response.json();
@@ -184,12 +190,13 @@ export default function AccountSettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim() }),
+        credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Update the session with the new username
-        await update({ username: data.username });
+        // Refresh user data from backend to get the latest info
+        await refreshUser();
         setMessage({ type: 'success', text: 'Username updated successfully' });
       } else {
         const data = await response.json();
@@ -227,6 +234,7 @@ export default function AccountSettingsPage() {
           currentPassword, 
           newPassword 
         }),
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -248,22 +256,18 @@ export default function AccountSettingsPage() {
   const handleRegenerateAvatar = async () => {
     setIsRegeneratingAvatar(true);
     try {
-      const response = await fetch('/api/user/regenerate-avatar', {
+      const response = await fetch('/api/user/avatar/regenerate', {
         method: 'POST',
+        credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Update session with new avatar data
-        await update({ 
-          image: data.avatar,
-          imageType: 'generated',
-          updatedAt: data.updatedAt 
-        });
         
-        // Force a complete session refresh to ensure UI updates
-        setTimeout(async () => {
-          await update();
+        // Refresh user data from backend to get the latest avatar
+        await refreshUser();
+        
+        setTimeout(() => {
           setAvatarRefreshKey(Date.now());
         }, 100);
         
@@ -288,20 +292,16 @@ export default function AccountSettingsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ image: imageData }),
+        credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Update session with new avatar data
-        await update({ 
-          image: data.avatar,
-          imageType: 'uploaded',
-          updatedAt: data.updatedAt 
-        });
         
-        // Force a complete session refresh to ensure UI updates
-        setTimeout(async () => {
-          await update();
+        // Refresh user data from backend to get the latest avatar
+        await refreshUser();
+        
+        setTimeout(() => {
           setAvatarRefreshKey(Date.now());
         }, 100);
         
@@ -313,7 +313,7 @@ export default function AccountSettingsPage() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred while uploading';
       setMessage({ type: 'error', text: errorMessage });
-      throw error; // Re-throw to let ImageUpload component handle the error state
+      throw error;
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -324,11 +324,17 @@ export default function AccountSettingsPage() {
     try {
       const response = await fetch('/api/user/avatar/upload', {
         method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
-        const data = await response.json();
-        await update({ updatedAt: data.updatedAt });
+        // Refresh user data from backend to get the latest avatar state
+        await refreshUser();
+        
+        setTimeout(() => {
+          setAvatarRefreshKey(Date.now());
+        }, 100);
+        
         setMessage({ type: 'success', text: 'Profile picture removed successfully' });
       } else {
         const data = await response.json();
@@ -337,7 +343,7 @@ export default function AccountSettingsPage() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred while removing';
       setMessage({ type: 'error', text: errorMessage });
-      throw error; // Re-throw to let ImageUpload component handle the error state
+      throw error;
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -353,11 +359,12 @@ export default function AccountSettingsPage() {
     try {
       const response = await fetch('/api/user/delete', {
         method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
-        // Account deleted, redirect to home page
-        window.location.href = '/';
+        await signOut();
+        router.push('/');
       } else {
         const data = await response.json();
         setMessage({ type: 'error', text: data.error || 'Failed to delete account' });
@@ -391,12 +398,10 @@ export default function AccountSettingsPage() {
     } catch (error) {
       let errorMessage = 'An error occurred while toggling settings sync';
       
-      // Check if it's a user record not found error
       if (error instanceof Error && error.message.includes('User record not found')) {
         errorMessage = 'Your session is outdated. Please sign out and sign in again to continue.';
-        // Automatically trigger sign out after a delay to give user time to read the message
         setTimeout(() => {
-          signOut({ callbackUrl: '/auth/signin' });
+          signOut();
         }, 3000);
       }
       
@@ -415,7 +420,7 @@ export default function AccountSettingsPage() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -434,12 +439,12 @@ export default function AccountSettingsPage() {
   }
 
   const userAvatarUrl = getUserAvatarUrl({
-    id: session.user?.id,
-    image: session.user?.image,
-    imageType: (session.user as any)?.imageType,
-    email: session.user?.email,
-    name: session.user?.name,
-    updatedAt: (session.user as any)?.updatedAt || new Date().toISOString()
+    id: user.id,
+    image: user.image || user.avatar,
+    imageType: user.imageType,
+    email: user.email,
+    name: user.name,
+    updatedAt: user.updatedAt ? new Date(user.updatedAt) : undefined
   });
 
   return (
@@ -595,7 +600,7 @@ export default function AccountSettingsPage() {
 
               {/* Settings Cards */}
               <div className="space-y-6">
-                {/* Profile Information */}
+                {/* Profile Picture */}
                 <div className="rounded-lg border border-border bg-card p-6">
                   <h3 className="text-lg font-medium mb-6">Profile Picture</h3>
                   
@@ -652,7 +657,7 @@ export default function AccountSettingsPage() {
                         />
                         <button
                           onClick={handleEmailUpdate}
-                          disabled={isLoading || email === session.user?.email}
+                          disabled={isLoading || email === user?.email}
                           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           <Save className="w-4 h-4" />
@@ -685,7 +690,7 @@ export default function AccountSettingsPage() {
                         />
                         <button
                           onClick={handleNameUpdate}
-                          disabled={isLoading || name === session.user?.name}
+                          disabled={isLoading || name === user?.name}
                           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           <Save className="w-4 h-4" />
@@ -721,7 +726,7 @@ export default function AccountSettingsPage() {
                         </div>
                         <button
                           onClick={handleUsernameUpdate}
-                          disabled={isLoading || username === (session.user as any)?.username}
+                          disabled={isLoading || username === user?.username}
                           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           <Save className="w-4 h-4" />

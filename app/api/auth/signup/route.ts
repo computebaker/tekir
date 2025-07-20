@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+import { getConvexClient } from "@/lib/convex-client";
 import { generateAvatarUrl } from "@/lib/avatar";
 import { prelude } from "@/lib/prelude";
 import { z } from "zod";
+import { api } from "@/convex/_generated/api";
 
 const signupSchema = z.object({
   username: z.string().min(3).max(20),
@@ -16,19 +17,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { username, email, password } = signupSchema.parse(body);
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email },
-          { username },
-        ],
-      },
-    });
+    const convex = getConvexClient();
 
-    if (existingUser) {
+    // Check if user already exists by email
+    const existingUserByEmail = await convex.query(api.users.getUserByEmail, { email });
+    if (existingUserByEmail) {
       return NextResponse.json(
-        { error: "User with this email or username already exists" },
+        { error: "User with this email already exists" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already exists by username
+    const existingUserByUsername = await convex.query(api.users.getUserByUsername, { username });
+    if (existingUserByUsername) {
+      return NextResponse.json(
+        { error: "User with this username already exists" },
         { status: 400 }
       );
     }
@@ -36,26 +40,22 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user with random avatar
-    const user = await prisma.user.create({
-      data: {
-        username,
-        email,
-        password: hashedPassword,
-        name: username, // Use username as display name initially
-      },
+    // Create user
+    const userId = await convex.mutation(api.users.createUser, {
+      username,
+      email,
+      password: hashedPassword,
+      name: username, // Use username as display name initially
     });
 
-    // Generate avatar URL after user creation (so we have the ID)
-    const avatarUrl = generateAvatarUrl(user.id, user.email);
+    // Generate avatar URL after user creation
+    const avatarUrl = generateAvatarUrl(userId, email);
     
     // Update user with avatar
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: { 
-        image: avatarUrl,
-        imageType: 'generated'
-      },
+    await convex.mutation(api.users.updateUser, {
+      id: userId,
+      image: avatarUrl,
+      imageType: 'generated'
     });
 
     // Send verification email using Prelude
@@ -68,15 +68,20 @@ export async function POST(request: NextRequest) {
       });
 
       // Store verification ID in user record
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          emailVerificationToken: verification.id,
-        },
+      await convex.mutation(api.users.updateUser, {
+        id: userId,
+        emailVerificationToken: verification.id,
       });
     } catch (verificationError) {
       console.error("Failed to send verification email:", verificationError);
       // Continue with signup even if verification fails
+    }
+
+    // Get the updated user data
+    const updatedUser = await convex.query(api.users.getUserById, { id: userId });
+
+    if (!updatedUser) {
+      throw new Error("Failed to retrieve created user");
     }
 
     // Return user without password

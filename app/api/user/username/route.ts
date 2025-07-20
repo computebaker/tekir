@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getJWTUser } from '@/lib/jwt-auth';
+import { getConvexClient } from '@/lib/convex-client';
 import { z } from 'zod';
+import { api } from '@/convex/_generated/api';
 
 const usernameSchema = z.object({
   username: z.string()
@@ -14,9 +14,9 @@ const usernameSchema = z.object({
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -26,17 +26,12 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { username } = usernameSchema.parse(body);
 
-    // Check if username is already in use by another user
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        username: username,
-        id: {
-          not: session.user.id
-        }
-      },
-    });
+    const convex = getConvexClient();
 
-    if (existingUser) {
+    // Check if username is already in use by another user
+    const existingUser = await convex.query(api.users.getUserByUsername, { username });
+
+    if (existingUser && existingUser._id !== user.userId) {
       return NextResponse.json(
         { error: 'Username is already in use' },
         { status: 400 }
@@ -44,17 +39,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user username
-    const updatedUser = await prisma.user.update({
-      where: {
-        id: session.user.id
-      },
-      data: {
-        username: username
-      }
+    await convex.mutation(api.users.updateUser, {
+      id: user.userId as any, // Cast to Convex ID type
+      username: username
     });
 
     return NextResponse.json(
-      { message: 'Username updated successfully', username: updatedUser.username },
+      { message: 'Username updated successfully', username: username },
       { status: 200 }
     );
 
