@@ -20,7 +20,7 @@ export default function SignInPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/signin-convex", {
+      const response = await fetch("/api/auth/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
