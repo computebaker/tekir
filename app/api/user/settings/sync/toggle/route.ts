@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getJWTUser } from "@/lib/jwt-auth";
+import { getConvexClient } from "@/lib/convex-client";
+import { api } from "@/convex/_generated/api";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
     if (typeof enabled !== "boolean") {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
+
+    const convex = getConvexClient();
 
     const updateData: any = { 
       settingsSync: enabled,
@@ -26,21 +28,22 @@ export async function POST(request: NextRequest) {
       updateData.settings = null;
     }
 
-    const user = await prisma.user.update({
-      where: { id: session.user.id },
-      data: updateData,
-      select: { settingsSync: true, settings: true }
+    await convex.mutation(api.users.updateUser, {
+      id: user.userId as any,
+      ...updateData
     });
 
+    const updatedUser = await convex.query(api.users.getUserById, { id: user.userId as any });
+
     return NextResponse.json({
-      settingsSync: user.settingsSync,
-      settings: user.settings || {}
+      settingsSync: updatedUser?.settingsSync || false,
+      settings: updatedUser?.settings || {}
     });
   } catch (error) {
     console.error("Settings sync toggle error:", error);
     
     // Handle case where user doesn't exist in database but session is still valid
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+    if (error && typeof error === 'object' && 'message' in error && (error as any).message.includes('not found')) {
       return NextResponse.json({ 
         error: "User record not found. Please sign out and sign in again." 
       }, { status: 404 });

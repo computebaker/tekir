@@ -1,31 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getJWTUser } from "@/lib/jwt-auth";
+import { getConvexClient } from "@/lib/convex-client";
+import { api } from "@/convex/_generated/api";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { 
-        settingsSync: true,
-        settings: true 
-      }
-    });
+    const convex = getConvexClient();
 
-    if (!user) {
+    const userRecord = await convex.query(api.users.getUserById, { id: user.userId as any });
+
+    if (!userRecord) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json({
-      settingsSync: user.settingsSync,
-      settings: user.settings || {}
+      settingsSync: userRecord.settingsSync,
+      settings: userRecord.settings || {}
     });
   } catch (error) {
     console.error("Settings sync GET error:", error);
@@ -35,30 +31,29 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getJWTUser(request);
     
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { settings } = await request.json();
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { settingsSync: true }
-    });
+    const convex = getConvexClient();
 
-    if (!user) {
+    const userRecord = await convex.query(api.users.getUserById, { id: user.userId as any });
+
+    if (!userRecord) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (!user.settingsSync) {
+    if (!userRecord.settingsSync) {
       return NextResponse.json({ error: "Settings sync is disabled" }, { status: 403 });
     }
 
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { settings }
+    await convex.mutation(api.users.updateUser, {
+      id: user.userId as any,
+      settings
     });
 
     return NextResponse.json({ success: true });
