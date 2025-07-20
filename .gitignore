@@ -35,4 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# convex generated files (exclude)
+/convex/_generated/
+
+# old prisma migrations (cleanup)
 /prisma/migrations/*
