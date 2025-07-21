@@ -7,6 +7,7 @@ import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import Image from "next/image";
+import { useSettings } from "@/lib/settings";
 
 interface LocationData {
   lat: number;
@@ -76,19 +77,14 @@ const COUNTRIES = [
 ];
 
 export default function SearchSettingsPage() {
-  // State for all settings
-  const [karakulakEnabled, setKarakulakEnabled] = useState(true);
-  const [clim8Enabled, setClim8Enabled] = useState(true);
-  const [customWeatherLocation, setCustomWeatherLocation] = useState<LocationData | null>(null);
+  // Use the settings hook for centralized state management
+  const { settings, updateSetting, isInitialized, isSyncing, syncEnabled } = useSettings();
+  
+  // Local UI state
   const [weatherLocationQuery, setWeatherLocationQuery] = useState("");
   const [weatherLocationSuggestions, setWeatherLocationSuggestions] = useState<LocationData[]>([]);
   const [showWeatherLocationSuggestions, setShowWeatherLocationSuggestions] = useState(false);
-  const [weatherUnits, setWeatherUnits] = useState("metric");
   const [searchEngine] = useState("brave"); // Unchangeable
-  const [autocompleteSource, setAutocompleteSource] = useState("brave");
-  const [aiModel, setAiModel] = useState("gemini");
-  const [searchCountry, setSearchCountry] = useState("ALL");
-  const [safesearch, setSafesearch] = useState("moderate");
 
   // Dropdown states
   const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
@@ -107,60 +103,12 @@ export default function SearchSettingsPage() {
   const weatherUnitsDropdownRef = useRef<HTMLDivElement>(null);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const storedKarakulak = localStorage.getItem("karakulakEnabled");
-    if (storedKarakulak !== null) {
-      setKarakulakEnabled(storedKarakulak === "true");
-    }
-
-    const storedClim8 = localStorage.getItem("clim8Enabled");
-    if (storedClim8 !== null) {
-      setClim8Enabled(storedClim8 === "true");
-    }
-
-    const storedWeatherLocation = localStorage.getItem("customWeatherLocation");
-    if (storedWeatherLocation) {
-      try {
-        const location = JSON.parse(storedWeatherLocation);
-        setCustomWeatherLocation(location);
-      } catch (error) {
-        console.warn("Failed to parse stored weather location:", error);
-      }
-    }
-
-    const storedAutocomplete = localStorage.getItem("autocompleteSource");
-    if (storedAutocomplete) {
-      setAutocompleteSource(storedAutocomplete);
-    }
-
-    const storedModel = localStorage.getItem("aiModel");
-    if (storedModel) {
-      setAiModel(storedModel);
-    }
-
-    const storedCountry = localStorage.getItem("searchCountry");
-    if (storedCountry) {
-      setSearchCountry(storedCountry);
-    }
-
-    const storedSafesearch = localStorage.getItem("safesearch");
-    if (storedSafesearch) {
-      setSafesearch(storedSafesearch);
-    }
-
-    const storedWeatherUnits = localStorage.getItem("weatherUnits");
-    if (storedWeatherUnits) {
-      setWeatherUnits(storedWeatherUnits);
-    }
-  }, []);
-
   // Update query display when custom location changes
   useEffect(() => {
-    if (customWeatherLocation) {
-      setWeatherLocationQuery(`${customWeatherLocation.name}, ${customWeatherLocation.country}`);
+    if (settings.customWeatherLocation) {
+      setWeatherLocationQuery(`${settings.customWeatherLocation.name}, ${settings.customWeatherLocation.country}`);
     }
-  }, [customWeatherLocation]);
+  }, [settings.customWeatherLocation]);
 
   // Click outside handler
   useEffect(() => {
@@ -214,15 +162,13 @@ export default function SearchSettingsPage() {
 
   // Handlers for settings changes
   const handleKarakulakToggle = () => {
-    const newValue = !karakulakEnabled;
-    setKarakulakEnabled(newValue);
-    localStorage.setItem("karakulakEnabled", newValue.toString());
+    const newValue = !settings.karakulakEnabled;
+    updateSetting("karakulakEnabled", newValue);
   };
 
   const handleClim8Toggle = () => {
-    const newValue = !clim8Enabled;
-    setClim8Enabled(newValue);
-    localStorage.setItem("clim8Enabled", newValue.toString());
+    const newValue = !settings.clim8Enabled;
+    updateSetting("clim8Enabled", newValue);
   };
 
   // Weather location handlers
@@ -262,45 +208,38 @@ export default function SearchSettingsPage() {
   };
 
   const handleWeatherLocationSelect = (location: LocationData) => {
-    setCustomWeatherLocation(location);
+    updateSetting("customWeatherLocation", location);
     setWeatherLocationQuery(`${location.name}, ${location.country}`);
     setShowWeatherLocationSuggestions(false);
-    localStorage.setItem("customWeatherLocation", JSON.stringify(location));
   };
 
   const handleClearWeatherLocation = () => {
-    setCustomWeatherLocation(null);
+    updateSetting("customWeatherLocation", undefined);
     setWeatherLocationQuery("");
-    localStorage.removeItem("customWeatherLocation");
   };
 
   const handleAutocompleteChange = (source: string) => {
-    setAutocompleteSource(source);
-    localStorage.setItem("autocompleteSource", source);
+    updateSetting("autocompleteSource", source);
     setAutocompleteDropdownOpen(false);
   };
 
   const handleModelChange = (model: string) => {
-    setAiModel(model);
-    localStorage.setItem("aiModel", model);
+    updateSetting("aiModel", model);
     setModelDropdownOpen(false);
   };
 
   const handleCountryChange = (country: string) => {
-    setSearchCountry(country);
-    localStorage.setItem("searchCountry", country);
+    updateSetting("searchCountry", country);
     setCountryDropdownOpen(false);
   };
 
   const handleSafesearchChange = (safesearchValue: string) => {
-    setSafesearch(safesearchValue);
-    localStorage.setItem("safesearch", safesearchValue);
+    updateSetting("safesearch", safesearchValue);
     setSafesearchDropdownOpen(false);
   };
 
   const handleWeatherUnitsChange = (units: string) => {
-    setWeatherUnits(units);
-    localStorage.setItem("weatherUnits", units);
+    updateSetting("weatherUnits", units);
     setWeatherUnitsDropdownOpen(false);
   };
 
@@ -317,8 +256,8 @@ export default function SearchSettingsPage() {
     }
   };
 
-  const currentModel = getModelDisplay(aiModel);
-  const currentCountry = COUNTRIES.find(country => country.code === searchCountry) || COUNTRIES[0];
+  const currentModel = getModelDisplay(settings.aiModel || 'gemini');
+  const currentCountry = COUNTRIES.find(country => country.code === settings.searchCountry) || COUNTRIES[0];
 
   const getSafesearchDisplay = (value: string) => {
     switch (value) {
@@ -489,7 +428,12 @@ export default function SearchSettingsPage() {
                 <div className="rounded-lg border border-border bg-card p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-lg font-medium">Karakulak AI Mode</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-lg font-medium">Karakulak AI Mode</h4>
+                        {isSyncing && syncEnabled && (
+                          <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1">
                         Enable AI-powered responses for your search queries
                       </p>
@@ -499,18 +443,18 @@ export default function SearchSettingsPage() {
                         type="checkbox" 
                         id="karakulak-toggle" 
                         className="sr-only" 
-                        checked={karakulakEnabled}
+                        checked={settings.karakulakEnabled}
                         onChange={handleKarakulakToggle}
                       />
                       <label 
                         htmlFor="karakulak-toggle" 
                         className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                          karakulakEnabled ? 'bg-blue-500' : 'bg-muted'
+                          settings.karakulakEnabled ? 'bg-blue-500' : 'bg-muted'
                         }`}
                       >
                         <div
                           className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm ${
-                            karakulakEnabled ? "translate-x-6" : ""
+                            settings.karakulakEnabled ? "translate-x-6" : ""
                           }`}
                         />
                       </label>
@@ -519,7 +463,7 @@ export default function SearchSettingsPage() {
                 </div>
 
                 {/* AI Model Selection */}
-                {karakulakEnabled && (
+                {settings.karakulakEnabled && (
                   <div className="rounded-lg border border-border bg-card p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -552,7 +496,7 @@ export default function SearchSettingsPage() {
                               <button
                                 onClick={() => handleModelChange('llama')}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  aiModel === 'llama' ? 'bg-muted' : ''
+                                  settings.aiModel === 'llama' ? 'bg-muted' : ''
                                 }`}
                               >
                                 <Image src="/meta.png" alt="Meta Logo" width={24} height={24} className="rounded" />
@@ -560,7 +504,7 @@ export default function SearchSettingsPage() {
                                   <span className="font-medium text-sm">Llama 3.1 7B</span>
                                   <span className="text-xs text-muted-foreground text-left">A powerful and open-source model by Meta</span>
                                 </div>
-                                {aiModel === 'llama' && (
+                                {settings.aiModel === 'llama' && (
                                   <div className="w-2 h-2 bg-primary rounded-full"></div>
                                 )}
                               </button>
@@ -568,7 +512,7 @@ export default function SearchSettingsPage() {
                               <button
                                 onClick={() => handleModelChange('gemini')}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  aiModel === 'gemini' ? 'bg-muted' : ''
+                                  settings.aiModel === 'gemini' ? 'bg-muted' : ''
                                 }`}
                               >
                                 <Image src="/google.png" alt="Google Logo" width={24} height={24} className="rounded" />
@@ -576,7 +520,7 @@ export default function SearchSettingsPage() {
                                   <span className="font-medium text-sm">Gemini 2.0 Flash</span>
                                   <span className="text-xs text-muted-foreground text-left">A fast and intelligent model by Google</span>
                                 </div>
-                                {aiModel === 'gemini' && (
+                                {settings.aiModel === 'gemini' && (
                                   <div className="w-2 h-2 bg-primary rounded-full"></div>
                                 )}
                               </button>
@@ -584,7 +528,7 @@ export default function SearchSettingsPage() {
                               <button
                                 onClick={() => handleModelChange('chatgpt')}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  aiModel === 'chatgpt' ? 'bg-muted' : ''
+                                  settings.aiModel === 'chatgpt' ? 'bg-muted' : ''
                                 }`}
                               >
                                 <Image src="/openai.png" alt="OpenAI Logo" width={24} height={24} className="rounded" />
@@ -592,7 +536,7 @@ export default function SearchSettingsPage() {
                                   <span className="font-medium text-sm">GPT 4o-mini</span>
                                   <span className="text-xs text-muted-foreground text-left">Powerful, efficient model by OpenAI</span>
                                 </div>
-                                {aiModel === 'chatgpt' && (
+                                {settings.aiModel === 'chatgpt' && (
                                   <div className="w-2 h-2 bg-primary rounded-full"></div>
                                 )}
                               </button>
@@ -600,7 +544,7 @@ export default function SearchSettingsPage() {
                               <button
                                 onClick={() => handleModelChange('mistral')}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  aiModel === 'mistral' ? 'bg-muted' : ''
+                                  settings.aiModel === 'mistral' ? 'bg-muted' : ''
                                 }`}
                               >
                                 <Image src="/mistral.png" alt="Mistral Logo" width={24} height={24} className="rounded" />
@@ -608,7 +552,7 @@ export default function SearchSettingsPage() {
                                   <span className="font-medium text-sm">Mistral Nemo</span>
                                   <span className="text-xs text-muted-foreground text-left">A lightweight and efficient model by Mistral AI</span>
                                 </div>
-                                {aiModel === 'mistral' && (
+                                {settings.aiModel === 'mistral' && (
                                   <div className="w-2 h-2 bg-primary rounded-full"></div>
                                 )}
                               </button>
@@ -647,18 +591,18 @@ export default function SearchSettingsPage() {
                     type="checkbox" 
                     id="clim8-toggle" 
                     className="sr-only" 
-                    checked={clim8Enabled}
+                    checked={settings.clim8Enabled}
                     onChange={handleClim8Toggle}
                   />
                   <label 
                     htmlFor="clim8-toggle" 
                     className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                      clim8Enabled ? 'bg-blue-500' : 'bg-muted'
+                      settings.clim8Enabled ? 'bg-blue-500' : 'bg-muted'
                     }`}
                   >
                     <div
                       className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm ${
-                        clim8Enabled ? "translate-x-6" : ""
+                        settings.clim8Enabled ? "translate-x-6" : ""
                       }`}
                     />
                   </label>
@@ -667,7 +611,7 @@ export default function SearchSettingsPage() {
             </div>
 
             {/* Custom Weather Location */}
-            {clim8Enabled && (
+            {settings.clim8Enabled && (
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="space-y-4">
                   <div>
@@ -688,7 +632,7 @@ export default function SearchSettingsPage() {
                         onFocus={() => setShowWeatherLocationSuggestions(true)}
                         className="w-full pl-10 pr-10 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
-                      {customWeatherLocation && (
+                      {settings.customWeatherLocation && (
                         <button
                           onClick={handleClearWeatherLocation}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
@@ -714,11 +658,11 @@ export default function SearchSettingsPage() {
                       </div>
                     )}
                     
-                    {customWeatherLocation && (
+                    {settings.customWeatherLocation && (
                       <div className="mt-2 p-2 bg-muted rounded-md flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-muted-foreground" />
                         <span className="text-sm">
-                          Selected: {customWeatherLocation.name}, {customWeatherLocation.country}
+                          Selected: {settings.customWeatherLocation.name}, {settings.customWeatherLocation.country}
                         </span>
                       </div>
                     )}
@@ -728,7 +672,7 @@ export default function SearchSettingsPage() {
             )}
 
             {/* Weather Units */}
-            {clim8Enabled && (
+            {settings.clim8Enabled && (
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -743,7 +687,7 @@ export default function SearchSettingsPage() {
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
                     >
                       <span className="text-sm font-medium capitalize">
-                        {weatherUnits === 'metric' ? 'Metric (°C)' : 'Imperial (°F)'}
+                        {settings.weatherUnits === 'metric' ? 'Metric (°C)' : 'Imperial (°F)'}
                       </span>
                       <ChevronDown className={`w-4 h-4 transition-transform ${weatherUnitsDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
@@ -754,14 +698,14 @@ export default function SearchSettingsPage() {
                           <button
                             onClick={() => handleWeatherUnitsChange('metric')}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                              weatherUnits === 'metric' ? 'bg-muted' : ''
+                              settings.weatherUnits === 'metric' ? 'bg-muted' : ''
                             }`}
                           >
                             <div className="flex flex-col items-start flex-1">
                               <span className="font-medium text-sm">Metric</span>
                               <span className="text-xs text-muted-foreground">°C, km/h, mm</span>
                             </div>
-                            {weatherUnits === 'metric' && (
+                            {settings.weatherUnits === 'metric' && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </button>
@@ -769,14 +713,14 @@ export default function SearchSettingsPage() {
                           <button
                             onClick={() => handleWeatherUnitsChange('imperial')}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                              weatherUnits === 'imperial' ? 'bg-muted' : ''
+                              settings.weatherUnits === 'imperial' ? 'bg-muted' : ''
                             }`}
                           >
                             <div className="flex flex-col items-start flex-1">
                               <span className="font-medium text-sm">Imperial</span>
                               <span className="text-xs text-muted-foreground">°F, mph, in</span>
                             </div>
-                            {weatherUnits === 'imperial' && (
+                            {settings.weatherUnits === 'imperial' && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </button>
@@ -831,7 +775,7 @@ export default function SearchSettingsPage() {
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
                   >
                     <span className="text-sm font-medium">
-                      {autocompleteSource === "brave" ? "Brave" : "DuckDuckGo"}
+                      {settings.autocompleteSource === "brave" ? "Brave" : "DuckDuckGo"}
                     </span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${autocompleteDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -842,11 +786,11 @@ export default function SearchSettingsPage() {
                         <button
                           onClick={() => handleAutocompleteChange('brave')}
                           className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-muted transition-colors ${
-                            autocompleteSource === "brave" ? "bg-muted" : ""
+                            settings.autocompleteSource === "brave" ? "bg-muted" : ""
                           }`}
                         >
                           <div className="w-4 h-4 flex items-center justify-center">
-                            {autocompleteSource === "brave" && (
+                            {settings.autocompleteSource === "brave" && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </div>
@@ -856,11 +800,11 @@ export default function SearchSettingsPage() {
                         <button
                           onClick={() => handleAutocompleteChange('duck')}
                           className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-muted transition-colors ${
-                            autocompleteSource === "duck" ? "bg-muted" : ""
+                            settings.autocompleteSource === "duck" ? "bg-muted" : ""
                           }`}
                         >
                           <div className="w-4 h-4 flex items-center justify-center">
-                            {autocompleteSource === "duck" && (
+                            {settings.autocompleteSource === "duck" && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </div>
@@ -899,14 +843,14 @@ export default function SearchSettingsPage() {
                             key={country.code}
                             onClick={() => handleCountryChange(country.code)}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                              searchCountry === country.code ? 'bg-muted' : ''
+                              settings.searchCountry === country.code ? 'bg-muted' : ''
                             }`}
                           >
                             <div className="flex flex-col items-start flex-1">
                               <span className="font-medium text-sm">{country.name}</span>
                               <span className="text-xs text-muted-foreground">{country.code}</span>
                             </div>
-                            {searchCountry === country.code && (
+                            {settings.searchCountry === country.code && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </button>
@@ -932,7 +876,7 @@ export default function SearchSettingsPage() {
                     onClick={() => setSafesearchDropdownOpen(!safesearchDropdownOpen)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
                   >
-                    <span className="text-sm font-medium">{getSafesearchDisplay(safesearch)}</span>
+                    <span className="text-sm font-medium">{getSafesearchDisplay(settings.safesearch || 'moderate')}</span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${safesearchDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
@@ -942,14 +886,14 @@ export default function SearchSettingsPage() {
                         <button
                           onClick={() => handleSafesearchChange('off')}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                            safesearch === 'off' ? 'bg-muted' : ''
+                            settings.safesearch === 'off' ? 'bg-muted' : ''
                           }`}
                         >
                           <div className="flex flex-col items-start flex-1">
                             <span className="font-medium text-sm">Off</span>
                             <span className="text-xs text-muted-foreground">Show all results</span>
                           </div>
-                          {safesearch === 'off' && (
+                          {settings.safesearch === 'off' && (
                             <div className="w-2 h-2 bg-primary rounded-full"></div>
                           )}
                         </button>
@@ -957,14 +901,14 @@ export default function SearchSettingsPage() {
                         <button
                           onClick={() => handleSafesearchChange('moderate')}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                            safesearch === 'moderate' ? 'bg-muted' : ''
+                            settings.safesearch === 'moderate' ? 'bg-muted' : ''
                           }`}
                         >
                           <div className="flex flex-col items-start flex-1">
                             <span className="font-medium text-sm">Moderate</span>
                             <span className="text-xs text-muted-foreground">Filter explicit content</span>
                           </div>
-                          {safesearch === 'moderate' && (
+                          {settings.safesearch === 'moderate' && (
                             <div className="w-2 h-2 bg-primary rounded-full"></div>
                           )}
                         </button>
@@ -972,14 +916,14 @@ export default function SearchSettingsPage() {
                         <button
                           onClick={() => handleSafesearchChange('strict')}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                            safesearch === 'strict' ? 'bg-muted' : ''
+                            settings.safesearch === 'strict' ? 'bg-muted' : ''
                           }`}
                         >
                           <div className="flex flex-col items-start flex-1">
                             <span className="font-medium text-sm">Strict</span>
                             <span className="text-xs text-muted-foreground">Maximum filtering</span>
                           </div>
-                          {safesearch === 'strict' && (
+                          {settings.safesearch === 'strict' && (
                             <div className="w-2 h-2 bg-primary rounded-full"></div>
                           )}
                         </button>
@@ -995,7 +939,16 @@ export default function SearchSettingsPage() {
 
               {/* Footer Note */}
               <div className="text-center text-sm text-muted-foreground">
-                <p>Settings are automatically saved to your local storage.</p>
+                {isSyncing && syncEnabled ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p>Syncing settings to server...</p>
+                  </div>
+                ) : syncEnabled ? (
+                  <p>Settings are automatically saved and synced across devices.</p>
+                ) : (
+                  <p>Settings are automatically saved to your local storage.</p>
+                )}
               </div>
             </div>
           </main>

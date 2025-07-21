@@ -59,6 +59,7 @@ class SettingsManager {
   private listeners: Set<() => void> = new Set();
   private syncEnabled = false;
   private userId: string | null = null;
+  private isSyncing = false;
 
   async initialize(userId?: string | null) {
     // Always re-initialize if userId changes, even if already initialized
@@ -162,6 +163,9 @@ class SettingsManager {
   private async syncToServer() {
     if (!this.syncEnabled || !this.userId) return;
     
+    this.isSyncing = true;
+    this.notifyListeners();
+    
     try {
       await fetch('/api/user/settings/sync', {
         method: 'POST',
@@ -172,6 +176,10 @@ class SettingsManager {
       });
     } catch (error) {
       console.error('Failed to sync settings to server:', error);
+      throw error; // Re-throw so the caller can handle it
+    } finally {
+      this.isSyncing = false;
+      this.notifyListeners();
     }
   }
 
@@ -185,17 +193,23 @@ class SettingsManager {
   }
 
   async set<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
+    // Immediately update settings in memory
     this.settings[key] = value;
     
-    // Save to localStorage
+    // Immediately save to localStorage for offline access
     this.saveToLocalStorage();
     
-    // Sync to server if enabled
-    if (this.syncEnabled) {
-      await this.syncToServer();
-    }
-    
+    // Immediately notify all listeners to update UI
     this.notifyListeners();
+    
+    // Sync to server in background (non-blocking)
+    if (this.syncEnabled) {
+      // Don't await - let it happen in background
+      this.syncToServer().catch(error => {
+        console.error('Background sync failed:', error);
+        // Could implement retry logic or show a toast notification here
+      });
+    }
   }
 
   async setSyncEnabled(enabled: boolean) {
@@ -254,6 +268,10 @@ class SettingsManager {
     return this.syncEnabled;
   }
 
+  getIsSyncing(): boolean {
+    return this.isSyncing;
+  }
+
   subscribe(listener: () => void) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -281,6 +299,7 @@ export function useSettings() {
   const { user, status } = useAuth();
   const [settings, setSettings] = useState<UserSettings>(() => settingsManager.getAll());
   const [syncEnabled, setSyncEnabledState] = useState(() => settingsManager.getSyncEnabled());
+  const [isSyncing, setIsSyncing] = useState(() => settingsManager.getIsSyncing());
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -314,6 +333,7 @@ export function useSettings() {
     const unsubscribe = settingsManager.subscribe(() => {
       setSettings(settingsManager.getAll());
       setSyncEnabledState(settingsManager.getSyncEnabled());
+      setIsSyncing(settingsManager.getIsSyncing());
     });
 
     return () => {
@@ -336,6 +356,7 @@ export function useSettings() {
   return {
     settings,
     syncEnabled,
+    isSyncing,
     isInitialized,
     updateSetting,
     toggleSync,

@@ -159,10 +159,10 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 rounded-lg bg-background border border-border shadow-lg z-50">
-          <div className="p-4 border-b border-border">
+        <div className="absolute right-0 mt-2 w-56 rounded-lg bg-background border border-border shadow-lg z-50">
+          <div className="p-3 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
                 <Image
                   key={`dropdown-avatar-${user.id}-${avatarKey}`}
                   src={getUserAvatarUrl({
@@ -174,8 +174,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                     updatedAt: (user as any).updatedAt
                   })}
                   alt={user.name || "Profile"}
-                  width={48}
-                  height={48}
+                  width={40}
+                  height={40}
                   className="w-full h-full object-cover"
                   unoptimized
                   onError={(e) => {
@@ -189,10 +189,9 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user.name || "User"}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                {!user.isEmailVerified && (
-                  <p className="text-xs text-amber-600 mt-1">Email not verified</p>
-                )}
+                <p className="text-xs text-muted-foreground truncate">
+                  @{(user as any).username || user.email?.split('@')[0] || "user"}
+                </p>
               </div>
             </div>
           </div>
