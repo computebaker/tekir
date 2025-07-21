@@ -11,6 +11,7 @@ import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
 import { handleBangRedirect } from "@/utils/bangs";
 import { fetchWithSessionRefreshAndCache, SearchCache } from "@/lib/cache";
+import { apiEndpoints } from "@/lib/migration-config";
 
 // Define mobile navigation items
 const mobileNavItems = [
@@ -175,6 +176,8 @@ function SearchPageContent() {
 
   useEffect(() => {
     const currentQuery = searchParams.get("q") || "";
+    console.log(`Search useEffect triggered - query: "${currentQuery}"`);
+    
     if (!currentQuery) {
       setResults([]);
       setLoading(false);
@@ -190,7 +193,10 @@ function SearchPageContent() {
     const engineToUse = storedEngine;
 
     const fetchRegularSearch = async () => {
+      console.log(`fetchRegularSearch called for query: "${currentQuery}"`);
+      
       const doFetch = async (engine: string) => {
+        console.log(`doFetch called for engine: ${engine}`);
         try {
           // Get user preferences from localStorage
           const storedCountry = localStorage.getItem("searchCountry") || "ALL";
@@ -203,8 +209,11 @@ function SearchPageContent() {
             safesearch: storedSafesearch
           });
           
+          const apiUrl = `${apiEndpoints.search.pars(engine)}?${searchParams}`;
+          console.log(`Making search request to: ${apiUrl}`);
+          
           const response = await fetchWithSessionRefreshAndCache(
-            `/api/pars/${engine}?${searchParams}`,
+            apiUrl,
             undefined,
             {
               searchType: 'search',
@@ -240,6 +249,7 @@ function SearchPageContent() {
       }
     };
 
+    console.log(`Setting timeout to call fetchRegularSearch in 1200ms for query: "${currentQuery}"`);
     const timerId = setTimeout(fetchRegularSearch, 1200);
 
     return () => {
