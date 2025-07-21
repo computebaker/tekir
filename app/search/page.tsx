@@ -228,7 +228,8 @@ function SearchPageContent() {
           if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
           const searchData = await response.json();
           if (isMounted) {
-            setResults(searchData);
+            const resultsArray = searchData.results || [];
+            setResults(resultsArray);
             setSearchEngine(engine); 
           }
           return true;
