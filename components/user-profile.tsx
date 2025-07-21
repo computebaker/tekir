@@ -44,31 +44,6 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
     }
   }, [user?.image]);
 
-  // Link session to user when they log in
-  useEffect(() => {
-    const linkSession = async () => {
-      if (user?.id) {
-        try {
-          const response = await fetch('/api/session/link', {
-            method: 'POST',
-            credentials: 'include',
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Session linked to user:', data);
-          } else {
-            console.warn('Failed to link session to user');
-          }
-        } catch (error) {
-          console.error('Error linking session to user:', error);
-        }
-      }
-    };
-
-    linkSession();
-  }, [user?.id]); // Run when user ID changes (login/logout)
-
   if (status === "loading") {
     return (
       <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-muted animate-pulse flex-shrink-0`}></div>

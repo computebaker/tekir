@@ -34,8 +34,13 @@ export default function SignInPage() {
       const data = await response.json();
 
       if (response.ok) {
-        router.push("/");
-        router.refresh();
+        // Dispatch custom event to notify AuthProvider of successful login
+        window.dispatchEvent(new CustomEvent('auth-login'));
+        
+        // Small delay to allow AuthProvider to update before redirect
+        setTimeout(() => {
+          router.push("/");
+        }, 100);
       } else {
         setError(data.error || "Invalid credentials");
       }

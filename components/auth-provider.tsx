@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 
 interface User {
   id: string;
@@ -21,6 +21,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
+  checkAuthStatus: (force?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,13 +37,25 @@ export function useAuth() {
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+  const isCheckingRef = useRef(false); // Use ref instead of state to prevent re-renders
+  const lastCheckTimeRef = useRef(0); // Track last check time to prevent spam
 
-  useEffect(() => {
-    // Check for existing session on mount
-    checkAuthStatus();
-  }, []);
+  const checkAuthStatus = useCallback(async (force = false) => {
+    // Prevent multiple simultaneous auth checks
+    if (isCheckingRef.current) {
+      console.log('AuthProvider: Auth check already in progress, skipping...');
+      return;
+    }
 
-  const checkAuthStatus = async () => {
+    // Throttle calls - don't check more than once every 30 seconds unless forced
+    const now = Date.now();
+    if (!force && now - lastCheckTimeRef.current < 30000) {
+      console.log(`AuthProvider: Auth check throttled, last check was ${Math.round((now - lastCheckTimeRef.current) / 1000)}s ago, skipping...`);
+      return;
+    }
+
+    isCheckingRef.current = true;
+    lastCheckTimeRef.current = now;
     try {
       console.log('AuthProvider: Checking JWT auth status...');
       
@@ -60,9 +73,26 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         
         if (authData.authenticated && authData.user) {
           console.log('AuthProvider: User authenticated via JWT:', authData.user);
-          setUser({
+          const newUser = {
             ...authData.user,
             isEmailVerified: true // JWT users are already verified
+          };
+          
+          // Only update user if the data has actually changed
+          setUser(prevUser => {
+            if (!prevUser || 
+                prevUser.id !== newUser.id ||
+                prevUser.email !== newUser.email ||
+                prevUser.name !== newUser.name ||
+                prevUser.username !== newUser.username ||
+                prevUser.image !== newUser.image ||
+                prevUser.imageType !== newUser.imageType ||
+                (prevUser as any).updatedAt !== (newUser as any).updatedAt) {
+              console.log('AuthProvider: User data changed, updating...');
+              return newUser;
+            }
+            console.log('AuthProvider: User data unchanged, keeping current user object');
+            return prevUser;
           });
           setStatus("authenticated");
         } else {
@@ -84,8 +114,39 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       console.error('JWT auth check failed:', error);
       setUser(null);
       setStatus("unauthenticated");
+    } finally {
+      isCheckingRef.current = false;
     }
-  };
+  }, []); // No dependencies to prevent recreation
+
+  useEffect(() => {
+    // Check for existing session on mount only - force this initial check
+    checkAuthStatus(true);
+
+    // Listen for custom authentication events only
+    const handleAuthLogin = () => {
+      console.log('AuthProvider: Login event received, re-checking status...');
+      // Force immediate check on login
+      checkAuthStatus(true);
+    };
+
+    const handleAuthLogout = () => {
+      console.log('AuthProvider: Logout event received');
+      // No need to check status, just clear everything
+      removeCookie('auth-token');
+      removeCookie('session-token');
+      setUser(null);
+      setStatus("unauthenticated");
+    };
+
+    window.addEventListener('auth-login', handleAuthLogin);
+    window.addEventListener('auth-logout', handleAuthLogout);
+
+    return () => {
+      window.removeEventListener('auth-login', handleAuthLogin);
+      window.removeEventListener('auth-logout', handleAuthLogout);
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   const signOut = async () => {
     try {
@@ -102,17 +163,33 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       removeCookie('session-token');
       setUser(null);
       setStatus("unauthenticated");
+      
       window.location.href = '/';
     }
   };
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = useCallback((userData: Partial<User>) => {
     if (user) {
       setUser({ ...user, ...userData });
     }
-  };
+  }, [user]);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
+    // Prevent multiple simultaneous refresh calls
+    if (isCheckingRef.current) {
+      console.log('AuthProvider: Auth check in progress, skipping refresh...');
+      return;
+    }
+
+    // Throttle calls - don't refresh more than once every 10 seconds
+    const now = Date.now();
+    if (now - lastCheckTimeRef.current < 10000) {
+      console.log(`AuthProvider: Refresh throttled, last check was ${Math.round((now - lastCheckTimeRef.current) / 1000)}s ago, skipping...`);
+      return;
+    }
+
+    isCheckingRef.current = true;
+    lastCheckTimeRef.current = now;
     try {
       console.log('AuthProvider: Refreshing user data from backend...');
       
@@ -127,21 +204,41 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         console.log('AuthProvider: Fresh user data:', authData.user);
         
         if (authData.authenticated && authData.user) {
-          setUser({
+          const newUser = {
             ...authData.user,
             isEmailVerified: true
+          };
+          
+          // Only update user if the data has actually changed
+          setUser(prevUser => {
+            if (!prevUser || 
+                prevUser.id !== newUser.id ||
+                prevUser.email !== newUser.email ||
+                prevUser.name !== newUser.name ||
+                prevUser.username !== newUser.username ||
+                prevUser.image !== newUser.image ||
+                prevUser.imageType !== newUser.imageType ||
+                (prevUser as any).updatedAt !== (newUser as any).updatedAt) {
+              console.log('AuthProvider: Fresh user data changed, updating...');
+              return newUser;
+            }
+            console.log('AuthProvider: Fresh user data unchanged, keeping current user object');
+            return prevUser;
           });
+          setStatus("authenticated");
         }
       } else {
         console.log('AuthProvider: Failed to refresh user data');
       }
     } catch (error) {
       console.error('AuthProvider: Error refreshing user data:', error);
+    } finally {
+      isCheckingRef.current = false;
     }
-  };
+  }, []); // No dependencies to prevent recreation
 
   return (
-    <AuthContext.Provider value={{ user, status, signOut, updateUser, refreshUser }}>
+    <AuthContext.Provider value={{ user, status, signOut, updateUser, refreshUser, checkAuthStatus }}>
       {children}
     </AuthContext.Provider>
   );

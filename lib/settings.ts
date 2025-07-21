@@ -289,6 +289,15 @@ class SettingsManager {
     }
     return String(value ?? '');
   }
+
+  // Method to update settings from server without full re-initialization
+  updateSettingsFromServer(serverSettings: UserSettings) {
+    const mergedSettings = { ...DEFAULT_SETTINGS, ...serverSettings };
+    this.settings = mergedSettings;
+    this.saveToLocalStorage();
+    this.notifyListeners();
+    console.log('Settings updated from server polling');
+  }
 }
 
 // Global settings manager instance
@@ -301,11 +310,18 @@ export function useSettings() {
   const [syncEnabled, setSyncEnabledState] = useState(() => settingsManager.getSyncEnabled());
   const [isSyncing, setIsSyncing] = useState(() => settingsManager.getIsSyncing());
   const [isInitialized, setIsInitialized] = useState(false);
+  const [lastInitializedUserId, setLastInitializedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     // Only initialize when auth status is not loading
     if (status === 'loading') {
       console.log('useSettings: auth still loading, waiting...');
+      return;
+    }
+
+    // Only re-initialize if the user ID actually changed
+    if (lastInitializedUserId === user?.id) {
+      console.log('useSettings: user ID unchanged, skipping re-initialization');
       return;
     }
 
@@ -316,12 +332,24 @@ export function useSettings() {
       console.log('useSettings initialization - user:', user?.id, 'status:', status);
       await settingsManager.initialize(user?.id);
       setIsInitialized(true);
+      setLastInitializedUserId(user?.id || null);
 
       // Start polling every 10 minutes if sync is enabled and user is logged in
       if (settingsManager.getSyncEnabled() && user?.id) {
         pollInterval = setInterval(async () => {
           console.log('Polling for latest settings from server...');
-          await settingsManager.initialize(user?.id);
+          // Just refresh settings, don't re-initialize completely
+          try {
+            const response = await fetch('/api/user/settings/sync');
+            if (response.ok) {
+              const data = await response.json();
+              if (data.settings) {
+                settingsManager.updateSettingsFromServer(data.settings);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to poll settings:', error);
+          }
         }, 600000); // 10 minutes
       }
     };
@@ -340,7 +368,7 @@ export function useSettings() {
       unsubscribe();
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [user?.id, status]);
+  }, [user?.id, status, lastInitializedUserId]); 
 
   const updateSetting = useCallback(async <K extends keyof UserSettings>(
     key: K,
