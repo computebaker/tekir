@@ -1,5 +1,6 @@
 import { useAuth } from "@/components/auth-provider";
 import { useCallback, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 
 // Define the settings structure
 export interface UserSettings {
@@ -184,6 +185,7 @@ class SettingsManager {
   }
 
   private notifyListeners() {
+    console.log(`Settings notifyListeners called, ${this.listeners.size} listeners`);
     this.listeners.forEach(listener => listener());
   }
 
@@ -193,22 +195,29 @@ class SettingsManager {
   }
 
   async set<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
+    console.log(`SettingsManager.set called: ${String(key)} = ${value}`);
+    
     // Immediately update settings in memory
     this.settings[key] = value;
+    console.log(`Settings updated in memory: ${String(key)} = ${this.settings[key]}`);
     
     // Immediately save to localStorage for offline access
     this.saveToLocalStorage();
+    console.log('Settings saved to localStorage');
     
     // Immediately notify all listeners to update UI
     this.notifyListeners();
+    console.log('Listeners notified');
     
     // Sync to server in background (non-blocking)
     if (this.syncEnabled) {
+      console.log('Starting background sync to server...');
       // Don't await - let it happen in background
       this.syncToServer().catch(error => {
         console.error('Background sync failed:', error);
-        // Could implement retry logic or show a toast notification here
       });
+    } else {
+      console.log('Sync disabled, skipping server sync');
     }
   }
 
@@ -311,6 +320,7 @@ export function useSettings() {
   const [isSyncing, setIsSyncing] = useState(() => settingsManager.getIsSyncing());
   const [isInitialized, setIsInitialized] = useState(false);
   const [lastInitializedUserId, setLastInitializedUserId] = useState<string | null>(null);
+  const [forceUpdateCounter, setForceUpdateCounter] = useState(0);
 
   useEffect(() => {
     // Only initialize when auth status is not loading
@@ -359,9 +369,12 @@ export function useSettings() {
 
     // Subscribe to settings changes
     const unsubscribe = settingsManager.subscribe(() => {
-      setSettings(settingsManager.getAll());
-      setSyncEnabledState(settingsManager.getSyncEnabled());
-      setIsSyncing(settingsManager.getIsSyncing());
+      flushSync(() => {
+        setSettings(settingsManager.getAll());
+        setSyncEnabledState(settingsManager.getSyncEnabled());
+        setIsSyncing(settingsManager.getIsSyncing());
+        setForceUpdateCounter(prev => prev + 1);
+      });
     });
 
     return () => {
@@ -375,6 +388,11 @@ export function useSettings() {
     value: UserSettings[K]
   ) => {
     await settingsManager.set(key, value);
+    // Force immediate synchronous update to ensure UI reactivity
+    flushSync(() => {
+      setSettings(settingsManager.getAll());
+      setForceUpdateCounter(prev => prev + 1);
+    });
   }, []);
 
   const toggleSync = useCallback(async (enabled: boolean) => {

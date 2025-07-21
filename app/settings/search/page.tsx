@@ -161,14 +161,14 @@ export default function SearchSettingsPage() {
   }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions, weatherUnitsDropdownOpen]);
 
   // Handlers for settings changes
-  const handleKarakulakToggle = () => {
+  const handleKarakulakToggle = async () => {
     const newValue = !settings.karakulakEnabled;
-    updateSetting("karakulakEnabled", newValue);
+    await updateSetting("karakulakEnabled", newValue);
   };
 
-  const handleClim8Toggle = () => {
+  const handleClim8Toggle = async () => {
     const newValue = !settings.clim8Enabled;
-    updateSetting("clim8Enabled", newValue);
+    await updateSetting("clim8Enabled", newValue);
   };
 
   // Weather location handlers
