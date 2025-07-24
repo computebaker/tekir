@@ -4,7 +4,6 @@ import { flushSync } from "react-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { getConvexConfig } from "./convex-proxy";
 
 // Define the settings structure
 export interface UserSettings {
@@ -161,15 +160,6 @@ export function useConvexSettings() {
   const [settings, setSettings] = useState<UserSettings>(() => convexSettingsManager.getAll());
   const [isInitialized, setIsInitialized] = useState(false);
   const initializationRef = useRef(false);
-
-  // Log Convex configuration for debugging
-  useEffect(() => {
-    const config = getConvexConfig();
-    console.log('Convex Settings - Connection config:', {
-      isProxied: config.isProxied,
-      activeUrl: config.activeUrl.replace(/\/\/.*\.convex\.cloud/, '//[HIDDEN].convex.cloud')
-    });
-  }, []);
 
   // Convex hooks for real-time data
   const userSettings = useQuery(

@@ -3,13 +3,13 @@ import { ConvexHttpClient } from "convex/browser";
 
 // Configuration for Convex proxy
 const CONVEX_CONFIG = {
-  // Use proxy in production to hide deployment URL
-  useProxy: process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_USE_CONVEX_PROXY === 'true',
+  // Disable proxy for Vercel compatibility (no WebSocket support in serverless)
+  useProxy: false,
   
-  // Proxy endpoint through your domain
+  // Proxy endpoint through your domain (disabled)
   proxyUrl: process.env.NEXT_PUBLIC_CONVEX_PROXY_URL || '/api/convex',
   
-  // Direct Convex URL (fallback)
+  // Direct Convex URL
   directUrl: process.env.NEXT_PUBLIC_CONVEX_URL,
 };
 
