@@ -24,8 +24,7 @@ export const migrationConfig = {
       avatarRegenerate: true,
     },
     settings: {
-      sync: true,
-      toggle: true,
+      // Settings now use Convex real-time sync - no more API endpoints needed
     },
     session: {
       register: true,
@@ -67,8 +66,7 @@ export const apiEndpoints = {
     avatarRegenerate: () => getApiEndpoint('user', 'avatarRegenerate', '/api/user/avatar/regenerate'),
   },
   settings: {
-    sync: () => getApiEndpoint('settings', 'sync', '/api/user/settings/sync'),
-    toggle: () => getApiEndpoint('settings', 'toggle', '/api/user/settings/sync/toggle'),
+    // Deleted, please use Convex real-time sync
   },
   session: {
     register: () => getApiEndpoint('session', 'register', '/api/session/register'),

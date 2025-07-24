@@ -3,7 +3,7 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import AuthProvider from "@/components/auth-provider";
 import { ConvexProvider } from "convex/react";
-import convex from "@/lib/convex";
+import convex from "@/lib/convex-proxy";
 import { useEffect } from 'react';
 import { prefetchBangs } from '@/utils/bangs';
 

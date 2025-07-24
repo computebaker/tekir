@@ -1,5 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import Image from "next/image";
+import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
+import ImageUpload from "@/components/image-upload";
+import { useSettings } from "@/lib/settings";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { 
@@ -22,12 +28,6 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
-import Link from "next/link";
-import Image from "next/image";
-import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
-import ImageUpload from "@/components/image-upload";
-import { useSettings } from "@/lib/settings";
-import { useRouter } from "next/navigation";
 
 // Define mobile navigation items for settings
 const settingsMobileNavItems = [

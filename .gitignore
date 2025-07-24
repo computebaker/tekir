@@ -40,3 +40,5 @@ next-env.d.ts
 
 # old prisma migrations (cleanup)
 /prisma/migrations/*
+
+.github/
