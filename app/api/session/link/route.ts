@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJWTUser } from '@/lib/jwt-auth';
 import { linkSessionToUser, isConvexConfigured } from '@/lib/convex-session';
+import { RATE_LIMITS } from '@/lib/rate-limits';
 
 export async function POST(req: NextRequest) {
   if (!isConvexConfigured) {
@@ -24,18 +25,33 @@ export async function POST(req: NextRequest) {
     }
 
     // Link the session to the user
-    const success = await linkSessionToUser(sessionToken, userId);
+    const resultToken = await linkSessionToUser(sessionToken, userId);
     
-    if (!success) {
+    if (!resultToken) {
       return NextResponse.json({ success: false, error: 'Failed to link session to user.' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
+    // Create response
+    const response = NextResponse.json({ 
       success: true, 
       message: 'Session successfully linked to user account.',
       userId: userId,
-      newRequestLimit: 1200
+      newRequestLimit: RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT,
+      sessionToken: resultToken !== sessionToken ? resultToken : undefined // Indicate if token changed
     });
+
+    // Update cookie if the session token changed (fingerprinting returned existing token)
+    if (resultToken !== sessionToken) {
+      response.cookies.set('session-token', resultToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: RATE_LIMITS.SESSION_EXPIRATION_SECONDS,
+        path: '/',
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error("Error in /api/session/link:", error);
     return NextResponse.json({ success: false, error: 'Internal server error.' }, { status: 500 });

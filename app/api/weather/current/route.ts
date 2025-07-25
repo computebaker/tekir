@@ -1,7 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
 
 export async function GET(request: NextRequest) {
   try {
+    // Check session token and rate limiting
+    const sessionToken = request.cookies.get('session-token')?.value;
+    
+    if (!sessionToken) {
+      return NextResponse.json({ error: 'Session token required' }, { status: 401 });
+    }
+
+    const isValid = await isValidSessionToken(sessionToken);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
+    }
+
+    // Check rate limiting
+    const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
+    if (!allowed) {
+      return NextResponse.json({ 
+        error: 'Rate limit exceeded', 
+        currentCount,
+        resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() 
+      }, { status: 429 });
+    }
     const { searchParams } = new URL(request.url);
     const lat = searchParams.get("lat");
     const lon = searchParams.get("lon");

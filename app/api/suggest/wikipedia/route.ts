@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis-fallback';
+import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
 import OpenAI from 'openai';
 
 // Country code to language code mapping for Wikipedia
@@ -144,22 +144,25 @@ async function suggestWikipediaArticle(
 }
 
 export async function GET(req: NextRequest) {
-  if (isRedisConfigured) {
-    const sessionToken = req.cookies.get('session-token')?.value;
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
-    }
-    const isValid = await isValidSessionToken(sessionToken);
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
-    }
-    const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
-    if (!allowed) {
-      console.warn(`Session token ${sessionToken} exceeded request limit for /api/suggest/wikipedia. Count: ${currentCount}`);
-      return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429 });
-    }
-  } else {
-    console.warn("Redis is not configured. Skipping session token validation and request counting for /api/suggest/wikipedia. This should be addressed in production.");
+  // Session token validation and rate limiting
+  const sessionToken = req.cookies.get('session-token')?.value;
+  if (!sessionToken) {
+    return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
+  }
+  
+  const isValid = await isValidSessionToken(sessionToken);
+  if (!isValid) {
+    return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
+  }
+  
+  const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
+  if (!allowed) {
+    console.warn(`Session token ${sessionToken} exceeded request limit for /api/suggest/wikipedia. Count: ${currentCount}`);
+    return NextResponse.json({ 
+      error: 'Request limit exceeded for this session.',
+      currentCount,
+      resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }, { status: 429 });
   }
 
   const query = req.nextUrl.searchParams.get('q');

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerSessionToken, isConvexConfigured, hashIp } from '@/lib/convex-session';
 import { getJWTUser } from '@/lib/jwt-auth';
+import { RATE_LIMITS, getUserRateLimit, getSessionExpiration } from '@/lib/rate-limits';
 
 // Function to get client IP address from request
 function getClientIp(req: NextRequest): string | null {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       console.warn("Could not determine client IP address. Session will not be tied to IP.");
     }
 
-    const expirationInSeconds = 24 * 60 * 60;
+    const expirationInSeconds = getSessionExpiration();
     
     // Pass userId to link session to authenticated user
     const token = await registerSessionToken(hashedIpValue, expirationInSeconds, userId);
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       token, 
       message: 'Session token processed.',
       userLinked: !!userId,
-      requestLimit: userId ? 1200 : 600
+      requestLimit: getUserRateLimit(!!userId)
     });
     response.cookies.set('session-token', token, {
       httpOnly: true,

@@ -2,7 +2,8 @@
 
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, isRedisConfigured, incrementAndCheckRequestCount } from '@/lib/redis-fallback';
+import { generateText, streamText } from 'ai';
+import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -145,29 +146,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
       return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 400, headers });
     }
     
-    if (isRedisConfigured) { 
-      // Redis-based security
-      const sessionToken = req.cookies.get('session-token')?.value;
-      if (!sessionToken) {
-        return NextResponse.json({ error: 'Missing session token.' }, { status: 401, headers });
-      }
-      const isValid = await isValidSessionToken(sessionToken);
-      if (!isValid) {
-        return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403, headers });
-      }
-      const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
-      if (!allowed) {
-        console.warn(`Session token ${sessionToken} exceeded request limit for /api/karakulak. Count: ${currentCount}`);
-        return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429, headers });
-      }
-    } else {
-      // Fallback security: IP-based rate limiting
-      const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-      if (!checkRateLimit(clientIP)) {
-        console.warn(`Rate limit exceeded for IP ${clientIP} on /api/karakulak`);
-        return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429, headers });
-      }
-      console.warn("Redis is not configured. Using fallback IP-based rate limiting for /api/karakulak. This should be addressed in production.");
+    // Session token validation and rate limiting
+    const sessionToken = req.cookies.get('session-token')?.value;
+    if (!sessionToken) {
+      return NextResponse.json({ error: 'Missing session token.' }, { status: 401, headers });
+    }
+    
+    const isValid = await isValidSessionToken(sessionToken);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403, headers });
+    }
+    
+    const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
+    if (!allowed) {
+      console.warn(`Session token ${sessionToken} exceeded request limit for /api/karakulak. Count: ${currentCount}`);
+      return NextResponse.json({ 
+        error: 'Request limit exceeded for this session.',
+        currentCount,
+        resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      }, { status: 429, headers });
     }
 
   const { message } = await req.json();

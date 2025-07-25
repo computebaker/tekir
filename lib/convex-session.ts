@@ -2,6 +2,7 @@ import { getConvexClient } from "@/lib/convex-client";
 import { api } from "@/convex/_generated/api";
 import { randomBytes } from "crypto";
 import { createHash } from "crypto";
+import { getSessionExpiration } from '@/lib/rate-limits';
 
 const convex = getConvexClient();
 
@@ -28,23 +29,20 @@ export async function isValidSessionToken(token: string): Promise<boolean> {
   }
 }
 
-// Session registration
+// Session registration with improved fingerprinting
 export async function registerSessionToken(
   hashedIp: string | null, 
-  expirationInSeconds: number = 24 * 60 * 60,
+  expirationInSeconds: number = getSessionExpiration(),
   userId: string | null = null
 ): Promise<string | null> {
   try {
-    const sessionToken = generateSessionToken();
-    
-    const result = await convex.mutation(api.sessions.registerSessionToken, {
-      sessionToken,
+    const result = await convex.mutation(api.sessions.getOrCreateSessionToken, {
       hashedIp: hashedIp || undefined,
       userId: userId as any || undefined, // Cast to Convex ID type
       expirationInSeconds,
     });
 
-    return result;
+    return result.sessionToken;
   } catch (error) {
     console.error("Error registering session token:", error);
     return null;
@@ -62,15 +60,16 @@ export async function incrementAndCheckRequestCount(token: string): Promise<{ al
 }
 
 // Link session to user
-export async function linkSessionToUser(token: string, userId: string): Promise<boolean> {
+export async function linkSessionToUser(token: string, userId: string): Promise<string | null> {
   try {
-    return await convex.mutation(api.sessions.linkSessionToUser, { 
+    const result = await convex.mutation(api.sessions.linkSessionToUser, { 
       sessionToken: token, 
       userId: userId as any // Convex ID type
     });
+    return result; // Returns the session token (existing or current)
   } catch (error) {
     console.error("Error linking session to user:", error);
-    return false;
+    return null;
   }
 }
 

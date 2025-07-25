@@ -78,17 +78,15 @@ export async function POST(req: NextRequest) {
     );
 
     // Also generate session token for Convex session tracking
-    const sessionToken = crypto.randomUUID();
-    console.log('Signin: Generated JWT token for user:', user._id);
-    console.log('Signin: Generated session token:', sessionToken);
+    console.log('Signin: Generating session for user:', user._id);
 
-    // Store session in Convex for rate limiting
-    console.log('Signin: Storing session for user:', user._id);
-    const sessionResult = await convex.mutation(api.sessions.registerSessionToken, {
-      sessionToken,
+    // Store session in Convex for rate limiting (will return existing token if user already has one)
+    const sessionResult = await convex.mutation(api.sessions.getOrCreateSessionToken, {
       userId: user._id
     });
-    console.log('Signin: Session stored, result:', sessionResult);
+    console.log('Signin: Session result:', sessionResult);
+
+    const sessionToken = sessionResult.sessionToken;
 
     // Set both JWT and session cookies
     const response = NextResponse.json({ 
