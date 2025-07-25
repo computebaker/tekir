@@ -29,6 +29,22 @@ export async function isValidSessionToken(token: string): Promise<boolean> {
   }
 }
 
+// Get rate limit status without incrementing count
+export async function getRateLimitStatus(token: string) {
+  try {
+    return await convex.query(api.sessions.getRateLimitStatus, { sessionToken: token });
+  } catch (error) {
+    console.error("Error getting rate limit status:", error);
+    return { 
+      isValid: false, 
+      currentCount: 0, 
+      limit: 600,
+      remaining: 0,
+      isAuthenticated: false 
+    };
+  }
+}
+
 // Session registration with improved fingerprinting
 export async function registerSessionToken(
   hashedIp: string | null, 

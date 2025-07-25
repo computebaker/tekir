@@ -1,29 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
+import { checkRateLimit } from '@/lib/rate-limit-middleware';
 
 export async function GET(request: NextRequest) {
+  // Use the improved rate limiting middleware
+  const rateLimitResult = await checkRateLimit(request, '/api/weather');
+  
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response!;
+  }
+
   try {
-    // Check session token and rate limiting
-    const sessionToken = request.cookies.get('session-token')?.value;
-    
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Session token required' }, { status: 401 });
-    }
-
-    const isValid = await isValidSessionToken(sessionToken);
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
-    }
-
-    // Check rate limiting
-    const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
-    if (!allowed) {
-      return NextResponse.json({ 
-        error: 'Rate limit exceeded', 
-        currentCount,
-        resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() 
-      }, { status: 429 });
-    }
     // Get client IP from headers
     const forwarded = request.headers.get("x-forwarded-for");
     const realIP = request.headers.get("x-real-ip");

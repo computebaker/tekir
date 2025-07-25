@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
+import { isValidSessionToken, incrementAndCheckRequestCount, getRateLimitStatus } from '@/lib/convex-session';
 import { RATE_LIMITS } from '@/lib/rate-limits';
 
 interface RateLimitResult {
   success: boolean;
   response?: NextResponse;
   sessionToken?: string;
+  currentCount?: number;
 }
 
 /**
@@ -29,9 +30,9 @@ export async function checkRateLimit(
     };
   }
 
-  // Validate session token
-  const isValid = await isValidSessionToken(sessionToken);
-  if (!isValid) {
+  const status = await getRateLimitStatus(sessionToken);
+  
+  if (!status.isValid) {
     return {
       success: false,
       response: NextResponse.json(
@@ -41,8 +42,32 @@ export async function checkRateLimit(
     };
   }
 
-  // Check rate limiting
+  // If already at limit, don't bother trying to increment
+  if (status.remaining <= 0) {
+    console.warn(`Session token ${sessionToken} exceeded request limit for ${routeName}. Count: ${status.currentCount}`);
+    
+    const resetTime = 'resetTime' in status ? status.resetTime : new Date(Date.now() + RATE_LIMITS.RESET_INTERVAL_MS).toISOString();
+    
+    return {
+      success: false,
+      response: NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          currentCount: status.currentCount,
+          resetTime,
+          message: 'Daily request limit reached. Limit resets at midnight UTC.',
+        },
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(status.currentCount, status.isAuthenticated)
+        }
+      ),
+    };
+  }
+
+  // Now try to increment the count (mutation operation)
   const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
+  
   if (!allowed) {
     console.warn(`Session token ${sessionToken} exceeded request limit for ${routeName}. Count: ${currentCount}`);
     
@@ -55,7 +80,10 @@ export async function checkRateLimit(
           resetTime: new Date(Date.now() + RATE_LIMITS.RESET_INTERVAL_MS).toISOString(),
           message: 'Daily request limit reached. Limit resets at midnight UTC.',
         },
-        { status: 429 }
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(currentCount, status.isAuthenticated)
+        }
       ),
     };
   }
@@ -63,6 +91,7 @@ export async function checkRateLimit(
   return {
     success: true,
     sessionToken,
+    currentCount,
   };
 }
 
