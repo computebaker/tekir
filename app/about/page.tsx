@@ -66,7 +66,7 @@ export default function AboutPage() {
             </div>
             
             <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-              <div className="bg-blue-500/10 w-14 h-14 rounded-full flex items-center justify-center mb-4">
+              <div className="bg-muted w-14 h-14 rounded-full flex items-center justify-center mb-4">
                 <Cat className="w-7 h-7 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="text-xl font-medium mb-2">AI-Powered</h3>
@@ -76,7 +76,7 @@ export default function AboutPage() {
             </div>
             
             <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-              <div className="bg-green-500/10 w-14 h-14 rounded-full flex items-center justify-center mb-4">
+              <div className="bg-muted w-14 h-14 rounded-full flex items-center justify-center mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 dark:text-green-400">
                   <path d="m8 3 4 8 5-5 5 15H2L8 3z"></path>
                 </svg>
@@ -144,7 +144,7 @@ export default function AboutPage() {
                   value={followUpQuestion}
                   onChange={(e) => setFollowUpQuestion(e.target.value)}
                   placeholder="Ask a follow-up question..."
-                  className="flex-1 px-3 py-2 rounded-md border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <button
                   type="button"
@@ -191,7 +191,7 @@ export default function AboutPage() {
               </p>
             </div>
             
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-sm text-muted-foreground">
               <span>Source: </span>
               <a 
                 href={wikiData.pageUrl} 

@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         
         <div className="space-y-8">
           <section>
-            <p className="text-sm text-gray-500 mb-4">Last updated: 6th of February, 2025</p>
+            <p className="text-sm text-muted-foreground mb-4">Last updated: 6th of February, 2025</p>
             <p>At Tekir, we take your privacy seriously. This policy explains how we collect, use and safeguard your information when you use our service.</p>
           </section>
 

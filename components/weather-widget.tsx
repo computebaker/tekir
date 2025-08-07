@@ -77,15 +77,15 @@ function getWeatherIcon(condition: string) {
     const normalizedCondition = condition.toLowerCase();
     
     if (normalizedCondition.includes('clear') || normalizedCondition.includes('sunny')) {
-        return <Sun className="w-4 h-4 text-yellow-500" />;
+        return <Sun className="w-4 h-4 text-muted-foreground" />;
     } else if (normalizedCondition.includes('cloud')) {
-        return <Cloud className="w-4 h-4 text-gray-500" />;
+        return <Cloud className="w-4 h-4 text-muted-foreground" />;
     } else if (normalizedCondition.includes('rain') || normalizedCondition.includes('drizzle')) {
-        return <CloudRain className="w-4 h-4 text-blue-500" />;
+        return <CloudRain className="w-4 h-4 text-muted-foreground" />;
     } else if (normalizedCondition.includes('snow')) {
-        return <CloudSnow className="w-4 h-4 text-blue-200" />;
+        return <CloudSnow className="w-4 h-4 text-muted-foreground" />;
     } else {
-        return <Cloud className="w-4 h-4 text-gray-500" />;
+        return <Cloud className="w-4 h-4 text-muted-foreground" />;
     }
 }
 

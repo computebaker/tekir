@@ -449,7 +449,7 @@ export default function SearchSettingsPage() {
                       <label 
                         htmlFor="karakulak-toggle" 
                         className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                          settings.karakulakEnabled ? 'bg-blue-500' : 'bg-muted'
+                          settings.karakulakEnabled ? 'bg-primary' : 'bg-muted'
                         }`}
                       >
                         <div
@@ -597,7 +597,7 @@ export default function SearchSettingsPage() {
                   <label 
                     htmlFor="clim8-toggle" 
                     className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                      settings.clim8Enabled ? 'bg-blue-500' : 'bg-muted'
+                      settings.clim8Enabled ? 'bg-primary' : 'bg-muted'
                     }`}
                   >
                     <div

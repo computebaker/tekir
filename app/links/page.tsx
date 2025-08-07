@@ -59,8 +59,8 @@ export default function LinksPage() {
                 className="w-full p-4 rounded-lg bg-card border border-border hover:bg-accent transition-all duration-200 hover:scale-[1.02] flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded bg-blue-500 flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">B</span>
+                  <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
+                    <span className="text-foreground text-xs font-bold">B</span>
                   </div>
                   <div>
                     <div className="font-medium">Bluesky</div>
@@ -77,7 +77,7 @@ export default function LinksPage() {
                 className="w-full p-4 rounded-lg bg-card border border-border hover:bg-accent transition-all duration-200 hover:scale-[1.02] flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
-                  <Instagram className="w-6 h-6 text-pink-500" />
+                  <Instagram className="w-6 h-6 text-muted-foreground" />
                   <div>
                     <div className="font-medium">Instagram</div>
                     <div className="text-sm text-muted-foreground">@tekirsearch</div>
@@ -131,7 +131,7 @@ export default function LinksPage() {
                 className="w-full p-4 rounded-lg bg-card border border-border hover:bg-accent transition-all duration-200 hover:scale-[1.02] flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
-                  <MessageCircleMore className="w-6 h-6 text-green-500" />
+                  <MessageCircleMore className="w-6 h-6 text-muted-foreground" />
                   <div>
                     <div className="font-medium">Chat</div>
                     <div className="text-sm text-muted-foreground">chat.tekir.co</div>
@@ -145,7 +145,7 @@ export default function LinksPage() {
                 className="w-full p-4 rounded-lg bg-card border border-border hover:bg-accent transition-all duration-200 hover:scale-[1.02] flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
-                  <Zap className="w-6 h-6 text-yellow-500" />
+                  <Zap className="w-6 h-6 text-muted-foreground" />
                   <div>
                     <div className="font-medium">Bangs</div>
                     <div className="text-sm text-muted-foreground">Quick search shortcuts</div>

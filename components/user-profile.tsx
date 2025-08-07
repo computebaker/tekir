@@ -199,7 +199,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   setIsOpen(false);
                   signOut();
                 }}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left text-red-600 hover:text-red-700"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left text-muted-foreground hover:text-foreground"
               >
                 <LogOut className="w-4 h-4" />
                 Sign out

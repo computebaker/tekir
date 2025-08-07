@@ -1091,7 +1091,7 @@ function SearchPageContent() {
                             onChange={(e) => setFollowUpQuestion(e.target.value)}
                             placeholder="Ask a follow-up question..."
                             maxLength={400}
-                            className="flex-1 px-3 py-2 rounded-md border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                           />
                           <button
                             type="submit"

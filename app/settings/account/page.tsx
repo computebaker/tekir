@@ -832,7 +832,7 @@ export default function AccountSettingsPage() {
                       
                       <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                         <div className="flex items-center space-x-3">
-                          <Cloud className="w-5 h-5 text-blue-500" />
+                          <Cloud className="w-5 h-5 text-muted-foreground" />
                           <div>
                             <div className="font-medium">Sync Settings</div>
                             <div className="text-sm text-muted-foreground">
@@ -856,7 +856,7 @@ export default function AccountSettingsPage() {
                           <label 
                             htmlFor="settings-sync-toggle" 
                             className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                              syncEnabled ? 'bg-blue-500' : 'bg-muted'
+                              syncEnabled ? 'bg-primary' : 'bg-muted'
                             } ${(isLoading || !isInitialized) ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             <div
@@ -893,7 +893,7 @@ export default function AccountSettingsPage() {
                       </p>
                       <button
                         onClick={() => setShowDeleteConfirm(true)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors flex items-center gap-2"
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete Account
@@ -915,7 +915,7 @@ export default function AccountSettingsPage() {
                         <button
                           onClick={handleDeleteAccount}
                           disabled={isLoading || deleteConfirmText !== "DELETE MY ACCOUNT"}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
                           Confirm Delete

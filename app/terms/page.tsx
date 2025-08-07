@@ -26,7 +26,7 @@ export default function TermsPage() {
         
         <div className="space-y-8">
           <section>
-            <p className="text-sm text-gray-500 mb-4">Last updated: 6th of February, 2025</p>
+            <p className="text-sm text-muted-foreground mb-4">Last updated: 6th of February, 2025</p>
             <p>Please read these terms of service carefully before using our service. By accessing or using our services, you agree to be bound by these terms.</p>
           </section>
 

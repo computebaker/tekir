@@ -255,7 +255,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="h-screen flex flex-col items-center justify-center px-4 relative bg-gradient-to-b from-background via-background to-purple-50/30 dark:to-purple-950/10">
+      <section className="h-screen flex flex-col items-center justify-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10">
         <div className="w-full max-w-3xl space-y-8 text-center">
           {/* Logo */}
           <div className="flex justify-center">
@@ -307,7 +307,7 @@ export default function Home() {
             
             {/* Bang notification */}
             {hasBang && (
-              <div className="absolute w-full text-center mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+              <div className="absolute w-full text-center mt-2 text-sm text-muted-foreground dark:text-muted-foreground font-medium">
                 <a href="https://bang.lat"> Bangs by bang.lat — the fastest bang resolver. </a>
               </div>
             )}
@@ -366,7 +366,7 @@ export default function Home() {
       </section>
 
       {/* Features Section with Bento Grid */}
-      <section className="py-20 px-4 bg-gradient-to-br from-purple-50/30 via-pink-50/25 to-blue-50/30 dark:from-purple-950/10 dark:via-pink-950/8 dark:to-blue-950/10">
+      <section className="py-20 px-4 bg-gradient-to-br from-gray-50/30 via-slate-50/25 to-neutral-50/30 dark:from-gray-950/10 dark:via-slate-950/8 dark:to-neutral-950/10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-foreground mb-4">
@@ -381,13 +381,13 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Privacy First - Large Card */}
             <Link href="/privacy" className="lg:col-span-2 block group">
-              <div className="bg-gradient-to-br from-green-500/10 to-emerald-600/10 p-8 rounded-2xl border border-green-500/30 relative overflow-hidden hover:border-green-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-green-500/20">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/20 via-green-400/15 to-transparent rounded-full blur-3xl"></div>
+              <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/20 via-slate-400/15 to-transparent rounded-full blur-3xl"></div>
                 <div className="relative z-10">
-                  <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-green-500/30 transition-colors">
-                    <Lock className="w-8 h-8 text-green-600" />
+                  <div className="w-16 h-16 bg-gray-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-gray-500/30 transition-colors">
+                    <Lock className="w-8 h-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-green-600 transition-colors">Privacy by Design</h3>
+                  <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Privacy by Design</h3>
                   <p className="text-muted-foreground text-lg leading-relaxed">
                     No tracking, no data collection, no profile building. Your searches remain completely private 
                     and are never stored or shared with third parties.
@@ -397,11 +397,11 @@ export default function Home() {
             </Link>
 
             {/* Lightning Fast */}
-            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-600/10 p-8 rounded-2xl border border-blue-500/30 relative overflow-hidden hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyan-400/20 via-blue-400/15 to-transparent rounded-full blur-2xl"></div>
+            <div className="bg-gradient-to-br from-slate-500/10 to-gray-600/10 p-8 rounded-2xl border border-slate-500/30 relative overflow-hidden hover:shadow-xl hover:shadow-slate-500/20 transition-all duration-300">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-400/20 via-gray-400/15 to-transparent rounded-full blur-2xl"></div>
               <div className="relative z-10">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
-                  <div className="w-6 h-6 bg-blue-500 rounded-full animate-pulse"></div>
+                <div className="w-12 h-12 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4">
+                  <div className="w-6 h-6 bg-muted-foreground rounded-full animate-pulse"></div>
                 </div>
                 <h3 className="text-xl font-bold text-foreground mb-3">Lightning Fast</h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -412,13 +412,13 @@ export default function Home() {
 
             {/* AI-Powered Chat */}
             <Link href="https://chat.tekir.co" className="block group" target="_blank" rel="noopener noreferrer">
-              <div className="bg-gradient-to-br from-purple-500/10 to-pink-600/10 p-8 rounded-2xl border border-purple-500/30 relative overflow-hidden hover:border-purple-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-purple-500/20">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-400/20 via-pink-400/15 to-transparent rounded-full blur-2xl"></div>
+              <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-400/20 via-slate-400/15 to-transparent rounded-full blur-2xl"></div>
                 <div className="relative z-10">
-                  <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors">
-                    <MessageCircleMore className="w-6 h-6 text-purple-600" />
+                  <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
+                    <MessageCircleMore className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-purple-600 transition-colors">AI-Powered Chat</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">AI-Powered Chat</h3>
                   <p className="text-muted-foreground leading-relaxed">
                     Get instant answers with our integrated AI chat powered by advanced language models.
                   </p>
@@ -432,24 +432,24 @@ export default function Home() {
 
             {/* Bang Commands - Large Card */}
             <Link href="/bangs" className="lg:col-span-2 block group">
-              <div className="bg-gradient-to-br from-orange-500/10 to-red-600/10 p-8 rounded-2xl border border-orange-500/30 relative overflow-hidden hover:border-orange-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-orange-500/20">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-400/20 to-transparent rounded-full blur-3xl"></div>
+              <div className="bg-gradient-to-br from-slate-500/10 to-gray-600/10 p-8 rounded-2xl border border-slate-500/30 relative overflow-hidden hover:border-slate-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-slate-500/20">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-slate-400/20 to-transparent rounded-full blur-3xl"></div>
                 <div className="relative z-10">
-                  <div className="w-16 h-16 bg-orange-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
-                    <div className="text-2xl font-bold text-orange-600">!</div>
+                  <div className="w-16 h-16 bg-slate-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-500/30 transition-colors">
+                    <div className="text-2xl font-bold text-muted-foreground">!</div>
                   </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-orange-600 transition-colors">Bang Commands</h3>
+                  <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Bang Commands</h3>
                   <p className="text-muted-foreground text-lg leading-relaxed mb-4">
                     Search directly on your favorite sites with bang commands. Type <code className="bg-muted px-2 py-1 rounded">!g</code> for Google, 
                     <code className="bg-muted px-2 py-1 rounded ml-2">!w</code> for Wikipedia, and hundreds more.
                   </p>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="bg-orange-500/10 text-orange-600 px-3 py-1 rounded-full text-sm">!g Google</span>
-                    <span className="bg-orange-500/10 text-orange-600 px-3 py-1 rounded-full text-sm">!w Wikipedia</span>
-                    <span className="bg-orange-500/10 text-orange-600 px-3 py-1 rounded-full text-sm">!gh GitHub</span>
-                    <span className="bg-orange-500/10 text-orange-600 px-3 py-1 rounded-full text-sm">!yt YouTube</span>
+                    <span className="bg-slate-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">!g Google</span>
+                    <span className="bg-slate-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">!w Wikipedia</span>
+                    <span className="bg-slate-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">!gh GitHub</span>
+                    <span className="bg-slate-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">!yt YouTube</span>
                   </div>
-                  <div className="inline-flex items-center text-orange-600 group-hover:text-orange-700 font-medium transition-colors">
+                  <div className="inline-flex items-center text-muted-foreground group-hover:text-foreground font-medium transition-colors">
                     More bangs →
                   </div>
                 </div>
@@ -458,13 +458,13 @@ export default function Home() {
 
             {/* Smart Autocomplete */}
             <Link href="/settings/search" className="block group">
-              <div className="bg-gradient-to-br from-teal-500/10 to-cyan-600/10 p-8 rounded-2xl border border-teal-500/30 relative overflow-hidden hover:border-teal-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-teal-500/20">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-teal-400/20 to-transparent rounded-full blur-2xl"></div>
+              <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-400/20 to-transparent rounded-full blur-2xl"></div>
                 <div className="relative z-10">
-                  <div className="w-12 h-12 bg-teal-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-teal-500/30 transition-colors">
-                    <Search className="w-6 h-6 text-teal-600" />
+                  <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
+                    <Search className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-teal-600 transition-colors">Smart Autocomplete</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Smart Autocomplete</h3>
                   <p className="text-muted-foreground leading-relaxed">
                     Intelligent suggestions that learn from global search patterns while keeping your data private.
                   </p>
@@ -474,15 +474,15 @@ export default function Home() {
 
             {/* Weather Widget */}
             <Link href="https://clim8.tekir.co" className="block group" target="_blank" rel="noopener noreferrer">
-              <div className="bg-gradient-to-br from-sky-500/10 to-blue-600/10 p-8 rounded-2xl border border-sky-500/30 relative overflow-hidden hover:border-sky-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-sky-500/20">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-sky-400/20 to-transparent rounded-full blur-2xl"></div>
+              <div className="bg-gradient-to-br from-slate-500/10 to-gray-600/10 p-8 rounded-2xl border border-slate-500/30 relative overflow-hidden hover:border-slate-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-slate-500/20">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-400/20 to-transparent rounded-full blur-2xl"></div>
                 <div className="relative z-10">
-                  <div className="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-sky-500/30 transition-colors">
-                    <div className="w-6 h-6 bg-sky-500 rounded-full relative">
+                  <div className="w-12 h-12 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-slate-500/30 transition-colors">
+                    <div className="w-6 h-6 bg-muted-foreground rounded-full relative">
                       <div className="absolute inset-1 bg-yellow-400 rounded-full"></div>
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-sky-600 transition-colors">Weather at a Glance</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Weather at a Glance</h3>
                   <p className="text-muted-foreground leading-relaxed mb-4">
                     Get current weather conditions right on your search homepage.
                   </p>
@@ -496,9 +496,9 @@ export default function Home() {
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-400/20 to-transparent rounded-full blur-2xl"></div>
                 <div className="relative z-10">
                   <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
-                    <Github className="w-6 h-6 text-gray-600" />
+                    <Github className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-gray-600 transition-colors">Open Source</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Open Source</h3>
                   <p className="text-muted-foreground leading-relaxed">
                     Transparent, auditable code that you can inspect and contribute to.
                   </p>
@@ -508,27 +508,27 @@ export default function Home() {
 
             {/* Multiple Providers */}
             <Link href="/settings/search" className="lg:col-span-2 block group">
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-600/10 p-8 rounded-2xl border border-indigo-500/30 relative overflow-hidden hover:border-indigo-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-indigo-500/20">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-400/20 to-transparent rounded-full blur-3xl"></div>
+              <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/20 to-transparent rounded-full blur-3xl"></div>
                 <div className="relative z-10">
-                  <div className="w-16 h-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-500/30 transition-colors">
+                  <div className="w-16 h-16 bg-gray-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-gray-500/30 transition-colors">
                     <div className="grid grid-cols-2 gap-1">
-                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-pink-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-cyan-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                      <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                      <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                      <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-indigo-600 transition-colors">Multiple Search Providers</h3>
+                  <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Multiple Search Providers</h3>
                   <p className="text-muted-foreground text-lg leading-relaxed mb-4">
                     Choose from multiple search engines and sources to get the most comprehensive results. 
                     Switch between providers to find exactly what you're looking for.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <span className="bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full text-sm">Google</span>
-                    <span className="bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full text-sm">Bing</span>
-                    <span className="bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full text-sm">DuckDuckGo</span>
-                    <span className="bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full text-sm">Brave</span>
+                    <span className="bg-gray-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">Google</span>
+                    <span className="bg-gray-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">Bing</span>
+                    <span className="bg-gray-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">DuckDuckGo</span>
+                    <span className="bg-gray-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">Brave</span>
                   </div>
                 </div>
               </div>
@@ -536,13 +536,13 @@ export default function Home() {
 
             {/* Made for Everyone */}
             <Link href="/about" className="block group">
-              <div className="bg-gradient-to-br from-rose-500/10 to-pink-600/10 p-8 rounded-2xl border border-rose-500/30 relative overflow-hidden hover:border-rose-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-rose-500/20">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-rose-400/20 to-transparent rounded-full blur-2xl"></div>
+              <div className="bg-gradient-to-br from-slate-500/10 to-gray-600/10 p-8 rounded-2xl border border-slate-500/30 relative overflow-hidden hover:border-slate-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-slate-500/20">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-400/20 to-transparent rounded-full blur-2xl"></div>
                 <div className="relative z-10">
-                  <div className="w-12 h-12 bg-rose-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-rose-500/30 transition-colors">
-                    <Heart className="w-6 h-6 text-rose-600" />
+                  <div className="w-12 h-12 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-slate-500/30 transition-colors">
+                    <Heart className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-rose-600 transition-colors">Made for Everyone</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Made for Everyone</h3>
                   <p className="text-muted-foreground leading-relaxed">
                     Accessible, inclusive, and designed to work for all users regardless of their background or abilities. Does not discriminate based on location, language, or device. Made for all, by all.
                   </p>
@@ -562,13 +562,13 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
                 href="/about" 
-                className="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-8 py-3 rounded-full font-medium hover:from-violet-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="bg-primary text-primary-foreground px-8 py-3 rounded-full font-medium hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 Learn More
               </Link>
               <Link 
                 href="/settings" 
-                className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-8 py-3 rounded-full font-medium hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="bg-secondary text-secondary-foreground px-8 py-3 rounded-full font-medium hover:bg-secondary/90 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 Customize Settings
               </Link>

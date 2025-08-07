@@ -119,7 +119,7 @@ export default function BangsPage() {
         {/* Hero Section */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="p-4 bg-orange-500/10 rounded-full">
+            <div className="p-4 bg-muted rounded-full">
               <Zap className="w-12 h-12 text-orange-600" />
             </div>
           </div>
@@ -141,11 +141,11 @@ export default function BangsPage() {
             </h3>
             <div className="space-y-3 text-left">
               <div className="flex items-center space-x-3">
-                <span className="text-sm bg-orange-500/10 text-orange-600 px-2 py-1 rounded">Example</span>
+                <span className="text-sm bg-muted text-muted-foreground px-2 py-1 rounded">Example</span>
                 <code className="bg-background px-3 py-2 rounded border border-border flex-1 font-mono text-sm">!w quantum physics</code>
               </div>
               <div className="flex items-center space-x-3">
-                <span className="text-sm bg-green-500/10 text-green-600 px-2 py-1 rounded">Result</span>
+                <span className="text-sm bg-muted text-muted-foreground px-2 py-1 rounded">Result</span>
                 <span className="text-muted-foreground text-sm">Instantly searches Wikipedia for "quantum physics"</span>
               </div>
             </div>
@@ -171,7 +171,7 @@ export default function BangsPage() {
                 placeholder="Search bangs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
           </div>
@@ -243,7 +243,7 @@ export default function BangsPage() {
         </div>
 
         {/* Tips Section */}
-        <div className="bg-orange-500/10 rounded-lg p-6 mb-8">
+        <div className="bg-muted rounded-lg p-6 mb-8">
           <h3 className="text-lg font-semibold mb-4">💡 Pro Tips</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
