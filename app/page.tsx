@@ -278,18 +278,6 @@ export default function Home() {
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="relative w-full">
             <div className="relative group">
-              {/* Side glow effects */}
-              <div className="absolute inset-0 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none">
-                {/* Left glow */}
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-20 h-full bg-gradient-to-r from-blue-500/20 to-transparent rounded-full blur-lg"></div>
-                {/* Right glow */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-20 h-full bg-gradient-to-l from-blue-500/20 to-transparent rounded-full blur-lg"></div>
-                {/* Top glow */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-20 bg-gradient-to-b from-blue-500/15 to-transparent rounded-full blur-lg"></div>
-                {/* Bottom glow */}
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-20 bg-gradient-to-t from-blue-500/15 to-transparent rounded-full blur-lg"></div>
-              </div>
-              
               {/* Search input */}
               <input
                 ref={searchInputRef}

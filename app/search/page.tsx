@@ -165,6 +165,7 @@ function SearchPageContent() {
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const aiRequestInProgressRef = useRef<string | null>(null);
+  const searchIdRef = useRef(0);
 
   useEffect(() => {
     const checkQueryForBangs = async () => {
@@ -176,27 +177,33 @@ function SearchPageContent() {
 
   useEffect(() => {
     const currentQuery = searchParams.get("q") || "";
-    console.log(`Search useEffect triggered - query: "${currentQuery}"`);
-    
     if (!currentQuery) {
       setResults([]);
       setLoading(false);
+      setAiResponse(null);
+      setDiveResponse(null);
+      setDiveSources([]);
       return;
     }
     let isMounted = true;
     setLoading(true);
     setResults([]);
     setWikiData(null);
+    setDiveResponse(null);
+    setDiveSources([]);
+    setDiveLoading(false);
+    setAiResponse(null);
+    setAiLoading(false);
+    aiRequestInProgressRef.current = null;
+    
+    const searchId = ++searchIdRef.current;
     
     // Always fetch regular search results for display, regardless of Dive mode
     const storedEngine = localStorage.getItem("searchEngine") || "brave";
     const engineToUse = storedEngine;
 
     const fetchRegularSearch = async () => {
-      console.log(`fetchRegularSearch called for query: "${currentQuery}"`);
-      
       const doFetch = async (engine: string) => {
-        console.log(`doFetch called for engine: ${engine}`);
         try {
           // Get user preferences from localStorage
           const storedCountry = localStorage.getItem("searchCountry") || "ALL";
@@ -210,7 +217,6 @@ function SearchPageContent() {
           });
           
           const apiUrl = `${apiEndpoints.search.pars(engine)}?${searchParams}`;
-          console.log(`Making search request to: ${apiUrl}`);
           
           const response = await fetchWithSessionRefreshAndCache(
             apiUrl,
@@ -227,7 +233,7 @@ function SearchPageContent() {
           );
           if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
           const searchData = await response.json();
-          if (isMounted) {
+          if (isMounted && searchId === searchIdRef.current) {
             const resultsArray = searchData.results || [];
             setResults(resultsArray);
             setSearchEngine(engine); 
@@ -250,12 +256,10 @@ function SearchPageContent() {
       }
     };
 
-    console.log(`Setting timeout to call fetchRegularSearch in 1200ms for query: "${currentQuery}"`);
-    const timerId = setTimeout(fetchRegularSearch, 1200);
+    fetchRegularSearch();
 
     return () => {
       isMounted = false;
-      clearTimeout(timerId);
     };
   }, [searchParams, router]);
 
@@ -379,6 +383,11 @@ function SearchPageContent() {
       return;
     }
     
+    const searchId = searchIdRef.current;
+    
+    setDiveResponse(null);
+    setDiveSources([]);
+    
     aiRequestInProgressRef.current = requestKey;
     setAiLoading(true);
     setDiveLoading(true);
@@ -406,8 +415,21 @@ function SearchPageContent() {
 
           const waitForResults = async (maxAttempts = 8, delay = 200) => {
             for (let i = 0; i < maxAttempts; i++) {
-              if (results && results.length > 0) {
-                return results;
+              // Get current results and validate they're for the current query
+              const currentResults = results;
+              const currentQuery = searchParams.get("q") || "";
+              
+              if (currentResults && currentResults.length > 0 && currentQuery === query) {
+                const queryLower = query.toLowerCase();
+                const resultsMatchQuery = currentResults.some(result => 
+                  result.title.toLowerCase().includes(queryLower) ||
+                  result.description.toLowerCase().includes(queryLower) ||
+                  result.url.toLowerCase().includes(queryLower)
+                );
+                
+                if (resultsMatchQuery) {
+                  return currentResults;
+                }
               }
               await new Promise(resolve => setTimeout(resolve, delay));
             }
@@ -443,12 +465,16 @@ function SearchPageContent() {
           }
 
           const diveData = await diveResponse.json();
-          setDiveResponse(diveData.response);
-          setDiveSources(diveData.sources || []);
-          setAiResponse(null); // Clear regular AI response when dive is active
           
-          // Cache the dive response using unified cache
-          SearchCache.setDive(query, diveData.response, diveData.sources || []);
+          if (searchId === searchIdRef.current) {
+            setDiveResponse(diveData.response);
+            setDiveSources(diveData.sources || []);
+            setAiResponse(null); 
+            
+            SearchCache.setDive(query, diveData.response, diveData.sources || []);
+          } else {
+            console.log(`Search ID changed, ignoring stale dive response for query: "${query}"`);
+          }
           
         } else {
           // Regular AI Mode
@@ -843,14 +869,14 @@ function SearchPageContent() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => {
-                setSearchInput(e.target.value);
-                setShowSuggestions(true);
+                  setSearchInput(e.target.value);
+                  setShowSuggestions(true);
                 }}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="Search anything..."
                 maxLength={800}
-                className="flex-1 px-4 py-2 pr-16 rounded-full border border-border bg-background shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg"
+                className="flex-1 px-4 py-2 pr-16 rounded-full border border-border bg-background shadow-lg focus:outline-none text-lg"
                 style={{ minWidth: 0 }}
               />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
