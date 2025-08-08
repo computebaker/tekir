@@ -856,7 +856,7 @@ export default function AccountSettingsPage() {
                           <label 
                             htmlFor="settings-sync-toggle" 
                             className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                              syncEnabled ? 'bg-primary' : 'bg-muted'
+                              syncEnabled ? 'bg-emerald-500' : 'bg-muted'
                             } ${(isLoading || !isInitialized) ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             <div

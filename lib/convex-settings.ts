@@ -238,9 +238,24 @@ export function useConvexSettings() {
       
       console.log('Settings sync toggled:', result);
       
-      if (enabled && result.settings) {
-        // Update local settings with server settings when enabling sync
-        convexSettingsManager.updateFromConvex(result);
+      if (enabled) {
+        const hasServerSettings = !!(result && result.settings && Object.keys(result.settings).length > 0);
+        if (hasServerSettings) {
+          // Update local settings with server settings when enabling sync
+          convexSettingsManager.updateFromConvex(result);
+        } else {
+          // Server has no settings (likely just cleared). Seed with current local settings
+          const localSettings = { ...convexSettingsManager.getAll() };
+          try {
+            await updateSettingsMutation({
+              userId: user.id as Id<"users">,
+              settings: localSettings
+            });
+            console.log('Seeded server settings from local after enabling sync');
+          } catch (seedErr) {
+            console.error('Failed to seed server settings after enabling sync:', seedErr);
+          }
+        }
       }
       
       return true;
@@ -248,7 +263,7 @@ export function useConvexSettings() {
       console.error('Failed to toggle settings sync:', error);
       return false;
     }
-  }, [user?.id, toggleSyncMutation]);
+  }, [user?.id, toggleSyncMutation, updateSettingsMutation]);
 
   return {
     settings,

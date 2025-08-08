@@ -12,7 +12,7 @@ export const getUserSettings = query({
     
     return {
       settingsSync: user.settingsSync,
-      settings: user.settings || {},
+  settings: user.settings ?? {},
       updatedAt: user.updatedAt
     };
   },
@@ -64,9 +64,9 @@ export const toggleSettingsSync = mutation({
       updatedAt: Date.now(),
     };
     
-    // Clear settings if disabling sync
+    // Clear settings if disabling sync (unset the field to delete data)
     if (!args.enabled) {
-      updateData.settings = null;
+      updateData.settings = undefined as any; // Unset optional field to remove stored settings
     }
     
     await ctx.db.patch(args.userId, updateData);
