@@ -168,6 +168,10 @@ function SearchPageContent() {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const aiRequestInProgressRef = useRef<string | null>(null);
   const searchIdRef = useRef(0);
+  // Track which query the current `results` belong to to avoid stale Dive sources
+  const lastResultsQueryRef = useRef<string | null>(null);
+  // Abort controller for AI/Dive requests
+  const aiAbortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const checkQueryForBangs = async () => {
@@ -239,6 +243,8 @@ function SearchPageContent() {
             const resultsArray = searchData.results || [];
             setResults(resultsArray);
             setSearchEngine(engine); 
+            // Mark that current results correspond to this query
+            lastResultsQueryRef.current = currentQuery;
           }
           return true;
         } catch (error) {
@@ -362,6 +368,11 @@ function SearchPageContent() {
   useEffect(() => {
     if (!query) {
       aiRequestInProgressRef.current = null;
+      // Abort any in-flight AI/Dive request when query clears
+      if (aiAbortControllerRef.current) {
+        try { aiAbortControllerRef.current.abort(); } catch {}
+        aiAbortControllerRef.current = null;
+      }
       return;
     }
 
@@ -370,6 +381,10 @@ function SearchPageContent() {
       setDiveResponse(null);
       setDiveSources([]);
       aiRequestInProgressRef.current = null;
+      if (aiAbortControllerRef.current) {
+        try { aiAbortControllerRef.current.abort(); } catch {}
+        aiAbortControllerRef.current = null;
+      }
       return;
     }
 
@@ -378,21 +393,14 @@ function SearchPageContent() {
     }
 
     const modelToUse = aiModel || "gemini";
-    
     const requestKey = `${query}-${aiDiveEnabled ? 'dive' : 'ai'}-${modelToUse}`;
-    
-    if (aiRequestInProgressRef.current === requestKey) {
-      return;
-    }
-    
+    // Avoid duplicate in-flight requests for the same key
+    if (aiRequestInProgressRef.current === requestKey) return;
+
     const searchId = searchIdRef.current;
-    
+
     setDiveResponse(null);
     setDiveSources([]);
-    
-    aiRequestInProgressRef.current = requestKey;
-    setAiLoading(true);
-    setDiveLoading(true);
 
     const isModelEnabled = (model: string) => {
       const stored = localStorage.getItem(`karakulakEnabled_${model}`);
@@ -415,51 +423,34 @@ function SearchPageContent() {
             return;
           }
 
-          const waitForResults = async (maxAttempts = 8, delay = 200) => {
-            for (let i = 0; i < maxAttempts; i++) {
-              // Get current results and validate they're for the current query
-              const currentResults = results;
-              const currentQuery = searchParams.get("q") || "";
-              
-              if (currentResults && currentResults.length > 0 && currentQuery === query) {
-                const queryLower = query.toLowerCase();
-                const resultsMatchQuery = currentResults.some(result => 
-                  result.title.toLowerCase().includes(queryLower) ||
-                  result.description.toLowerCase().includes(queryLower) ||
-                  result.url.toLowerCase().includes(queryLower)
-                );
-                
-                if (resultsMatchQuery) {
-                  return currentResults;
-                }
-              }
-              await new Promise(resolve => setTimeout(resolve, delay));
-            }
-            return null;
-          };
-
-          const searchResults = await waitForResults();
-          
-          if (!searchResults || searchResults.length === 0) {
-            console.log("No search results available for Dive AI request, skipping...");
-            setDiveLoading(false);
-            setAiLoading(false);
+          // Ensure we have fresh results for the current query before proceeding
+          const hasFreshResults = results.length > 0 && lastResultsQueryRef.current === query;
+          if (!hasFreshResults) {
+            // Show loading hint and wait for results effect to rerun when results update
+            setDiveLoading(true);
             aiRequestInProgressRef.current = null;
             return;
           }
 
           // Send more candidates for better fallback options
-          const candidateResults = searchResults.slice(0, 8).map((r: any) => ({
+          const candidateResults = results.slice(0, 8).map((r: any) => ({
             url: r.url,
             title: r.title,
             snippet: r.description
           }));
 
           // Call dive API with existing search results
+          aiRequestInProgressRef.current = requestKey;
+          setDiveLoading(true);
+          if (aiAbortControllerRef.current) {
+            try { aiAbortControllerRef.current.abort(); } catch {}
+          }
+          aiAbortControllerRef.current = new AbortController();
           const diveResponse = await fetchWithSessionRefreshAndCache('/api/dive', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, pages: candidateResults })
+            body: JSON.stringify({ query, pages: candidateResults }),
+            signal: aiAbortControllerRef.current.signal
           });
 
           if (!diveResponse.ok) {
@@ -492,12 +483,21 @@ function SearchPageContent() {
             return;
           }
 
+          aiRequestInProgressRef.current = requestKey;
+          setAiLoading(true);
+          setDiveLoading(false);
+          // Abort any prior in-flight request before starting a new one
+          if (aiAbortControllerRef.current) {
+            try { aiAbortControllerRef.current.abort(); } catch {}
+          }
+          aiAbortControllerRef.current = new AbortController();
           const res = await fetchWithSessionRefreshAndCache(`/api/karakulak/${model}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({ message: query }),
+            signal: aiAbortControllerRef.current.signal
           });
 
           if (!res.ok) {
@@ -514,19 +514,27 @@ function SearchPageContent() {
           SearchCache.setAI(model, query, aiResult);
         }
         
-        setAiLoading(false);
-        setDiveLoading(false);
+    setAiLoading(false);
+    setDiveLoading(false);
         aiRequestInProgressRef.current = null;
+        // Clear controller after completion
+        if (aiAbortControllerRef.current) {
+          aiAbortControllerRef.current = null;
+        }
       } catch (error) {
         console.error(`AI response failed for model ${model}:`, error);
 
-        if (!isRetry && model !== "gemini" && !aiModel && !aiDiveEnabled) {
+    if (!isRetry && model !== "gemini" && !aiModel && !aiDiveEnabled) {
           console.log("No user preference found, falling back to Gemini model");
           makeAIRequest("gemini", true);
         } else {
           setAiLoading(false);
           setDiveLoading(false);
           aiRequestInProgressRef.current = null;
+          // Clear controller on error/abort
+          if (aiAbortControllerRef.current) {
+            aiAbortControllerRef.current = null;
+          }
         }
       }
     };
@@ -538,7 +546,14 @@ function SearchPageContent() {
     } else {
       aiRequestInProgressRef.current = null;
     }
-  }, [query, aiEnabled, aiModel, aiDiveEnabled]);
+    // Cleanup on effect re-run or unmount: abort any in-flight request
+    return () => {
+      if (aiAbortControllerRef.current) {
+        try { aiAbortControllerRef.current.abort(); } catch {}
+        aiAbortControllerRef.current = null;
+      }
+    };
+  }, [query, aiEnabled, aiModel, aiDiveEnabled, results]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -557,6 +572,11 @@ function SearchPageContent() {
   const handleToggleAiDive = () => {
     // Clear any in-progress request when switching modes
     aiRequestInProgressRef.current = null;
+    // Abort in-flight AI/Dive request when toggling mode
+    if (aiAbortControllerRef.current) {
+      try { aiAbortControllerRef.current.abort(); } catch {}
+      aiAbortControllerRef.current = null;
+    }
     setAiDiveEnabled(prevAiDiveEnabled => !prevAiDiveEnabled);
   };
 
