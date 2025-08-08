@@ -168,9 +168,12 @@ function SearchPageContent() {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const aiRequestInProgressRef = useRef<string | null>(null);
   const searchIdRef = useRef(0);
-  // Track which query the current `results` belong to to avoid stale Dive sources
   const lastResultsQueryRef = useRef<string | null>(null);
-  // Abort controller for AI/Dive requests
+  const webSearchAbortRef = useRef<AbortController | null>(null);
+  const imagesAbortRef = useRef<AbortController | null>(null);
+  const newsAbortRef = useRef<AbortController | null>(null);
+  const suggestionsAbortRef = useRef<AbortController | null>(null);
+  const wikipediaAbortRef = useRef<AbortController | null>(null);
   const aiAbortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -209,6 +212,12 @@ function SearchPageContent() {
     const engineToUse = storedEngine;
 
     const fetchRegularSearch = async () => {
+      // Abort any previous in-flight request
+  if (webSearchAbortRef.current) {
+        try { webSearchAbortRef.current.abort(); } catch {}
+      }
+  webSearchAbortRef.current = new AbortController();
+  const webSignal = webSearchAbortRef.current.signal;
       const doFetch = async (engine: string) => {
         try {
           // Get user preferences from localStorage
@@ -226,7 +235,7 @@ function SearchPageContent() {
           
           const response = await fetchWithSessionRefreshAndCache(
             apiUrl,
-            undefined,
+            { signal: webSignal },
             {
               searchType: 'search',
               provider: engine,
@@ -268,15 +277,24 @@ function SearchPageContent() {
 
     return () => {
       isMounted = false;
+      if (webSearchAbortRef.current) {
+        try { webSearchAbortRef.current.abort(); } catch {}
+        webSearchAbortRef.current = null;
+      }
     };
   }, [searchParams, router]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
     setImageLoading(true);
+    if (imagesAbortRef.current) {
+      try { imagesAbortRef.current.abort(); } catch {}
+    }
+    imagesAbortRef.current = new AbortController();
+    const imgSignal = imagesAbortRef.current.signal;
     fetchWithSessionRefreshAndCache(
       `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
-      undefined,
+      { signal: imgSignal },
       {
         searchType: 'images',
         provider: searchEngine,
@@ -294,6 +312,12 @@ function SearchPageContent() {
       })
       .catch((error) => console.error("Image search failed:", error))
       .finally(() => setImageLoading(false));
+    return () => {
+      if (imagesAbortRef.current) {
+        try { imagesAbortRef.current.abort(); } catch {}
+        imagesAbortRef.current = null;
+      }
+    };
   }, [query, searchEngine, searchType]);
 
   useEffect(() => {
@@ -311,9 +335,14 @@ function SearchPageContent() {
       safesearch: storedSafesearch
     });
     
+    if (newsAbortRef.current) {
+      try { newsAbortRef.current.abort(); } catch {}
+    }
+    newsAbortRef.current = new AbortController();
+    const newsSignal = newsAbortRef.current.signal;
     fetchWithSessionRefreshAndCache(
       `/api/news/${searchEngine}?${searchParams}`,
-      undefined,
+      { signal: newsSignal },
       {
         searchType: 'news',
         provider: searchEngine,
@@ -335,6 +364,12 @@ function SearchPageContent() {
       })
       .catch((error) => console.error("News search failed:", error))
       .finally(() => setNewsLoading(false));
+    return () => {
+      if (newsAbortRef.current) {
+        try { newsAbortRef.current.abort(); } catch {}
+        newsAbortRef.current = null;
+      }
+    };
   }, [query, searchEngine, searchType]);
 
   useEffect(() => {
@@ -342,9 +377,14 @@ function SearchPageContent() {
 
     if (imageResults.length === 0 && !imageLoading) {
       setImageLoading(true);
+      if (imagesAbortRef.current) {
+        try { imagesAbortRef.current.abort(); } catch {}
+      }
+      imagesAbortRef.current = new AbortController();
+      const imgSignal = imagesAbortRef.current.signal;
       fetchWithSessionRefreshAndCache(
         `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
-        undefined,
+        { signal: imgSignal },
         {
           searchType: 'images',
           provider: searchEngine,
@@ -362,6 +402,12 @@ function SearchPageContent() {
         })
         .catch((error) => console.error("Image search failed:", error))
         .finally(() => setImageLoading(false));
+      return () => {
+        if (imagesAbortRef.current) {
+          try { imagesAbortRef.current.abort(); } catch {}
+          imagesAbortRef.current = null;
+        }
+      };
     }
   }, [searchType, query, searchEngine, imageResults.length, imageLoading]);
 
@@ -588,11 +634,17 @@ function SearchPageContent() {
       }
 
       try {
+        if (suggestionsAbortRef.current) {
+          try { suggestionsAbortRef.current.abort(); } catch {}
+        }
+        suggestionsAbortRef.current = new AbortController();
+        const sugSignal = suggestionsAbortRef.current.signal;
         const response = await fetchWithSessionRefreshAndCache(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchInput)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-          }
+          },
+          signal: sugSignal
         });
         if (!response.ok) throw new Error(`Autocomplete fetch failed with status ${response.status}`);
         const data = await response.json();
@@ -611,7 +663,13 @@ function SearchPageContent() {
     };
 
     const timeoutId = setTimeout(fetchSuggestions, 200);
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      if (suggestionsAbortRef.current) {
+        try { suggestionsAbortRef.current.abort(); } catch {}
+        suggestionsAbortRef.current = null;
+      }
+    };
   }, [searchInput, autocompleteSource]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -686,6 +744,12 @@ function SearchPageContent() {
     const fetchWikipediaData = async () => {
       setWikiLoading(true);
       try {
+        // Abort any in-flight Wikipedia requests
+        if (wikipediaAbortRef.current) {
+          try { wikipediaAbortRef.current.abort(); } catch {}
+        }
+        wikipediaAbortRef.current = new AbortController();
+        const wikiSignal = wikipediaAbortRef.current.signal;
         // Get browser language (first 2 characters of the locale)
         const browserLanguage = navigator.language?.slice(0, 2);
         
@@ -704,7 +768,7 @@ function SearchPageContent() {
           suggestionUrl.searchParams.set('country', searchCountry);
         }
 
-        const suggestionResponse = await fetchWithSessionRefreshAndCache(suggestionUrl.toString());
+  const suggestionResponse = await fetchWithSessionRefreshAndCache(suggestionUrl.toString(), { signal: wikiSignal });
         
         if (!suggestionResponse.ok) {
           throw new Error(`Wikipedia suggestion API failed: ${suggestionResponse.status}`);
@@ -717,7 +781,7 @@ function SearchPageContent() {
 
         if (articleTitle) {
           const detailsUrl = `https://${language}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(articleTitle)}`;
-          const detailsResponse = await fetch(detailsUrl);
+          const detailsResponse = await fetch(detailsUrl, { signal: wikiSignal });
           const details = await detailsResponse.json();
 
           if (details.type === "standard" || details.type === "disambiguation") {
@@ -745,13 +809,13 @@ function SearchPageContent() {
       }
     };
 
-    const fallbackToWikipediaSearch = async (language: string = 'en') => {
+  const fallbackToWikipediaSearch = async (language: string = 'en') => {
       try {
         const searchUrl = `https://${language}.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=${encodeURIComponent(
           query
         )}&format=json&utf8=1`;
 
-        const searchResponse = await fetch(searchUrl);
+    const searchResponse = await fetch(searchUrl, { signal: wikipediaAbortRef.current?.signal });
         const searchData = await searchResponse.json();
 
         if (searchData.query?.search?.length > 0) {
@@ -759,7 +823,7 @@ function SearchPageContent() {
           const pageTitle = topResult.title;
 
           const detailsUrl = `https://${language}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
-          const detailsResponse = await fetch(detailsUrl);
+          const detailsResponse = await fetch(detailsUrl, { signal: wikipediaAbortRef.current?.signal });
           const details = await detailsResponse.json();
 
           if (details.type === "standard" || details.type === "disambiguation") {
@@ -790,6 +854,13 @@ function SearchPageContent() {
     } else {
       setWikiData(null);
     }
+
+    return () => {
+      if (wikipediaAbortRef.current) {
+        try { wikipediaAbortRef.current.abort(); } catch {}
+        wikipediaAbortRef.current = null;
+      }
+    };
   }, [query, hasBang]);
 
   useEffect(() => {
@@ -805,9 +876,14 @@ function SearchPageContent() {
 
     if (type === 'images' && query && imageResults.length === 0 && !imageLoading) {
       setImageLoading(true);
+      if (imagesAbortRef.current) {
+        try { imagesAbortRef.current.abort(); } catch {}
+      }
+      imagesAbortRef.current = new AbortController();
+      const imgSignal = imagesAbortRef.current.signal;
       fetchWithSessionRefreshAndCache(
         `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
-        undefined,
+        { signal: imgSignal },
         {
           searchType: 'images',
           provider: searchEngine,
@@ -838,9 +914,14 @@ function SearchPageContent() {
         safesearch: storedSafesearch
       });
       
+      if (newsAbortRef.current) {
+        try { newsAbortRef.current.abort(); } catch {}
+      }
+      newsAbortRef.current = new AbortController();
+      const newsSignal = newsAbortRef.current.signal;
       fetchWithSessionRefreshAndCache(
         `/api/news/${searchEngine}?${searchParams}`,
-        undefined,
+        { signal: newsSignal },
         {
           searchType: 'news',
           provider: searchEngine,
