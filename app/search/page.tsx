@@ -12,6 +12,8 @@ import Footer from "@/components/footer";
 import { handleBangRedirect } from "@/utils/bangs";
 import { fetchWithSessionRefreshAndCache, SearchCache } from "@/lib/cache";
 import { apiEndpoints } from "@/lib/migration-config";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 // Define mobile navigation items
 const mobileNavItems = [
@@ -865,7 +867,7 @@ function SearchPageContent() {
             </Link>
             <div className="relative flex-1 min-w-0">
               <div className="flex items-center w-full relative">
-              <input
+              <Input
                 type="text"
                 value={searchInput}
                 onChange={(e) => {
@@ -876,17 +878,13 @@ function SearchPageContent() {
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="Search anything..."
                 maxLength={800}
-                className="flex-1 px-4 py-2 pr-16 rounded-full border border-border bg-background shadow-lg focus:outline-none text-lg"
+                className="flex-1 px-4 py-2 pr-16 rounded-full shadow-lg text-lg"
                 style={{ minWidth: 0 }}
               />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-              <button
-                type="submit"
-                className="p-3 rounded-full text-muted-foreground hover:bg-muted transition-colors"
-                title="Search"
-              >
+              <Button type="submit" variant="ghost" size="icon" shape="pill" title="Search">
                 <Search className="w-5 h-5" />
-                </button>
+              </Button>
               </div>
               </div>
               

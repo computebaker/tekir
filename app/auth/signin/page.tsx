@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function SignInPage() {
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -87,12 +89,12 @@ export default function SignInPage() {
               <label htmlFor="emailOrUsername" className="sr-only">
                 Email or Username
               </label>
-              <input
+              <Input
                 id="emailOrUsername"
                 type="text"
                 autoComplete="username"
                 required
-                className="relative block w-full px-3 py-3 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                className="relative block w-full px-3 py-3"
                 placeholder="Email or Username"
                 name="emailOrUsername"
                 value={emailOrUsername}
@@ -104,12 +106,12 @@ export default function SignInPage() {
               <label htmlFor="password" className="sr-only">
                 Password
               </label>
-              <input
+              <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
-                className="relative block w-full px-3 py-3 pr-10 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                className="relative block w-full px-3 py-3 pr-10"
                 placeholder="Password"
                 name="password"
                 value={password}
@@ -130,13 +132,9 @@ export default function SignInPage() {
           </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" disabled={loading} className="w-full py-3">
               {loading ? "Signing in..." : "Sign in"}
-            </button>
+            </Button>
           </div>
 
           <div className="text-center">

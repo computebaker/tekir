@@ -8,6 +8,8 @@ import { Search, Lock, MessageCircleMore, Github, Heart } from "lucide-react";
 import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
 import WeatherWidget from "@/components/weather-widget";
+import { Input, SearchInput } from "@/components/ui/input";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -279,7 +281,7 @@ export default function Home() {
           <form onSubmit={handleSearch} className="relative w-full">
             <div className="relative group">
               {/* Search input */}
-              <input
+              <SearchInput
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
@@ -290,18 +292,14 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="What's on your mind?"
-                className="w-full px-6 py-4 pr-24 rounded-full border border-border bg-background shadow-lg focus:outline-none text-lg transition-all duration-300 relative z-10" // Increased pr for two buttons
+                className="w-full pr-24 shadow-lg transition-all duration-300 relative z-10"
               />
               
               {/* Search button */}
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center z-20">
-                <button
-                  type="submit"
-                  className="p-3 rounded-full text-muted-foreground hover:bg-muted transition-colors"
-                  title="Search"
-                >
+                <Button type="submit" variant="ghost" size="icon" shape="pill" title="Search">
                   <Search className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
             </div>
             
@@ -560,16 +558,10 @@ export default function Home() {
               Start searching with Tekir today and discover the difference privacy makes.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                href="/about" 
-                className="bg-primary text-primary-foreground px-8 py-3 rounded-full font-medium hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl"
-              >
+              <Link href="/about" className={buttonVariants({ variant: "default", size: "lg" }) + " rounded-full px-8"}>
                 Learn More
               </Link>
-              <Link 
-                href="/settings" 
-                className="bg-secondary text-secondary-foreground px-8 py-3 rounded-full font-medium hover:bg-secondary/90 transition-all duration-300 shadow-lg hover:shadow-xl"
-              >
+              <Link href="/settings" className={buttonVariants({ variant: "secondary", size: "lg" }) + " rounded-full px-8"}>
                 Customize Settings
               </Link>
             </div>

@@ -8,6 +8,9 @@ import Footer from "@/components/footer";
 import Link from "next/link";
 import Image from "next/image";
 import { useSettings } from "@/lib/settings";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 
 interface LocationData {
   lat: number;
@@ -439,25 +442,7 @@ export default function SearchSettingsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <input 
-                        type="checkbox" 
-                        id="karakulak-toggle" 
-                        className="sr-only" 
-                        checked={settings.karakulakEnabled}
-                        onChange={handleKarakulakToggle}
-                      />
-                      <label 
-                        htmlFor="karakulak-toggle" 
-                        className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                          settings.karakulakEnabled ? 'bg-sky-500' : 'bg-muted'
-                        }`}
-                      >
-                        <div
-                          className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm ${
-                            settings.karakulakEnabled ? "translate-x-6" : ""
-                          }`}
-                        />
-                      </label>
+                      <Switch checked={settings.karakulakEnabled} onChange={() => { void handleKarakulakToggle(); }} aria-label="Karakulak AI Mode" />
                     </div>
                   </div>
                 </div>
@@ -587,25 +572,7 @@ export default function SearchSettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <input 
-                    type="checkbox" 
-                    id="clim8-toggle" 
-                    className="sr-only" 
-                    checked={settings.clim8Enabled}
-                    onChange={handleClim8Toggle}
-                  />
-                  <label 
-                    htmlFor="clim8-toggle" 
-                    className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                      settings.clim8Enabled ? 'bg-sky-500' : 'bg-muted'
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm ${
-                        settings.clim8Enabled ? "translate-x-6" : ""
-                      }`}
-                    />
-                  </label>
+                  <Switch checked={settings.clim8Enabled} onChange={() => { void handleClim8Toggle(); }} aria-label="Clim8 Weather" />
                 </div>
               </div>
             </div>
@@ -624,21 +591,18 @@ export default function SearchSettingsPage() {
                   <div className="relative" ref={weatherLocationRef}>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
+                      <Input
                         type="text"
                         placeholder="Search for a city..."
                         value={weatherLocationQuery}
                         onChange={handleWeatherLocationInput}
                         onFocus={() => setShowWeatherLocationSuggestions(true)}
-                        className="w-full pl-10 pr-10 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full pl-10 pr-10"
                       />
                       {settings.customWeatherLocation && (
-                        <button
-                          onClick={handleClearWeatherLocation}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                        >
+                        <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={handleClearWeatherLocation} aria-label="Clear location">
                           <X className="w-4 h-4" />
-                        </button>
+                        </Button>
                       )}
                     </div>
                     

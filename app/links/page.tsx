@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ExternalLink, Search, MessageCircleMore, Zap, Twitter, Instagram } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Footer from "@/components/footer";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function LinksPage() {
   return (
@@ -33,10 +34,7 @@ export default function LinksPage() {
           {/* TRY OUR APP NOW Section */}
           <section className="mb-8">
             <h2 className="text-lg font-semibold mb-4 text-center text-primary">TRY OUR APP NOW</h2>
-            <Link 
-              href="/"
-              className="w-full p-4 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 hover:scale-[1.02] flex items-center justify-between group shadow-lg"
-            >
+            <Link href="/" className={buttonVariants({ variant: "default", size: "lg" }) + " w-full justify-between hover:scale-[1.02] transition-transform shadow-lg"}>
               <div className="flex items-center gap-3">
                 <Search className="w-6 h-6" />
                 <div>

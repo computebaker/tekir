@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function SignUpPage() {
   const [username, setUsername] = useState("");
@@ -113,7 +115,7 @@ export default function SignUpPage() {
               <label htmlFor="username" className="sr-only">
                 Username
               </label>
-              <input
+              <Input
                 id="username"
                 name="username"
                 type="text"
@@ -121,7 +123,7 @@ export default function SignUpPage() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="relative block w-full px-3 py-3 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                className="relative block w-full px-3 py-3"
                 placeholder="Username"
               />
             </div>
@@ -130,7 +132,7 @@ export default function SignUpPage() {
               <label htmlFor="email" className="sr-only">
                 Email address
               </label>
-              <input
+              <Input
                 id="email"
                 name="email"
                 type="email"
@@ -138,7 +140,7 @@ export default function SignUpPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full px-3 py-3 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                className="relative block w-full px-3 py-3"
                 placeholder="Email address"
               />
             </div>
@@ -147,7 +149,7 @@ export default function SignUpPage() {
               <label htmlFor="password" className="sr-only">
                 Password
               </label>
-              <input
+              <Input
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
@@ -155,7 +157,7 @@ export default function SignUpPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full px-3 py-3 pr-10 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                className="relative block w-full px-3 py-3 pr-10"
                 placeholder="Password"
               />
               <button
@@ -175,7 +177,7 @@ export default function SignUpPage() {
               <label htmlFor="confirmPassword" className="sr-only">
                 Confirm Password
               </label>
-              <input
+              <Input
                 id="confirmPassword"
                 name="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
@@ -183,7 +185,7 @@ export default function SignUpPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="relative block w-full px-3 py-3 pr-10 border border-border placeholder-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                className="relative block w-full px-3 py-3 pr-10"
                 placeholder="Confirm Password"
               />
               <button
@@ -201,13 +203,9 @@ export default function SignUpPage() {
           </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" disabled={loading} className="w-full py-3">
               {loading ? "Creating account..." : "Create account"}
-            </button>
+            </Button>
           </div>
 
           <div className="text-center">
