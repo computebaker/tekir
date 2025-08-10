@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SearchTabs from "@/components/search/search-tabs";
 import WebResultItem from "@/components/search/web-result-item";
+import FlyingCats from "@/components/shared/flying-cats";
 
 // Define mobile navigation items
 const mobileNavItems = [
@@ -947,6 +948,15 @@ function SearchPageContent() {
 
   const [followUpQuestion, setFollowUpQuestion] = useState("");
 
+  // Easter egg: show flying cats when query contains "cat" in common languages
+  const catEasterEgg = (() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return false;
+    const tokens = q.split(/\W+/).filter(Boolean);
+    const words = new Set(["cat", "cats", "kedi", "katze", "gatto"]);
+    return tokens.some((t) => words.has(t));
+  })();
+
   const handleFollowUpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!followUpQuestion.trim()) return;
@@ -963,6 +973,8 @@ function SearchPageContent() {
   return (
     <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">
+  {/* Flying Cats Easter Egg overlay */}
+  <FlyingCats show={!!catEasterEgg} />
         <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 md:mr-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full space-x-2 md:space-x-4">
             <Link href="/">
