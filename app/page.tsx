@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Search, Lock, MessageCircleMore, Github, Heart } from "lucide-react";
 import UserProfile from "@/components/user-profile";
 import { useAuth } from "@/components/auth-provider";
+import { useSettings } from "@/lib/settings";
 import Footer from "@/components/footer";
 import WeatherWidget from "@/components/weather-widget";
 import { Input, SearchInput } from "@/components/ui/input";
@@ -45,6 +46,7 @@ interface Suggestion {
 
 export default function Home() {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -278,7 +280,7 @@ export default function Home() {
   return (
     <main className="min-h-[100vh] relative overflow-x-hidden">
       {/* Top Right Welcome + Profile (only when not scrolled) */}
-      <div
+  <div
         className="fixed top-4 right-4 z-50"
         style={{
           opacity: 1 - scrollProgress,
@@ -295,10 +297,12 @@ export default function Home() {
                 Welcome, <span className="font-semibold text-foreground">{user.name || "User"}!</span>
               </div>
             )}
-            {/* Weather below welcome */}
-            <div className="text-right">
-              <WeatherWidget size="sm" />
-            </div>
+            {/* Weather below welcome (only if placement is topRight) */}
+            {(settings.weatherPlacement || 'topRight') === 'topRight' && (
+              <div className="text-right">
+                <WeatherWidget size="sm" />
+              </div>
+            )}
           </div>
           <UserProfile showOnlyAvatar={true} avatarSize={48} />
         </div>
@@ -454,6 +458,12 @@ export default function Home() {
               </div>
             </Link>
 
+            {(settings.weatherPlacement || 'topRight') === 'hero' && (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
+                <WeatherWidget />
+              </>
+            )}
             </div>
           
           </div>

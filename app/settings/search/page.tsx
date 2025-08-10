@@ -595,6 +595,40 @@ export default function SearchSettingsPage() {
                 </div>
               </div>
             )}
+
+            {/* Weather Placement */}
+            {settings.clim8Enabled && (
+              <div className="rounded-lg border border-border bg-card p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-lg font-medium">Weather Placement</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Choose where to show the Clim8 widget on the homepage
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 px-1 py-1 rounded-lg bg-background border border-border">
+                    <button
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        (settings.weatherPlacement || 'topRight') === 'hero' ? 'bg-muted' : 'hover:bg-muted'
+                      }`}
+                      onClick={() => updateSetting('weatherPlacement', 'hero')}
+                      aria-pressed={(settings.weatherPlacement || 'topRight') === 'hero'}
+                    >
+                      Under search bar
+                    </button>
+                    <button
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        (settings.weatherPlacement || 'topRight') === 'topRight' ? 'bg-muted' : 'hover:bg-muted'
+                      }`}
+                      onClick={() => updateSetting('weatherPlacement', 'topRight')}
+                      aria-pressed={(settings.weatherPlacement || 'topRight') === 'topRight'}
+                    >
+                      Next to profile
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
               </div>
             </div>
 

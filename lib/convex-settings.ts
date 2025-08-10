@@ -25,6 +25,7 @@ export interface UserSettings {
     lat: number;
     lon: number;
   };
+  weatherPlacement?: 'hero' | 'topRight';
   
   // UI preferences
   theme?: string;
@@ -47,6 +48,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   karakulakEnabled: true,
   clim8Enabled: true,
   weatherUnits: "metric",
+  weatherPlacement: 'topRight',
   theme: "system",
   searchType: "web",
   karakulakEnabled_llama: true,
