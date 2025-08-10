@@ -10,10 +10,13 @@ type Props = {
 
 export function SearchTabs({ active, onChange }: Props) {
   return (
-    <div className="flex space-x-4">
+    <div className="flex space-x-4" role="tablist" aria-label="Search result types">
       <button
         onClick={() => onChange("web")}
         className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
+        role="tab"
+        aria-selected={active === "web"}
+        tabIndex={active === "web" ? 0 : -1}
       >
         <div className="flex items-center gap-2">
           <Search className="w-4 h-4" />
@@ -29,6 +32,9 @@ export function SearchTabs({ active, onChange }: Props) {
       <button
         onClick={() => onChange("images")}
         className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
+        role="tab"
+        aria-selected={active === "images"}
+        tabIndex={active === "images" ? 0 : -1}
       >
         <div className="flex items-center gap-2">
           <ImageIcon className="w-4 h-4" />
@@ -44,6 +50,9 @@ export function SearchTabs({ active, onChange }: Props) {
       <button
         onClick={() => onChange("news")}
         className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
+        role="tab"
+        aria-selected={active === "news"}
+        tabIndex={active === "news" ? 0 : -1}
       >
         <div className="flex items-center gap-2">
           <Newspaper className="w-4 h-4" />

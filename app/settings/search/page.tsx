@@ -333,10 +333,13 @@ export default function SearchSettingsPage() {
                           Select your preferred AI model for responses
                         </p>
                       </div>
-                      <div className="relative" ref={modelDropdownRef}>
+            <div className="relative" ref={modelDropdownRef}>
                         <button
                           onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
                           className="flex items-center gap-3 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
+              aria-haspopup="menu"
+              aria-expanded={modelDropdownOpen}
+              aria-controls="ai-model-menu"
                         >
                           <div className="flex items-center gap-2">
                             <Image 
@@ -352,10 +355,12 @@ export default function SearchSettingsPage() {
                         </button>
                         
                         {modelDropdownOpen && (
-                          <div className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10">
+                          <div id="ai-model-menu" role="menu" aria-label="AI model options" className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10">
                             <div className="p-1">
                               <button
                                 onClick={() => handleModelChange('llama')}
+                                role="menuitemradio"
+                                aria-checked={settings.aiModel === 'llama'}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
                                   settings.aiModel === 'llama' ? 'bg-muted' : ''
                                 }`}
@@ -372,6 +377,8 @@ export default function SearchSettingsPage() {
                               
                               <button
                                 onClick={() => handleModelChange('gemini')}
+                                role="menuitemradio"
+                                aria-checked={settings.aiModel === 'gemini'}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
                                   settings.aiModel === 'gemini' ? 'bg-muted' : ''
                                 }`}
@@ -388,6 +395,8 @@ export default function SearchSettingsPage() {
 
                               <button
                                 onClick={() => handleModelChange('chatgpt')}
+                                role="menuitemradio"
+                                aria-checked={settings.aiModel === 'chatgpt'}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
                                   settings.aiModel === 'chatgpt' ? 'bg-muted' : ''
                                 }`}
@@ -404,6 +413,8 @@ export default function SearchSettingsPage() {
 
                               <button
                                 onClick={() => handleModelChange('mistral')}
+                                role="menuitemradio"
+                                aria-checked={settings.aiModel === 'mistral'}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
                                   settings.aiModel === 'mistral' ? 'bg-muted' : ''
                                 }`}
@@ -464,7 +475,7 @@ export default function SearchSettingsPage() {
                     </p>
                   </div>
                   
-                  <div className="relative" ref={weatherLocationRef}>
+      <div className="relative" ref={weatherLocationRef}>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
@@ -474,6 +485,10 @@ export default function SearchSettingsPage() {
                         onChange={handleWeatherLocationInput}
                         onFocus={() => setShowWeatherLocationSuggestions(true)}
                         className="w-full pl-10 pr-10"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={showWeatherLocationSuggestions && weatherLocationSuggestions.length > 0}
+        aria-controls="weather-location-suggestions"
                       />
                       {settings.customWeatherLocation && (
                         <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={handleClearWeatherLocation} aria-label="Clear location">
@@ -484,11 +499,13 @@ export default function SearchSettingsPage() {
                     
                     {/* Location suggestions dropdown */}
                     {showWeatherLocationSuggestions && weatherLocationSuggestions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                      <div id="weather-location-suggestions" role="listbox" aria-label="Location suggestions" className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
                         {weatherLocationSuggestions.map((location, index) => (
                           <button
                             key={index}
                             onClick={() => handleWeatherLocationSelect(location)}
+                            role="option"
+                            aria-selected={false}
                             className="w-full px-4 py-2 text-left hover:bg-muted transition-colors flex items-center gap-2"
                           >
                             <MapPin className="w-4 h-4 text-muted-foreground" />
@@ -521,10 +538,13 @@ export default function SearchSettingsPage() {
                       Choose between metric (°C, km/h) or imperial (°F, mph) units
                     </p>
                   </div>
-                  <div className="relative" ref={weatherUnitsDropdownRef}>
+          <div className="relative" ref={weatherUnitsDropdownRef}>
                     <button
                       onClick={() => setWeatherUnitsDropdownOpen(!weatherUnitsDropdownOpen)}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
+            aria-haspopup="menu"
+            aria-expanded={weatherUnitsDropdownOpen}
+            aria-controls="weather-units-menu"
                     >
                       <span className="text-sm font-medium capitalize">
                         {settings.weatherUnits === 'metric' ? 'Metric (°C)' : 'Imperial (°F)'}
@@ -533,10 +553,12 @@ export default function SearchSettingsPage() {
                     </button>
                     
                     {weatherUnitsDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-60 rounded-lg bg-background border border-border shadow-lg z-10">
+                      <div id="weather-units-menu" role="menu" aria-label="Weather unit options" className="absolute right-0 mt-2 w-60 rounded-lg bg-background border border-border shadow-lg z-10">
                         <div className="p-1">
                           <button
                             onClick={() => handleWeatherUnitsChange('metric')}
+                            role="menuitemradio"
+                            aria-checked={settings.weatherUnits === 'metric'}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
                               settings.weatherUnits === 'metric' ? 'bg-muted' : ''
                             }`}
@@ -552,6 +574,8 @@ export default function SearchSettingsPage() {
                           
                           <button
                             onClick={() => handleWeatherUnitsChange('imperial')}
+                            role="menuitemradio"
+                            aria-checked={settings.weatherUnits === 'imperial'}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
                               settings.weatherUnits === 'imperial' ? 'bg-muted' : ''
                             }`}
@@ -609,10 +633,13 @@ export default function SearchSettingsPage() {
                     Choose your search suggestion provider
                   </p>
                 </div>
-                <div className="relative" ref={autocompleteDropdownRef}>
+        <div className="relative" ref={autocompleteDropdownRef}>
                   <button
                     onClick={() => setAutocompleteDropdownOpen(!autocompleteDropdownOpen)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
+          aria-haspopup="menu"
+          aria-expanded={autocompleteDropdownOpen}
+          aria-controls="autocomplete-menu"
                   >
                     <span className="text-sm font-medium">
                       {settings.autocompleteSource === "brave" ? "Brave" : "DuckDuckGo"}
@@ -621,10 +648,12 @@ export default function SearchSettingsPage() {
                   </button>
                   
                   {autocompleteDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-full min-w-[140px] rounded-lg bg-background border border-border shadow-lg z-10">
+                    <div id="autocomplete-menu" role="menu" aria-label="Autocomplete providers" className="absolute right-0 mt-2 w-full min-w-[140px] rounded-lg bg-background border border-border shadow-lg z-10">
                       <div className="py-1">
                         <button
                           onClick={() => handleAutocompleteChange('brave')}
+                          role="menuitemradio"
+                          aria-checked={settings.autocompleteSource === 'brave'}
                           className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-muted transition-colors ${
                             settings.autocompleteSource === "brave" ? "bg-muted" : ""
                           }`}
@@ -639,6 +668,8 @@ export default function SearchSettingsPage() {
                         
                         <button
                           onClick={() => handleAutocompleteChange('duck')}
+                          role="menuitemradio"
+                          aria-checked={settings.autocompleteSource === 'duck'}
                           className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-muted transition-colors ${
                             settings.autocompleteSource === "duck" ? "bg-muted" : ""
                           }`}
@@ -666,22 +697,27 @@ export default function SearchSettingsPage() {
                     Choose your preferred search region for localized results
                   </p>
                 </div>
-                <div className="relative" ref={countryDropdownRef}>
+        <div className="relative" ref={countryDropdownRef}>
                   <button
                     onClick={() => setCountryDropdownOpen(!countryDropdownOpen)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
+          aria-haspopup="menu"
+          aria-expanded={countryDropdownOpen}
+          aria-controls="country-menu"
                   >
                     <span className="text-sm font-medium">{currentCountry.name}</span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${countryDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {countryDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10 max-h-60 overflow-y-auto">
+                    <div id="country-menu" role="menu" aria-label="Search regions" className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10 max-h-60 overflow-y-auto">
                       <div className="p-1">
                         {COUNTRIES.map((country) => (
                           <button
                             key={country.code}
                             onClick={() => handleCountryChange(country.code)}
+                            role="menuitemradio"
+                            aria-checked={settings.searchCountry === country.code}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
                               settings.searchCountry === country.code ? 'bg-muted' : ''
                             }`}
@@ -711,20 +747,25 @@ export default function SearchSettingsPage() {
                     Filter explicit content from your search results
                   </p>
                 </div>
-                <div className="relative" ref={safesearchDropdownRef}>
+        <div className="relative" ref={safesearchDropdownRef}>
                   <button
                     onClick={() => setSafesearchDropdownOpen(!safesearchDropdownOpen)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
+          aria-haspopup="menu"
+          aria-expanded={safesearchDropdownOpen}
+          aria-controls="safesearch-menu"
                   >
                     <span className="text-sm font-medium">{getSafesearchDisplay(settings.safesearch || 'moderate')}</span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${safesearchDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {safesearchDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-full min-w-[200px] rounded-lg bg-background border border-border shadow-lg z-10">
+                    <div id="safesearch-menu" role="menu" aria-label="SafeSearch levels" className="absolute right-0 mt-2 w-full min-w-[200px] rounded-lg bg-background border border-border shadow-lg z-10">
                       <div className="p-1">
                         <button
                           onClick={() => handleSafesearchChange('off')}
+                          role="menuitemradio"
+                          aria-checked={settings.safesearch === 'off'}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
                             settings.safesearch === 'off' ? 'bg-muted' : ''
                           }`}
@@ -740,6 +781,8 @@ export default function SearchSettingsPage() {
                         
                         <button
                           onClick={() => handleSafesearchChange('moderate')}
+                          role="menuitemradio"
+                          aria-checked={settings.safesearch === 'moderate'}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
                             settings.safesearch === 'moderate' ? 'bg-muted' : ''
                           }`}
@@ -755,6 +798,8 @@ export default function SearchSettingsPage() {
 
                         <button
                           onClick={() => handleSafesearchChange('strict')}
+                          role="menuitemradio"
+                          aria-checked={settings.safesearch === 'strict'}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
                             settings.safesearch === 'strict' ? 'bg-muted' : ''
                           }`}

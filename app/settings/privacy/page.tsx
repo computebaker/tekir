@@ -128,13 +128,16 @@ export default function PrivacySettingsPage() {
     try {
       const text = await file.text();
       const parsed = JSON.parse(text) as Partial<ExportPayload>;
-      if (parsed?.kind !== "tekir.settings" || !parsed.preferences) {
-        throw new Error("Invalid file format");
+      if (parsed?.kind !== "tekir.settings") {
+        throw new Error("Invalid file format: expected tekir.settings file");
+      }
+      if (!parsed.preferences || typeof parsed.preferences !== 'object') {
+        throw new Error("Invalid file format: missing or invalid preferences");
       }
       await applyImportedPreferences(parsed.preferences);
       setMessage({ type: "success", text: "Preferences imported successfully" });
     } catch (e) {
-      setMessage({ type: "error", text: e instanceof Error ? e.message : "Import failed" });
+      setMessage({ type: "error", text: e instanceof Error ? e.message : "Failed to parse import file" });
     }
   };
 

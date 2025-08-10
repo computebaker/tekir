@@ -16,13 +16,15 @@ interface MobileNavItem {
 interface UserProfileProps {
   mobileNavItems?: MobileNavItem[];
   showOnlyAvatar?: boolean;
+  avatarSize?: number;
 }
 
-export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = false }: UserProfileProps) {
+export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = false, avatarSize }: UserProfileProps) {
   const { user, status, signOut, updateUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarKey, setAvatarKey] = useState(Date.now()); // For forcing avatar refresh
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const avatarPx = showOnlyAvatar ? (avatarSize ?? 40) : 32;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,7 +48,10 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
 
   if (status === "loading") {
     return (
-      <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-muted animate-pulse flex-shrink-0`}></div>
+      <div
+        className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-muted animate-pulse flex-shrink-0`}
+        style={{ width: avatarPx, height: avatarPx }}
+      />
     );
   }
 
@@ -57,7 +62,10 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
           onClick={() => setIsOpen(!isOpen)}
           className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
         >
-          <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0`}>
+          <div
+            className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0`}
+            style={{ width: avatarPx, height: avatarPx }}
+          >
             <User className={`${showOnlyAvatar ? 'w-5 h-5' : 'w-4 h-4'} text-muted-foreground`} />
           </div>
           {!showOnlyAvatar && (
@@ -101,7 +109,10 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
       >
-        <div className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-border flex-shrink-0`}>
+        <div
+          className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-border flex-shrink-0`}
+          style={{ width: avatarPx, height: avatarPx }}
+        >
           <Image
             key={`avatar-${user.id}-${avatarKey}`}
             src={getUserAvatarUrl({
@@ -113,8 +124,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               updatedAt: (user as any).updatedAt
             })}
             alt={user.name || "Profile"}
-            width={showOnlyAvatar ? 40 : 32}
-            height={showOnlyAvatar ? 40 : 32}
+            width={avatarPx}
+            height={avatarPx}
             className="w-full h-full object-cover"
             unoptimized
             onError={(e) => {

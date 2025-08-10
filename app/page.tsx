@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, Lock, MessageCircleMore, Github, Heart } from "lucide-react";
 import UserProfile from "@/components/user-profile";
+import { useAuth } from "@/components/auth-provider";
 import Footer from "@/components/footer";
 import WeatherWidget from "@/components/weather-widget";
 import { Input, SearchInput } from "@/components/ui/input";
@@ -43,7 +44,9 @@ interface Suggestion {
 }
 
 export default function Home() {
+  const { user } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -92,11 +95,27 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+    const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
+    let rafId: number | null = null;
+    const onScroll = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(() => {
+        const y = window.scrollY || 0;
+        const start = 120; 
+        const span = 220;
+        const raw = Math.min(1, Math.max(0, (y - start) / span));
+        const eased = easeOutCubic(raw);
+        setScrollProgress(eased);
+        setIsScrolled(y > start);
+        rafId = null;
+      });
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -238,6 +257,11 @@ export default function Home() {
   useEffect(() => {
     const handleGlobalKeydown = (ev: KeyboardEvent) => {
       if (document.activeElement !== searchInputRef.current) {
+        // If user starts typing while scrolled, jump to top to expose the main search UI
+        const isTypingKey = ev.key === "Backspace" || (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey);
+        if ((window.scrollY || 0) > 0 && isTypingKey) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
         searchInputRef.current?.focus();
         if (ev.key === "Backspace") {
           setSearchQuery(prev => prev.slice(0, -1));
@@ -253,10 +277,77 @@ export default function Home() {
 
   return (
     <main className="min-h-[100vh] relative overflow-x-hidden">
-      {/* Profile Picture - Top Right */}
-      <div className="fixed top-4 right-4 z-50">
-        <UserProfile showOnlyAvatar={true} />
+      {/* Top Right Welcome + Profile (only when not scrolled) */}
+      <div
+        className="fixed top-4 right-4 z-50"
+        style={{
+          opacity: 1 - scrollProgress,
+          transform: `translateY(${-6 * scrollProgress}px) scale(${1 - 0.08 * scrollProgress})`,
+          transition: "opacity 150ms ease-out, transform 150ms ease-out",
+          pointerEvents: scrollProgress > 0.4 ? "none" : "auto",
+        }}
+        aria-hidden={scrollProgress > 0.9}
+      >
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="text-sm text-muted-foreground">
+              Welcome, <span className="font-semibold text-foreground">{user.name || "User"}!</span>
+            </div>
+          )}
+          <UserProfile showOnlyAvatar={true} avatarSize={48} />
+        </div>
       </div>
+
+      {/* Blurred Navbar on Scroll */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/70"
+        style={{
+          opacity: scrollProgress,
+          transform: `translateY(${(-8) * (1 - scrollProgress)}px)`,
+          transition: "opacity 150ms ease-out, transform 150ms ease-out",
+          pointerEvents: scrollProgress > 0.1 ? "auto" : "none",
+        }}
+        aria-hidden={scrollProgress < 0.05}
+      >
+          <div className="container mx-auto flex items-center gap-4 h-14 px-4 sm:px-6 lg:px-8">
+            <Link href="/" className="flex items-center gap-2 shrink-0">
+              <Image src="/tekir-head.png" alt="Tekir" width={36} height={12} priority style={{ transform: `scale(${0.95 + 0.05 * scrollProgress})`, transition: "transform 150ms ease-out" }} />
+              <span className="sr-only">Tekir</span>
+            </Link>
+            <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
+              <div className="relative">
+                <SearchInput
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSuggestions(false);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => setShowSuggestions(false)}
+                  placeholder="Search..."
+                  className="w-full pr-12 h-10"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <Button type="submit" variant="ghost" size="icon" shape="pill" title="Search">
+                    <Search className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </form>
+            <div className="flex items-center gap-3 ml-auto">
+              {user && (
+                <div className="hidden sm:block text-sm text-muted-foreground">
+                  Welcome, <span className="font-semibold text-foreground">{user.name || "User"}!</span>
+                </div>
+              )}
+              <div style={{ transform: `scale(${0.92 + 0.08 * scrollProgress})`, transition: "transform 150ms ease-out" }}>
+                <UserProfile showOnlyAvatar={true} avatarSize={40} />
+              </div>
+            </div>
+          </div>
+      </header>
 
       {/* Hero Section */}
       <section className="h-screen flex flex-col items-center justify-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10">

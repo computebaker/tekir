@@ -39,6 +39,7 @@ export function SettingsShell({
 }: SettingsShellProps) {
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
+  const mobileButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,8 +47,19 @@ export function SettingsShell({
         setIsMobileSettingsOpen(false);
       }
     };
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsMobileSettingsOpen(false);
+        // return focus to trigger
+        mobileButtonRef.current?.focus();
+      }
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeydown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeydown);
+    };
   }, []);
 
   const activeLabel = useMemo(() => sidebar.find((i) => i.active)?.label || currentSectionLabel, [sidebar, currentSectionLabel]);
@@ -95,6 +107,7 @@ export function SettingsShell({
                     <Link
                       key={item.href}
                       href={item.href}
+                      aria-current={item.active ? "page" : undefined}
                       className={
                         item.active
                           ? "flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary border border-primary/20 transition-all duration-200 hover:bg-primary/15"
@@ -125,9 +138,12 @@ export function SettingsShell({
             <div className="lg:hidden mb-6 mx-2" ref={mobileSettingsRef}>
               <div className="relative">
                 <button
+                  ref={mobileButtonRef}
                   onClick={() => setIsMobileSettingsOpen(!isMobileSettingsOpen)}
                   className="w-full flex items-center justify-between gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2 border hover:bg-muted/70 transition-colors"
                   aria-expanded={isMobileSettingsOpen}
+                  aria-haspopup="menu"
+                  aria-controls="settings-mobile-menu"
                 >
                   <div className="flex items-center gap-2">
                     <SettingsIcon className="w-4 h-4 text-muted-foreground" />
@@ -139,12 +155,19 @@ export function SettingsShell({
                 </button>
 
                 {isMobileSettingsOpen && (
-                  <div className="absolute top-full mt-2 w-full rounded-lg bg-background border border-border shadow-lg z-50">
+                  <div
+                    id="settings-mobile-menu"
+                    role="menu"
+                    aria-label="Settings sections"
+                    className="absolute top-full mt-2 w-full rounded-lg bg-background border border-border shadow-lg z-50"
+                  >
                     <div className="py-1">
                       {sidebar.map((item) => (
                         <Link
                           key={item.href}
                           href={item.href}
+                          role="menuitem"
+                          aria-current={item.active ? "page" : undefined}
                           onClick={() => setIsMobileSettingsOpen(false)}
                           className={
                             item.active
