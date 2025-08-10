@@ -10,8 +10,8 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { 
   ChevronDown, 
-  Settings, 
-  ArrowLeft, 
+  Settings as SettingsIcon, 
+  ArrowLeft,
   Search, 
   User, 
   Shield, 
@@ -26,11 +26,10 @@ import {
   RefreshCw,
   Cloud
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
-import UserProfile from "@/components/user-profile";
+import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
 
 // Define mobile navigation items for settings
-const settingsMobileNavItems = [
+const settingsMobileNavItems: MobileNavItem[] = [
   {
     href: "/search",
     icon: Search,
@@ -447,137 +446,15 @@ export default function AccountSettingsPage() {
     updatedAt: user.updatedAt ? new Date(user.updatedAt) : undefined
   });
 
+  const sidebarItems: SettingsNavItem[] = [
+    { href: "/settings/search", icon: Search, label: "Search" },
+    { href: "/settings/account", icon: User, label: "Account", active: true },
+    { href: "#", icon: Shield, label: "Privacy", soon: true },
+    { href: "#", icon: Bell, label: "Notifications", soon: true },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/" 
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to home</span>
-            </Link>
-            <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              <h1 className="text-lg font-semibold">Settings</h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <UserProfile mobileNavItems={settingsMobileNavItems} />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Layout with Sidebar */}
-      <div className="container max-w-7xl py-8 px-4 sm:px-6 lg:px-8 mb-16">
-        <div className="flex gap-8">
-          {/* Left Sidebar */}
-          <aside className="hidden lg:block w-64 flex-shrink-0">
-            <div className="sticky top-24">
-              <div className="rounded-lg border border-border bg-card p-4 mx-2 lg:mx-0">
-                <nav className="space-y-1">
-                  <div className="mb-4">
-                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                      Settings
-                    </h2>
-                  </div>
-                  
-                  {/* Search Settings */}
-                  <Link
-                    href="/settings/search"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
-                  >
-                    <Search className="w-4 h-4" />
-                    <span>Search</span>
-                  </Link>
-
-                  {/* Divider */}
-                  <div className="my-3 border-t border-border"></div>
-
-                  {/* Account Settings - Active */}
-                  <Link
-                    href="/settings/account"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary border border-primary/20 transition-all duration-200 hover:bg-primary/15"
-                  >
-                    <User className="w-4 h-4" />
-                    <span className="font-medium">Account</span>
-                  </Link>
-
-                  {/* Future Settings Categories */}
-                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground cursor-not-allowed opacity-50 hover:opacity-60 transition-opacity">
-                    <Shield className="w-4 h-4" />
-                    <span>Privacy</span>
-                    <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-full">Soon</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground cursor-not-allowed opacity-50 hover:opacity-60 transition-opacity">
-                    <Bell className="w-4 h-4" />
-                    <span>Notifications</span>
-                    <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-full">Soon</span>
-                  </div>
-                </nav>
-              </div>
-            </div>
-          </aside>
-
-          {/* Main Content */}
-          <main className="flex-1 min-w-0">
-            {/* Mobile Navigation */}
-            <div className="lg:hidden mb-6 mx-2" ref={mobileSettingsRef}>
-              <div className="relative">
-                <button
-                  onClick={() => setIsMobileSettingsOpen(!isMobileSettingsOpen)}
-                  className="w-full flex items-center justify-between gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2 border hover:bg-muted/70 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Settings</span>
-                    <span className="text-muted-foreground">/</span>
-                    <span className="text-foreground font-medium">Account</span>
-                  </div>
-                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isMobileSettingsOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {isMobileSettingsOpen && (
-                  <div className="absolute top-full mt-2 w-full rounded-lg bg-background border border-border shadow-lg z-50">
-                    <div className="py-1">
-                      <Link
-                        href="/settings/search"
-                        onClick={() => setIsMobileSettingsOpen(false)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                      >
-                        <Search className="w-4 h-4" />
-                        <span>Search</span>
-                      </Link>
-                      
-                      <div className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left bg-muted text-foreground cursor-default">
-                        <User className="w-4 h-4" />
-                        <span className="font-medium">Account</span>
-                      </div>
-                      
-                      <div className="border-t border-border my-1"></div>
-                      
-                      <div className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground cursor-not-allowed opacity-50">
-                        <Shield className="w-4 h-4" />
-                        <span>Privacy</span>
-                        <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-full">Soon</span>
-                      </div>
-                      
-                      <div className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground cursor-not-allowed opacity-50">
-                        <Bell className="w-4 h-4" />
-                        <span>Notifications</span>
-                        <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-full">Soon</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
+    <SettingsShell title="Settings" currentSectionLabel="Account" sidebar={sidebarItems} mobileNavItems={settingsMobileNavItems}>
             {/* Messages */}
             {message && (
               <div className={`mb-6 mx-2 lg:mx-0 p-4 rounded-lg border ${
@@ -622,7 +499,7 @@ export default function AccountSettingsPage() {
                       <div>
                         <h4 className="font-medium mb-2">Alternative Options</h4>
                         <p className="text-sm text-muted-foreground mb-4">
-                          Don't have a photo? You can use a generated avatar instead.
+                          Don&apos;t have a photo? You can use a generated avatar instead.
                         </p>
                         
                         <button
@@ -902,7 +779,7 @@ export default function AccountSettingsPage() {
                   ) : (
                     <div className="space-y-4">
                       <p className="text-sm text-red-700 dark:text-red-300">
-                        Please type <strong>"DELETE MY ACCOUNT"</strong> to confirm account deletion:
+                        Please type <strong>&quot;DELETE MY ACCOUNT&quot;</strong> to confirm account deletion:
                       </p>
                       <input
                         type="text"
@@ -935,9 +812,6 @@ export default function AccountSettingsPage() {
                 </div>
               </div>
             </div>
-          </main>
-        </div>
-      </div>
-    </div>
+  </SettingsShell>
   );
 }

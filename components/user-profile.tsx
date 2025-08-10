@@ -42,7 +42,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
     if (user) {
       setAvatarKey(Date.now());
     }
-  }, [user?.image]);
+  }, [user]);
 
   if (status === "loading") {
     return (

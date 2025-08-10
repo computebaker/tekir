@@ -146,7 +146,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('auth-login', handleAuthLogin);
       window.removeEventListener('auth-logout', handleAuthLogout);
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, [checkAuthStatus]); // Depend on stable callback
 
   const signOut = async () => {
     try {

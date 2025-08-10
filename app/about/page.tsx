@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import { Cat, Search, ExternalLink, ArrowRight, Instagram, Github } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Footer from "@/components/footer";
+import { FeatureCard } from "@/components/shared/feature-card";
+import { ModelLogoItem } from "@/components/shared/model-logo-item";
 
 export default function AboutPage() {
   const [demoQuery, setDemoQuery] = useState("What is Tekir?");
@@ -16,7 +18,7 @@ export default function AboutPage() {
   // Demo Wikipedia data
   const wikiData = {
     title: "Turkish Van Cat",
-    extract: "The Turkish Van is a rare and ancient cat breed that developed in the Lake Van region of Turkey. They are distinguished by their unusual pattern of colored markings, which appear primarily on the head and tail with the rest of the cat being white. The breed is notable for its unusual love of water and swimming, leading to the nickname 'swimming cats'.",
+  extract: "The Turkish Van is a rare and ancient cat breed that developed in the Lake Van region of Turkey. They are distinguished by their unusual pattern of colored markings, which appear primarily on the head and tail with the rest of the cat being white. The breed is notable for its unusual love of water and swimming, leading to the nickname \u2018swimming cats\u2019.",
     thumbnail: {
       source: "/turkish-van.png",
     },
@@ -55,37 +57,26 @@ export default function AboutPage() {
           <h2 className="text-3xl font-semibold mb-8 text-center">Why Choose Tekir?</h2>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-              <div className="bg-primary/10 w-14 h-14 rounded-full flex items-center justify-center mb-4">
-                <Search className="w-7 h-7 text-primary" />
-              </div>
-              <h3 className="text-xl font-medium mb-2">Private Search</h3>
-              <p className="text-muted-foreground">
-                Tekir doesn't track your searches or build user profiles to sell to advertisers.
-              </p>
-            </div>
-            
-            <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-              <div className="bg-muted w-14 h-14 rounded-full flex items-center justify-center mb-4">
-                <Cat className="w-7 h-7 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="text-xl font-medium mb-2">AI-Powered</h3>
-              <p className="text-muted-foreground">
-                Instant answers to your questions with our AI assistant, Karakulak.
-              </p>
-            </div>
-            
-            <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-              <div className="bg-muted w-14 h-14 rounded-full flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 dark:text-green-400">
-                  <path d="m8 3 4 8 5-5 5 15H2L8 3z"></path>
-                </svg>
-              </div>
-              <h3 className="text-xl font-medium mb-2">Open Source</h3>
-              <p className="text-muted-foreground">
-                Fully transparent code that anyone can inspect, modify, and contribute to.
-              </p>
-            </div>
+            <FeatureCard
+              icon={Search}
+              iconClassName="text-primary"
+              title="Private Search"
+              description={"Tekir doesn\u2019t track your searches or build user profiles to sell to advertisers."}
+              wrapperClassName="bg-card"
+            />
+            <FeatureCard
+              icon={Cat}
+              iconClassName="text-blue-600 dark:text-blue-400"
+              title="AI-Powered"
+              description="Instant answers to your questions with our AI assistant, Karakulak."
+              wrapperClassName="bg-card"
+            />
+            <FeatureCard
+              iconNode={<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 dark:text-green-400"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>}
+              title="Open Source"
+              description="Fully transparent code that anyone can inspect, modify, and contribute to."
+              wrapperClassName="bg-card"
+            />
           </div>
         </section>
 
@@ -93,7 +84,7 @@ export default function AboutPage() {
         <section className="max-w-6xl mx-auto mb-16">
           <h2 className="text-3xl font-semibold mb-2 text-center">AI-Assisted Search</h2>
           <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Tekir's Karakulak AI provides instant, helpful answers to your questions directly on the search page.
+            Tekir&rsquo;s Karakulak AI provides instant, helpful answers to your questions directly on the search page.
           </p>
 
           <motion.div 
@@ -128,7 +119,7 @@ export default function AboutPage() {
             
             <p className="text-left text-blue-800 dark:text-blue-100 mb-3">
               Tekir is an open-source search engine that combines traditional web search with AI-powered answers. 
-              Unlike other search engines, Tekir doesn't track users or collect personal data. 
+              Unlike other search engines, Tekir doesn\u2019t track users or collect personal data. 
               It features Karakulak AI, which can answer questions directly, and also shows relevant Wikipedia information alongside search results. 
               Tekir is developed in Turkey and is completely free to use.
             </p>
@@ -249,73 +240,10 @@ export default function AboutPage() {
           </p>
 
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4 }}
-              className="flex flex-col items-center"
-            >
-              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center p-3" style={{backgroundColor: '#0f0f0f'}}>
-                <Image 
-                  src="/google.png" 
-                  alt="Google Gemini" 
-                  fill
-                  className="object-contain p-1"
-                />
-              </div>
-              <p className="mt-2 text-sm font-medium">Gemini</p>
-            </motion.div>
-
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="flex flex-col items-center"
-            >
-              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center p-3" style={{backgroundColor: '#0f0f0f'}}>
-                <Image 
-                  src="/meta.png" 
-                  alt="Meta Llama" 
-                  fill
-                  className="object-contain p-1"
-                />
-              </div>
-              <p className="mt-2 text-sm font-medium">Llama</p>
-            </motion.div>
-
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="flex flex-col items-center"
-            >
-              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center p-3" style={{backgroundColor: '#0f0f0f'}}>
-                <Image 
-                  src="/mistral.png" 
-                  alt="Mistral AI" 
-                  fill
-                  className="object-contain p-1"
-                />
-              </div>
-              <p className="mt-2 text-sm font-medium">Mistral</p>
-            </motion.div>
-
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="flex flex-col items-center"
-            >
-              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center p-3" style={{backgroundColor: '#0f0f0f'}}>
-                <Image 
-                  src="/openai.png" 
-                  alt="OpenAI" 
-                  fill
-                  className="object-contain p-1"
-                />
-              </div>
-              <p className="mt-2 text-sm font-medium">ChatGPT</p>
-            </motion.div>
+            <ModelLogoItem src="/google.png" alt="Google Gemini" label="Gemini" />
+            <ModelLogoItem src="/meta.png" alt="Meta Llama" label="Llama" delay={0.1} />
+            <ModelLogoItem src="/mistral.png" alt="Mistral AI" label="Mistral" delay={0.2} />
+            <ModelLogoItem src="/openai.png" alt="OpenAI" label="ChatGPT" delay={0.2} />
           </div>
         </section>
 

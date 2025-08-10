@@ -82,8 +82,8 @@ export default function NotFound() {
               Page not found
             </h1>
             <p className="text-lg text-muted-foreground max-w-md mx-auto">
-              Looks like Karakulak couldn't find what you're looking for. 
-              The page you're searching for doesn't exist or has been moved.
+              Looks like Karakulak couldn&apos;t find what you&apos;re looking for. 
+              The page you&apos;re searching for doesn&apos;t exist or has been moved.
             </p>
           </div>
 

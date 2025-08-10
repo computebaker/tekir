@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import Image from 'next/image'
+import LegalShell from '@/components/layout/legal-shell'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - Tekir',
@@ -9,22 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
-      <div className="max-w-4xl mx-auto">
-        <Link href="/" className="inline-block mb-6">
-          <Image 
-            src="/tekir.png" 
-            alt="Tekir Logo" 
-            width={120} 
-            height={40} 
-            className="h-auto" 
-            priority
-          />
-        </Link>
-        
-        <h1 className="text-3xl md:text-4xl font-bold mb-6">Privacy Policy</h1>
-        
-        <div className="space-y-8">
+  <LegalShell title="Privacy Policy">
           <section>
             <p className="text-sm text-muted-foreground mb-4">Last updated: 6th of February, 2025</p>
             <p>At Tekir, we take your privacy seriously. This policy explains how we collect, use and safeguard your information when you use our service.</p>
@@ -83,8 +67,6 @@ export default function PrivacyPage() {
             <p>If you have any questions about this policy, please contact us at:</p>
             <p className="mt-2">Email: <a href="mailto:support@tekir.co">support@tekir.co</a></p>
           </section>
-        </div>
-      </div>
-    </div>
+  </LegalShell>
   )
 }

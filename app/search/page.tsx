@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Image as ImageIcon, Sparkles, Star, Settings, Newspaper } from "lucide-react";
+import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Star, Settings, Newspaper } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
@@ -14,6 +14,8 @@ import { fetchWithSessionRefreshAndCache, SearchCache } from "@/lib/cache";
 import { apiEndpoints } from "@/lib/migration-config";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import SearchTabs from "@/components/search/search-tabs";
+import WebResultItem from "@/components/search/web-result-item";
 
 // Define mobile navigation items
 const mobileNavItems = [
@@ -1052,50 +1054,7 @@ function SearchPageContent() {
 
           {query && (
             <div className="mb-6 border-b border-border">
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => handleSearchTypeChange('web')}
-                  className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
-                >
-                  <div className="flex items-center gap-2">
-                    <Search className="w-4 h-4" />
-                    <span className={searchType === 'web' ? 'text-primary font-medium' : 'text-muted-foreground group-hover:text-foreground'}>
-                      Search
-                    </span>
-                  </div>
-                  {searchType === 'web' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: '100%', maxWidth: '62px', margin: '0 auto' }}></div>
-                  )}
-                </button>
-                <button
-                  onClick={() => handleSearchTypeChange('images')}
-                  className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
-                >
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4" />
-                    <span className={searchType === 'images' ? 'text-primary font-medium' : 'text-muted-foreground group-hover:text-foreground'}>
-                      Images
-                    </span>
-                  </div>
-                  {searchType === 'images' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: '100%', maxWidth: '64px', margin: '0 auto' }}></div>
-                  )}
-                </button>
-                <button
-                  onClick={() => handleSearchTypeChange('news')}
-                  className="pb-2 px-1 flex items-center gap-2 transition-colors relative group"
-                >
-                  <div className="flex items-center gap-2">
-                    <Newspaper className="w-4 h-4" />
-                    <span className={searchType === 'news' ? 'text-primary font-medium' : 'text-muted-foreground group-hover:text-foreground'}>
-                      News
-                    </span>
-                  </div>
-                  {searchType === 'news' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: '100%', maxWidth: '48px', margin: '0 auto' }}></div>
-                  )}
-                </button>
-              </div>
+              <SearchTabs active={searchType} onChange={handleSearchTypeChange} />
             </div>
           )}
 
@@ -1275,24 +1234,7 @@ function SearchPageContent() {
                 ) : results.length > 0 ? (
                   <div className="space-y-8">
                     {results.map((result, index) => (
-                      <div key={index} className="space-y-2">
-                        <a
-                          href={result.url}
-                          target="_self"
-                          rel="noopener noreferrer"
-                          className="block group"
-                        >
-                          <p className="text-sm text-muted-foreground mb-1">
-                            {result.displayUrl}
-                          </p>
-                          <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                            {result.title}
-                          </h2>
-                          <p className="text-muted-foreground">
-                            {result.description}
-                          </p>
-                        </a>
-                      </div>
+                      <WebResultItem key={index} result={result as any} />
                     ))}
                   </div>
                 ) : query ? (

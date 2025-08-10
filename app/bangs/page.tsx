@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ExternalLink, Zap, Clock, Globe } from "lucide-react";
+import { Search, ExternalLink, Zap, Clock, Globe } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
+import { TopNavSimple } from "@/components/layout/top-nav-simple";
+import { BadgeChip } from "@/components/shared/badge-chip";
+import { EmptyState } from "@/components/shared/empty-state";
 
 interface Bang {
   name: string;
@@ -86,34 +89,7 @@ export default function BangsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/"
-                className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Back to Search</span>
-              </Link>
-            </div>
-            <div className="absolute left-1/2 transform -translate-x-1/2">
-              <Link href="/" className="flex items-center">
-                <Image
-                  src="/tekir-head.png"
-                  alt="Tekir"
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  className="w-auto h-10"
-                />
-              </Link>
-            </div>
-            <UserProfile />
-          </div>
-        </div>
-      </header>
+    <TopNavSimple backHref="/" backLabel="Back to Search" centerLogoHeight={40} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-b from-background via-background to-purple-50/30 dark:to-purple-950/10">
         {/* Hero Section */}
@@ -139,14 +115,14 @@ export default function BangsPage() {
               <Search className="w-5 h-5 mr-2" />
               How it works
             </h3>
-            <div className="space-y-3 text-left">
+        <div className="space-y-3 text-left">
               <div className="flex items-center space-x-3">
                 <span className="text-sm bg-muted text-muted-foreground px-2 py-1 rounded">Example</span>
                 <code className="bg-background px-3 py-2 rounded border border-border flex-1 font-mono text-sm">!w quantum physics</code>
               </div>
               <div className="flex items-center space-x-3">
                 <span className="text-sm bg-muted text-muted-foreground px-2 py-1 rounded">Result</span>
-                <span className="text-muted-foreground text-sm">Instantly searches Wikipedia for "quantum physics"</span>
+          <span className="text-muted-foreground text-sm">Instantly searches Wikipedia for &quot;quantum physics&quot;</span>
               </div>
             </div>
           </div>
@@ -232,13 +208,11 @@ export default function BangsPage() {
 
           {/* No results */}
           {!isLoading && filteredBangs.length === 0 && searchQuery && (
-            <div className="text-center py-12">
-              <div className="text-muted-foreground">
-                <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No bangs found matching "{searchQuery}"</p>
-                <p className="text-sm mt-2">Try a different search term</p>
-              </div>
-            </div>
+            <EmptyState
+              icon={<Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />}
+              title={`No bangs found matching "${searchQuery}"`}
+              description={<span className="text-sm">Try a different search term</span>}
+            />
           )}
         </div>
 
@@ -249,22 +223,22 @@ export default function BangsPage() {
             <div>
               <strong>Pure bang:</strong> <code className="bg-muted px-2 py-1 rounded">!w cats</code>
               <br />
-              <span className="text-muted-foreground">Searches Wikipedia for "cats"</span>
+              <span className="text-muted-foreground">Searches Wikipedia for &quot;cats&quot;</span>
             </div>
             <div>
               <strong>Embedded bang:</strong> <code className="bg-muted px-2 py-1 rounded">cats !w</code>
               <br />
-              <span className="text-muted-foreground">Also searches Wikipedia for "cats"</span>
+              <span className="text-muted-foreground">Also searches Wikipedia for &quot;cats&quot;</span>
             </div>
             <div>
               <strong>Just the bang:</strong> <code className="bg-muted px-2 py-1 rounded">!w</code>
               <br />
-              <span className="text-muted-foreground">Takes you to Wikipedia's homepage</span>
+              <span className="text-muted-foreground">Takes you to Wikipedia&apos;s homepage</span>
             </div>
             <div>
               <strong>Mixed search:</strong> <code className="bg-muted px-2 py-1 rounded">cute !w cats</code>
               <br />
-              <span className="text-muted-foreground">Searches Wikipedia for "cute cats"</span>
+              <span className="text-muted-foreground">Searches Wikipedia for &quot;cute cats&quot;</span>
             </div>
           </div>
         </div>

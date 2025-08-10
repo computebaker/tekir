@@ -169,7 +169,7 @@ function VerifyEmailForm() {
               className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center justify-center gap-2 py-2"
             >
               <RotateCcw className="w-4 h-4" />
-              Didn't receive a code? Resend
+              Didn&apos;t receive a code? Resend
             </button>
 
             <Link

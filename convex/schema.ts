@@ -65,4 +65,40 @@ export default defineSchema({
     .index("by_hashedIp", ["hashedIp"])
     .index("by_userId", ["userId"])
     .index("by_expiresAt", ["expiresAt"]),
+
+  // AI chat conversations
+  chats: defineTable({
+    userId: v.id("users"),
+    title: v.optional(v.string()),
+    model: v.optional(v.string()),
+    // Messages are stored inline for simplicity; can be split later if needed
+  messages: v.array(
+      v.object({
+        id: v.string(), // client-side uuid
+        role: v.string(), // 'user' | 'assistant' | 'system' | 'tool'
+        content: v.any(), // text or structured content blocks
+        createdAt: v.number(), // Unix timestamp
+        model: v.optional(v.string()),
+        toolCalls: v.optional(v.any()),
+    tokensIn: v.optional(v.number()),
+    tokensOut: v.optional(v.number()),
+      })
+    ),
+    // Optional derived threads, useful for branch conversations
+    threads: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.optional(v.string()),
+          createdAt: v.number(),
+          metadata: v.optional(v.any()),
+        })
+      )
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_updatedAt", ["userId", "updatedAt"]) // for recent chats list
+    .index("by_updatedAt", ["updatedAt"]),
 });

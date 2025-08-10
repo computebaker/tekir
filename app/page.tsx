@@ -10,6 +10,8 @@ import Footer from "@/components/footer";
 import WeatherWidget from "@/components/weather-widget";
 import { Input, SearchInput } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { BadgeChip } from "@/components/shared/badge-chip";
+import { SectionHeading } from "@/components/shared/section-heading";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -366,15 +368,13 @@ export default function Home() {
       {/* Features Section with Bento Grid */}
       <section className="py-20 px-4 bg-gradient-to-br from-gray-50/30 via-slate-50/25 to-neutral-50/30 dark:from-gray-950/10 dark:via-slate-950/8 dark:to-neutral-950/10">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              The Search Engine That Respects You
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Discover why others choose Tekir for their daily searches. 
+          <SectionHeading 
+            title="The Search Engine That Respects You"
+            subtitle={<>
+              Discover why others choose Tekir for their daily searches. <br className="hidden sm:block" />
               Privacy-focused, lightning-fast, and packed with intelligent features.
-            </p>
-          </div>
+            </>}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Privacy First - Large Card */}
@@ -442,10 +442,10 @@ export default function Home() {
                     <code className="bg-muted px-2 py-1 rounded ml-2">!w</code> for Wikipedia, and hundreds more.
                   </p>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="bg-slate-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">!g Google</span>
-                    <span className="bg-slate-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">!w Wikipedia</span>
-                    <span className="bg-slate-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">!gh GitHub</span>
-                    <span className="bg-slate-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">!yt YouTube</span>
+                    <BadgeChip color="slate">!g Google</BadgeChip>
+                    <BadgeChip color="slate">!w Wikipedia</BadgeChip>
+                    <BadgeChip color="slate">!gh GitHub</BadgeChip>
+                    <BadgeChip color="slate">!yt YouTube</BadgeChip>
                   </div>
                   <div className="inline-flex items-center text-muted-foreground group-hover:text-foreground font-medium transition-colors">
                     More bangs →
@@ -520,13 +520,13 @@ export default function Home() {
                   <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Multiple Search Providers</h3>
                   <p className="text-muted-foreground text-lg leading-relaxed mb-4">
                     Choose from multiple search engines and sources to get the most comprehensive results. 
-                    Switch between providers to find exactly what you're looking for.
+                    Switch between providers to find exactly what you&apos;re looking for.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <span className="bg-gray-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">Google</span>
-                    <span className="bg-gray-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">Bing</span>
-                    <span className="bg-gray-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">DuckDuckGo</span>
-                    <span className="bg-gray-500/10 text-muted-foreground px-3 py-1 rounded-full text-sm">Brave</span>
+                    <BadgeChip color="gray">Google</BadgeChip>
+                    <BadgeChip color="gray">Bing</BadgeChip>
+                    <BadgeChip color="gray">DuckDuckGo</BadgeChip>
+                    <BadgeChip color="gray">Brave</BadgeChip>
                   </div>
                 </div>
               </div>

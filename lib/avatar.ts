@@ -152,9 +152,11 @@ export function regenerateAvatar(userId: string, email?: string): string {
   return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&${params.toString()}`;
 }
 
-export default { 
-  generateAvatarUrl, 
-  generateInitialsAvatar, 
-  regenerateAvatar, 
-  getUserAvatarUrl 
+export const avatarUtils = {
+  generateAvatarUrl,
+  generateInitialsAvatar,
+  regenerateAvatar,
+  getUserAvatarUrl,
 };
+
+export default avatarUtils;
