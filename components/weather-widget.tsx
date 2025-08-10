@@ -73,19 +73,19 @@ interface OpenWeatherData {
 // Unified weather data type
 type WeatherData = IPWeatherData | OpenWeatherData;
 
-function getWeatherIcon(condition: string) {
+function getWeatherIcon(condition: string, sizeClass: string = "w-4 h-4") {
     const normalizedCondition = condition.toLowerCase();
     
     if (normalizedCondition.includes('clear') || normalizedCondition.includes('sunny')) {
-        return <Sun className="w-4 h-4 text-muted-foreground" />;
+    return <Sun className={`${sizeClass} text-muted-foreground`} />;
     } else if (normalizedCondition.includes('cloud')) {
-        return <Cloud className="w-4 h-4 text-muted-foreground" />;
+    return <Cloud className={`${sizeClass} text-muted-foreground`} />;
     } else if (normalizedCondition.includes('rain') || normalizedCondition.includes('drizzle')) {
-        return <CloudRain className="w-4 h-4 text-muted-foreground" />;
+    return <CloudRain className={`${sizeClass} text-muted-foreground`} />;
     } else if (normalizedCondition.includes('snow')) {
-        return <CloudSnow className="w-4 h-4 text-muted-foreground" />;
+    return <CloudSnow className={`${sizeClass} text-muted-foreground`} />;
     } else {
-        return <Cloud className="w-4 h-4 text-muted-foreground" />;
+    return <Cloud className={`${sizeClass} text-muted-foreground`} />;
     }
 }
 
@@ -156,13 +156,25 @@ function validateWeatherData(data: any): data is WeatherData {
     return false;
 }
 
-export default function WeatherWidget() {
+type WeatherWidgetProps = {
+    size?: 'sm' | 'md';
+};
+
+export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
     const [weather, setWeather] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [clim8Enabled, setClim8Enabled] = useState(true);
     const [locationKey, setLocationKey] = useState<string>("");
     const [weatherUnits, setWeatherUnits] = useState("metric");
+
+    const sizeClasses = {
+        icon: size === 'sm' ? 'w-3 h-3' : 'w-4 h-4',
+        text: size === 'sm' ? 'text-xs' : 'text-sm',
+        gap: size === 'sm' ? 'gap-1' : 'gap-2',
+        skeletonIcon: size === 'sm' ? 'w-3 h-3' : 'w-4 h-4',
+        skeletonText: size === 'sm' ? 'h-3 w-16' : 'h-4 w-20',
+    } as const;
 
     // Effect to track custom location changes
     useEffect(() => {
@@ -494,9 +506,9 @@ export default function WeatherWidget() {
                 href="https://clim8.tekir.co" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                className={`flex items-center ${sizeClasses.gap} text-muted-foreground hover:text-foreground transition-colors ${sizeClasses.text}`}
             >
-                <Cloud className="w-4 h-4" />
+                <Cloud className={sizeClasses.icon} />
                 <span className="font-medium">Weather</span>
             </a>
         );
@@ -504,9 +516,9 @@ export default function WeatherWidget() {
 
     if (loading) {
         return (
-            <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="w-4 h-4 bg-muted animate-pulse rounded"></div>
-                <div className="h-4 bg-muted animate-pulse rounded w-20"></div>
+            <div className={`flex items-center ${sizeClasses.gap} text-muted-foreground`}>
+                <div className={`${sizeClasses.skeletonIcon} bg-muted animate-pulse rounded`}></div>
+                <div className={`bg-muted animate-pulse rounded ${sizeClasses.skeletonText}`}></div>
             </div>
         );
     }
@@ -517,23 +529,23 @@ export default function WeatherWidget() {
                 href="https://clim8.tekir.co" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                className={`flex items-center ${sizeClasses.gap} text-muted-foreground hover:text-foreground transition-colors ${sizeClasses.text}`}
             >
-                <Cloud className="w-4 h-4" />
+                <Cloud className={sizeClasses.icon} />
                 <span className="font-medium">Weather</span>
             </a>
         );
     }
 
     return (
-        <div className="relative group">
+    <div className="relative group">
             <a 
                 href="https://clim8.tekir.co" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        className={`flex items-center ${sizeClasses.gap} text-muted-foreground hover:text-foreground transition-colors ${sizeClasses.text}`}
             >
-                {getWeatherIcon(getWeatherCondition(weather))}
-                <span className="font-medium">
+        {getWeatherIcon(getWeatherCondition(weather), sizeClasses.icon)}
+        <span className="font-medium">
                     {getLocationName(weather)} • {formatTemperature(getTemperature(weather), weatherUnits)}
                 </span>
             </a>

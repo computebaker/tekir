@@ -289,11 +289,17 @@ export default function Home() {
         aria-hidden={scrollProgress > 0.9}
       >
         <div className="flex items-center gap-3">
-          {user && (
-            <div className="text-sm text-muted-foreground">
-              Welcome, <span className="font-semibold text-foreground">{user.name || "User"}!</span>
+          <div className="flex flex-col items-end gap-1">
+            {user && (
+              <div className="text-sm text-muted-foreground">
+                Welcome, <span className="font-semibold text-foreground">{user.name || "User"}!</span>
+              </div>
+            )}
+            {/* Weather below welcome */}
+            <div className="text-right">
+              <WeatherWidget size="sm" />
             </div>
-          )}
+          </div>
           <UserProfile showOnlyAvatar={true} avatarSize={48} />
         </div>
       </div>
@@ -447,10 +453,7 @@ export default function Home() {
               <span className="font-medium">AI Chat</span>
               </div>
             </Link>
-            
-            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
-            
-            <WeatherWidget />
+
             </div>
           
           </div>
