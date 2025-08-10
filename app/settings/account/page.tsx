@@ -449,8 +449,7 @@ export default function AccountSettingsPage() {
   const sidebarItems: SettingsNavItem[] = [
     { href: "/settings/search", icon: Search, label: "Search" },
     { href: "/settings/account", icon: User, label: "Account", active: true },
-    { href: "#", icon: Shield, label: "Privacy", soon: true },
-    { href: "#", icon: Bell, label: "Notifications", soon: true },
+    { href: "/settings/privacy", icon: Shield, label: "Privacy" },
   ];
 
   return (

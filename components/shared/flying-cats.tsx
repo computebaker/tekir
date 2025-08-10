@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo, useState, useCallback } from "react";
-import Image from "next/image";
 
 type FlyingCatsProps = {
   show?: boolean;
@@ -81,6 +80,7 @@ export default function FlyingCats({ show = false, count = 12 }: FlyingCatsProps
             style={style}
             onAnimationEnd={handleCatEnd}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={c.src}
               alt=""

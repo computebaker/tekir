@@ -63,7 +63,7 @@ export function SettingsShell({
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to home</span>
+              <span></span>
             </Link>
             <div className="flex items-center gap-2">
               <SettingsIcon className="w-5 h-5" />

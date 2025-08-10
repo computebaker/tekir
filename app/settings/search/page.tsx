@@ -276,8 +276,7 @@ export default function SearchSettingsPage() {
   const sidebarItems: SettingsNavItem[] = [
     { href: "/settings/search", icon: Search, label: "Search", active: true },
     { href: "/settings/account", icon: User, label: "Account" },
-    { href: "#", icon: Shield, label: "Privacy", soon: true },
-    { href: "#", icon: Bell, label: "Notifications", soon: true },
+    { href: "/settings/privacy", icon: Shield, label: "Privacy" },
   ];
 
   return (
@@ -792,18 +791,6 @@ export default function SearchSettingsPage() {
                 )}
               </div>
             </div>
-      <div className="text-center text-sm text-muted-foreground">
-        {isSyncing && syncEnabled ? (
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p>Syncing settings to server...</p>
-          </div>
-        ) : syncEnabled ? (
-          <p>Settings are automatically saved and synced across devices.</p>
-        ) : (
-          <p>Settings are automatically saved to your local storage.</p>
-        )}
-      </div>
     </SettingsShell>
   );
 }

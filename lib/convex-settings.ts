@@ -1,6 +1,5 @@
 import { useAuth } from "@/components/auth-provider";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { flushSync } from "react-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -192,7 +191,8 @@ export function useConvexSettings() {
   // Subscribe to local settings changes
   useEffect(() => {
     const unsubscribe = convexSettingsManager.subscribe(() => {
-      flushSync(() => {
+      // Schedule the state update in a microtask to avoid flushing during render
+      Promise.resolve().then(() => {
         setSettings(convexSettingsManager.getAll());
       });
     });
