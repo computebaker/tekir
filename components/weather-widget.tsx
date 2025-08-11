@@ -157,7 +157,8 @@ function validateWeatherData(data: any): data is WeatherData {
 }
 
 type WeatherWidgetProps = {
-    size?: 'sm' | 'md';
+    // 'link' inherits parent text size to blend with inline link rows
+    size?: 'sm' | 'md' | 'link';
 };
 
 export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
@@ -169,12 +170,16 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
     const [weatherUnits, setWeatherUnits] = useState("metric");
 
     const sizeClasses = {
-        icon: size === 'sm' ? 'w-3 h-3' : 'w-4 h-4',
-        text: size === 'sm' ? 'text-xs' : 'text-sm',
+        icon: size === 'sm' ? 'w-3 h-3' : size === 'link' ? 'w-4 h-4' : 'w-4 h-4',
+        // For 'link', don't force a text size; inherit from parent
+        text: size === 'sm' ? 'text-xs' : size === 'link' ? '' : 'text-sm',
         gap: size === 'sm' ? 'gap-1' : 'gap-2',
         skeletonIcon: size === 'sm' ? 'w-3 h-3' : 'w-4 h-4',
         skeletonText: size === 'sm' ? 'h-3 w-16' : 'h-4 w-20',
     } as const;
+
+    // For 'link', also inherit color from parent so it matches sibling links
+    const colorClass = size === 'link' ? '' : 'text-muted-foreground';
 
     // Effect to track custom location changes
     useEffect(() => {
@@ -506,7 +511,7 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                 href="https://clim8.tekir.co" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className={`flex items-center ${sizeClasses.gap} text-muted-foreground hover:text-foreground transition-colors ${sizeClasses.text}`}
+                className={`flex items-center ${sizeClasses.gap} ${colorClass} hover:text-foreground transition-colors ${sizeClasses.text}`}
             >
                 <Cloud className={sizeClasses.icon} />
                 <span className="font-medium">Weather</span>
@@ -529,7 +534,7 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                 href="https://clim8.tekir.co" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className={`flex items-center ${sizeClasses.gap} text-muted-foreground hover:text-foreground transition-colors ${sizeClasses.text}`}
+                className={`flex items-center ${sizeClasses.gap} ${colorClass} hover:text-foreground transition-colors ${sizeClasses.text}`}
             >
                 <Cloud className={sizeClasses.icon} />
                 <span className="font-medium">Weather</span>
@@ -542,7 +547,7 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
             <a 
                 href="https://clim8.tekir.co" 
                 rel="noopener noreferrer"
-        className={`flex items-center ${sizeClasses.gap} text-muted-foreground hover:text-foreground transition-colors ${sizeClasses.text}`}
+        className={`flex items-center ${sizeClasses.gap} ${colorClass} hover:text-foreground transition-colors ${sizeClasses.text}`}
             >
         {getWeatherIcon(getWeatherCondition(weather), sizeClasses.icon)}
         <span className="font-medium">
