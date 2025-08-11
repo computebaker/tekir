@@ -112,7 +112,7 @@ export default function AboutPage() {
                   <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{backgroundColor: '#0f0f0f'}}>
                     <Image src="/google.png" alt="Google Logo" width={16} height={16} className="rounded" />
                   </div>
-                  <span>Gemini 2.0 Flash</span>
+                  <span>Gemini 2.5 Flash</span>
                 </div>
               </div>
             </div>

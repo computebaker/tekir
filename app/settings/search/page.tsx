@@ -255,13 +255,13 @@ export default function SearchSettingsPage() {
   const getModelDisplay = (model: string) => {
     switch (model) {
       case 'llama':
-        return { name: 'Llama 3.1 7B', icon: '/meta.png', description: 'A powerful and open-source model by Meta' };
+        return { name: 'Llama 4', icon: '/meta.png', description: 'A powerful and open-source model by Meta' };
       case 'mistral':
-        return { name: 'Mistral Nemo', icon: '/mistral.png', description: 'A lightweight and efficient model by Mistral AI' };
+        return { name: 'Mistral Mini', icon: '/mistral.png', description: 'A lightweight model by Mistral AI' };
       case 'chatgpt':
-        return { name: 'GPT 4o-mini', icon: '/openai.png', description: 'Powerful, efficient model by OpenAI' };
+        return { name: 'GPT 5 Mini', icon: '/openai.png', description: 'Powerful, efficient model by OpenAI' };
       default:
-        return { name: 'Gemini 2.0 Flash', icon: '/google.png', description: 'A fast and intelligent model by Google' };
+        return { name: 'Gemini 2.5 Flash', icon: '/google.png', description: 'A fast and intelligent model by Google' };
     }
   };
 
@@ -375,7 +375,7 @@ export default function SearchSettingsPage() {
                               >
                                 <Image src="/meta.png" alt="Meta Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Llama 3.1 7B</span>
+                                  <span className="font-medium text-sm">Llama 4 Maverick</span>
                                   <span className="text-xs text-muted-foreground text-left">A powerful and open-source model by Meta</span>
                                 </div>
                                 {settings.aiModel === 'llama' && (
@@ -393,7 +393,7 @@ export default function SearchSettingsPage() {
                               >
                                 <Image src="/google.png" alt="Google Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Gemini 2.0 Flash</span>
+                                  <span className="font-medium text-sm">Gemini 2.5 Flash</span>
                                   <span className="text-xs text-muted-foreground text-left">A fast and intelligent model by Google</span>
                                 </div>
                                 {settings.aiModel === 'gemini' && (
@@ -411,7 +411,7 @@ export default function SearchSettingsPage() {
                               >
                                 <Image src="/openai.png" alt="OpenAI Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">GPT 4o-mini</span>
+                                  <span className="font-medium text-sm">GPT 5 Mini</span>
                                   <span className="text-xs text-muted-foreground text-left">Powerful, efficient model by OpenAI</span>
                                 </div>
                                 {settings.aiModel === 'chatgpt' && (
@@ -429,8 +429,8 @@ export default function SearchSettingsPage() {
                               >
                                 <Image src="/mistral.png" alt="Mistral Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Mistral Nemo</span>
-                                  <span className="text-xs text-muted-foreground text-left">A lightweight and efficient model by Mistral AI</span>
+                                  <span className="font-medium text-sm">Mistral Mini</span>
+                                  <span className="text-xs text-muted-foreground text-left">A lightweight model by Mistral AI</span>
                                 </div>
                                 {settings.aiModel === 'mistral' && (
                                   <div className="w-2 h-2 bg-primary rounded-full"></div>
