@@ -180,6 +180,11 @@ export default function SearchSettingsPage() {
     await updateSetting("clim8Enabled", newValue);
   };
 
+  const handleRecommendationsToggle = async () => {
+    const newValue = !(settings.showRecommendations ?? true);
+    await updateSetting("showRecommendations", newValue);
+  };
+
   // Weather location handlers
   const searchWeatherLocations = async (query: string) => {
     if (query.length < 2) {
@@ -682,6 +687,25 @@ export default function SearchSettingsPage() {
               </div>
               
               <div className="space-y-4">
+
+            {/* Homepage Recommendations */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h4 className="text-lg font-medium">Homepage Recommendations</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Show daily recommended searches under the search bar on the homepage
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={settings.showRecommendations ?? true}
+                    onChange={() => { void handleRecommendationsToggle(); }}
+                    aria-label="Show recommendations under search bar"
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Search Provider */}
             <div className="rounded-lg border border-border bg-card p-6">

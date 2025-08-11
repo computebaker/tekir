@@ -11,6 +11,7 @@ export interface UserSettings {
   searchCountry?: string;
   safesearch?: string;
   autocompleteSource?: string;
+  showRecommendations?: boolean;
   
   // AI preferences
   aiModel?: string;
@@ -44,6 +45,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   searchCountry: "ALL",
   safesearch: "moderate",
   autocompleteSource: "brave",
+  showRecommendations: true,
   aiModel: "gemini",
   karakulakEnabled: true,
   clim8Enabled: true,

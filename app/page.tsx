@@ -447,66 +447,88 @@ export default function Home() {
               </div>
             </div>
             
-            {/* Recommendations row under the search bar */}
+            {/* Recommendations row under the search bar (toggleable) */}
             <div className="absolute w-full mt-3 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
-              {recs.length > 0 ? (
-                <div className="flex items-center justify-center">
-                  <div className="relative inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-border/50 bg-background/60 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/40 overflow-hidden max-w-[92%] sm:max-w-none whitespace-nowrap">
-                    {recSwitching && (
-                      <>
-                        <div
-                          aria-hidden="true"
-                          className="absolute inset-0 rounded-full bg-muted/70 dark:bg-muted/50 border border-border/50 animate-pulse pointer-events-none"
-                        />
-                        <div aria-hidden="true" className="shimmer-soft" />
-                      </>
-                    )}
-                    <span className="text-muted-foreground/80">Try:</span>
-                    <button
-                      type="button"
-                      className={`hover:text-foreground transition-colors underline-offset-4 hover:underline font-semibold text-foreground ${recSwitching ? "animate-pulse cursor-wait" : ""} truncate max-w-[60vw] sm:max-w-none`}
-                      onClick={() => {
-                        const q = recs[recIndex];
-                        router.push(`/search?q=${encodeURIComponent(q)}`);
-                      }}
-                      title={recDateLabel ? `Daily pick — ${recDateLabel}` : "Daily pick"}
-                      aria-label={recDateLabel ? `You can search: ${recs[recIndex]} — ${recDateLabel}` : `You can search: ${recs[recIndex]}`}
-                      aria-busy={recSwitching}
-                      disabled={recSwitching}
-                    >
-                      {recs[recIndex]}
-                    </button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      shape="pill"
-                      title="Show another"
-                      onClick={() => {
-                        if (!recs.length || recSwitching) return;
-                        setRecSwitching(true);
-                        // Keep current term visible under a grey overlay, then switch
-                        window.setTimeout(() => {
-                          setRecIndex((i) => (recs.length ? (i + 1) % recs.length : 0));
-                          setRecSwitching(false);
-                        }, 600);
-                      }}
-                      className="h-5 w-5 sm:h-6 sm:w-6 opacity-80 hover:opacity-100 ml-0.5 sm:ml-1"
-                      disabled={recSwitching}
-                    >
-                      <RefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${recLoading || recSwitching ? "animate-spin" : ""}`} />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                hasBang && (
-                  <div className="text-center">
-                    <a href="https://bang.lat"> Bangs by bang.lat — the fastest bang resolver. </a>
-                  </div>
+              {(settings.showRecommendations ?? true)
+                ? (
+                  recs.length > 0
+                    ? (
+                      <div className="flex items-center justify-center">
+                        <div className="relative inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-border/50 bg-background/60 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/40 overflow-hidden max-w-[92%] sm:max-w-none whitespace-nowrap">
+                          {recSwitching && (
+                            <>
+                              <div
+                                aria-hidden="true"
+                                className="absolute inset-0 rounded-full bg-muted/70 dark:bg-muted/50 border border-border/50 animate-pulse pointer-events-none"
+                              />
+                              <div aria-hidden="true" className="shimmer-soft" />
+                            </>
+                          )}
+                          <span className="text-muted-foreground/80">Try:</span>
+                          <button
+                            type="button"
+                            className={`hover:text-foreground transition-colors underline-offset-4 hover:underline font-semibold text-foreground ${recSwitching ? "animate-pulse cursor-wait" : ""} truncate max-w-[60vw] sm:max-w-none`}
+                            onClick={() => {
+                              const q = recs[recIndex];
+                              router.push(`/search?q=${encodeURIComponent(q)}`);
+                            }}
+                            title={recDateLabel ? `Daily pick — ${recDateLabel}` : "Daily pick"}
+                            aria-label={recDateLabel ? `You can search: ${recs[recIndex]} — ${recDateLabel}` : `You can search: ${recs[recIndex]}`}
+                            aria-busy={recSwitching}
+                            disabled={recSwitching}
+                          >
+                            {recs[recIndex]}
+                          </button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            shape="pill"
+                            title="Show another"
+                            onClick={() => {
+                              if (!recs.length || recSwitching) return;
+                              setRecSwitching(true);
+                              window.setTimeout(() => {
+                                setRecIndex((i) => (recs.length ? (i + 1) % recs.length : 0));
+                                setRecSwitching(false);
+                              }, 600);
+                            }}
+                            className="h-5 w-5 sm:h-6 sm:w-6 opacity-80 hover:opacity-100 ml-0.5 sm:ml-1"
+                            disabled={recSwitching}
+                          >
+                            <RefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${recLoading || recSwitching ? "animate-spin" : ""}`} />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                    : (
+                      hasBang ? (
+                        <div className="text-center">
+                          <a href="https://bang.lat"> Bangs by bang.lat — the fastest bang resolver. </a>
+                        </div>
+                      ) : null
+                    )
                 )
-              )}
-            </div>
-
+                : (
+                  // Old links row (restored when recommendations are disabled)
+                  <div className="flex items-center justify-center gap-3 mt-4 text-muted-foreground mx-auto flex-wrap">
+                    <Link href="/about" className="hover:text-foreground transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4" />
+                        <span className="font-medium">Your searches, private.</span>
+                      </div>
+                    </Link>
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
+                    <Link href="https://chat.tekir.co" className="hover:text-foreground transition-colors">
+                      <div className="flex items-center gap-2">
+                        <MessageCircleMore className="w-4 h-4" />
+                        <span className="font-medium">AI Chat</span>
+                      </div>
+                    </Link>
+                  </div>
+        )}
+      </div>
+            
             {/* Autocomplete dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <div 
