@@ -93,6 +93,7 @@ export default function SearchSettingsPage() {
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
   const [safesearchDropdownOpen, setSafesearchDropdownOpen] = useState(false);
   const [weatherUnitsDropdownOpen, setWeatherUnitsDropdownOpen] = useState(false);
+  const [weatherPlacementDropdownOpen, setWeatherPlacementDropdownOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
 
   // Refs for click outside handling
@@ -102,6 +103,7 @@ export default function SearchSettingsPage() {
   const safesearchDropdownRef = useRef<HTMLDivElement>(null);
   const weatherLocationRef = useRef<HTMLDivElement>(null);
   const weatherUnitsDropdownRef = useRef<HTMLDivElement>(null);
+  const weatherPlacementDropdownRef = useRef<HTMLDivElement>(null);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
   // Update query display when custom location changes
@@ -150,6 +152,12 @@ export default function SearchSettingsPage() {
         setWeatherUnitsDropdownOpen(false);
       }
 
+      if (weatherPlacementDropdownRef.current &&
+          !weatherPlacementDropdownRef.current.contains(event.target as Node) &&
+          weatherPlacementDropdownOpen) {
+        setWeatherPlacementDropdownOpen(false);
+      }
+
       if (mobileSettingsRef.current && !mobileSettingsRef.current.contains(event.target as Node)) {
         setIsMobileSettingsOpen(false);
       }
@@ -159,7 +167,7 @@ export default function SearchSettingsPage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions, weatherUnitsDropdownOpen]);
+  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions, weatherUnitsDropdownOpen, weatherPlacementDropdownOpen]);
 
   // Handlers for settings changes
   const handleKarakulakToggle = async () => {
@@ -606,25 +614,57 @@ export default function SearchSettingsPage() {
                       Choose where to show the Clim8 widget on the homepage
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 px-1 py-1 rounded-lg bg-background border border-border">
+                  <div className="relative" ref={weatherPlacementDropdownRef}>
                     <button
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        (settings.weatherPlacement || 'topRight') === 'hero' ? 'bg-muted' : 'hover:bg-muted'
-                      }`}
-                      onClick={() => updateSetting('weatherPlacement', 'hero')}
-                      aria-pressed={(settings.weatherPlacement || 'topRight') === 'hero'}
+                      onClick={() => setWeatherPlacementDropdownOpen(!weatherPlacementDropdownOpen)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
+                      aria-haspopup="menu"
+                      aria-expanded={weatherPlacementDropdownOpen}
+                      aria-controls="weather-placement-menu"
                     >
-                      Under search bar
+                      <span className="text-sm font-medium">
+                        {(settings.weatherPlacement || 'topRight') === 'hero' ? 'Under search bar' : 'Next to profile'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${weatherPlacementDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    <button
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        (settings.weatherPlacement || 'topRight') === 'topRight' ? 'bg-muted' : 'hover:bg-muted'
-                      }`}
-                      onClick={() => updateSetting('weatherPlacement', 'topRight')}
-                      aria-pressed={(settings.weatherPlacement || 'topRight') === 'topRight'}
-                    >
-                      Next to profile
-                    </button>
+                    {weatherPlacementDropdownOpen && (
+                      <div id="weather-placement-menu" role="menu" aria-label="Weather placement options" className="absolute right-0 mt-2 w-72 rounded-lg bg-background border border-border shadow-lg z-10">
+                        <div className="p-1">
+                          <button
+                            onClick={() => { updateSetting('weatherPlacement', 'hero'); setWeatherPlacementDropdownOpen(false); }}
+                            role="menuitemradio"
+                            aria-checked={(settings.weatherPlacement || 'topRight') === 'hero'}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                              (settings.weatherPlacement || 'topRight') === 'hero' ? 'bg-muted' : ''
+                            }`}
+                          >
+                            <div className="flex flex-col items-start flex-1">
+                              <span className="font-medium text-sm">Under search bar</span>
+                              <span className="text-xs text-muted-foreground">Show weather chip beneath the main search box</span>
+                            </div>
+                            {(settings.weatherPlacement || 'topRight') === 'hero' && (
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => { updateSetting('weatherPlacement', 'topRight'); setWeatherPlacementDropdownOpen(false); }}
+                            role="menuitemradio"
+                            aria-checked={(settings.weatherPlacement || 'topRight') === 'topRight'}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                              (settings.weatherPlacement || 'topRight') === 'topRight' ? 'bg-muted' : ''
+                            }`}
+                          >
+                            <div className="flex flex-col items-start flex-1">
+                              <span className="font-medium text-sm">Next to profile</span>
+                              <span className="text-xs text-muted-foreground">Show under the welcome text near your avatar</span>
+                            </div>
+                            {(settings.weatherPlacement || 'topRight') === 'topRight' && (
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

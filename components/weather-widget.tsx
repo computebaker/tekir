@@ -550,12 +550,12 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                 </span>
             </a>
             
-            {/* Tooltip */}
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-md invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+            {/* Tooltip (below text, aligned to right to prevent overflow) */}
+            <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-black text-white text-xs rounded-md invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-[240px] whitespace-normal text-left shadow-lg">
                 {locationKey === "ip-based" 
                     ? "Based on your IP, provided by Clim8."
                     : "Based on your preferences, provided by Clim8."}
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                <div className="absolute -top-1 right-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-black"></div>
             </div>
         </div>
     );
