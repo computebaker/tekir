@@ -4,11 +4,12 @@ import { useEffect, useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Lock, MessageCircleMore, Github, Heart } from "lucide-react";
+import { Search, Lock, MessageCircleMore, Github, Heart, RefreshCw } from "lucide-react";
 import UserProfile from "@/components/user-profile";
 import { useAuth } from "@/components/auth-provider";
 import { useSettings } from "@/lib/settings";
 import Footer from "@/components/footer";
+import { fetchWithSessionRefreshAndCache } from "@/lib/cache";
 import WeatherWidget from "@/components/weather-widget";
 import { Input, SearchInput } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -62,6 +63,11 @@ export default function Home() {
   const [hasBang, setHasBang] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [recs, setRecs] = useState<string[]>([]);
+  const [recIndex, setRecIndex] = useState(0);
+  const [recLoading, setRecLoading] = useState(false);
+  const [recDateLabel, setRecDateLabel] = useState<string | undefined>(undefined);
+  const [recSwitching, setRecSwitching] = useState(false);
 
 
   // Placeholder for handleBangRedirect if it's not globally available or imported
@@ -94,6 +100,41 @@ export default function Home() {
         localStorage.setItem("karakulakEnabled", "true");
       }
     }
+  }, []);
+
+  // Fetch daily recommendations once
+  useEffect(() => {
+    let active = true;
+    const run = async () => {
+      setRecLoading(true);
+      try {
+        const res = await fetchWithSessionRefreshAndCache<{ results: string[]; date?: string; dateLabel?: string }>(
+          "/api/recommend",
+          { method: "GET", headers: { "Content-Type": "application/json" } },
+          { searchType: "ai", provider: "recommend", query: "today" }
+        );
+        if (!active) return;
+        if (res.ok) {
+          const data = await res.json();
+          const items = Array.isArray(data?.results) ? data.results.filter((s: any) => typeof s === "string" && s.trim()) : [];
+          if (items.length > 0) {
+            setRecs(items);
+            setRecIndex(Math.floor(Math.random() * items.length));
+            setRecDateLabel(data?.dateLabel);
+          } else {
+            setRecs([]);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load recommendations", e);
+      } finally {
+        if (active) setRecLoading(false);
+      }
+    };
+    run();
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -406,12 +447,65 @@ export default function Home() {
               </div>
             </div>
             
-            {/* Bang notification */}
-            {hasBang && (
-              <div className="absolute w-full text-center mt-2 text-sm text-muted-foreground dark:text-muted-foreground font-medium">
-                <a href="https://bang.lat"> Bangs by bang.lat — the fastest bang resolver. </a>
-              </div>
-            )}
+            {/* Recommendations row under the search bar */}
+            <div className="absolute w-full mt-3 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
+              {recs.length > 0 ? (
+                <div className="flex items-center justify-center">
+                  <div className="relative inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-border/50 bg-background/60 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/40 overflow-hidden max-w-[92%] sm:max-w-none whitespace-nowrap">
+                    {recSwitching && (
+                      <>
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0 rounded-full bg-muted/70 dark:bg-muted/50 border border-border/50 animate-pulse pointer-events-none"
+                        />
+                        <div aria-hidden="true" className="shimmer-soft" />
+                      </>
+                    )}
+                    <span className="text-muted-foreground/80">Try:</span>
+                    <button
+                      type="button"
+                      className={`hover:text-foreground transition-colors underline-offset-4 hover:underline font-semibold text-foreground ${recSwitching ? "animate-pulse cursor-wait" : ""} truncate max-w-[60vw] sm:max-w-none`}
+                      onClick={() => {
+                        const q = recs[recIndex];
+                        router.push(`/search?q=${encodeURIComponent(q)}`);
+                      }}
+                      title={recDateLabel ? `Daily pick — ${recDateLabel}` : "Daily pick"}
+                      aria-label={recDateLabel ? `You can search: ${recs[recIndex]} — ${recDateLabel}` : `You can search: ${recs[recIndex]}`}
+                      aria-busy={recSwitching}
+                      disabled={recSwitching}
+                    >
+                      {recs[recIndex]}
+                    </button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      shape="pill"
+                      title="Show another"
+                      onClick={() => {
+                        if (!recs.length || recSwitching) return;
+                        setRecSwitching(true);
+                        // Keep current term visible under a grey overlay, then switch
+                        window.setTimeout(() => {
+                          setRecIndex((i) => (recs.length ? (i + 1) % recs.length : 0));
+                          setRecSwitching(false);
+                        }, 600);
+                      }}
+                      className="h-5 w-5 sm:h-6 sm:w-6 opacity-80 hover:opacity-100 ml-0.5 sm:ml-1"
+                      disabled={recSwitching}
+                    >
+                      <RefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${recLoading || recSwitching ? "animate-spin" : ""}`} />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                hasBang && (
+                  <div className="text-center">
+                    <a href="https://bang.lat"> Bangs by bang.lat — the fastest bang resolver. </a>
+                  </div>
+                )
+              )}
+            </div>
 
             {/* Autocomplete dropdown */}
             {showSuggestions && suggestions.length > 0 && (
@@ -441,30 +535,7 @@ export default function Home() {
             )}
           </form>
           
-            <div className="flex items-center justify-center gap-3 mt-4 text-muted-foreground mx-auto flex-wrap">
-            <Link href="/about" className="hover:text-foreground transition-colors">
-              <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4" />
-              <span className="font-medium">Your searches, private.</span>
-              </div>
-            </Link>
-            
-            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
-            
-            <Link href="https://chat.tekir.co" className="hover:text-foreground transition-colors">
-              <div className="flex items-center gap-2">
-              <MessageCircleMore className="w-4 h-4" />
-              <span className="font-medium">AI Chat</span>
-              </div>
-            </Link>
-
-            {(settings.weatherPlacement || 'topRight') === 'hero' && (
-              <>
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
-                <WeatherWidget />
-              </>
-            )}
-            </div>
+            {/* Removed the old link row under the search bar and replaced with recommendations above */}
           
           </div>
       </section>

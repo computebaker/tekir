@@ -50,35 +50,61 @@ Make sure the day of the special day you are going to give is matching the curre
 
 Try not to be politic. Prefer using international days where possible.
 
-Today's date is:
--${todayLabel} generated on request-`;
+Today's date is: ${todayLabel}`;
 
   const response = await openai.chat.completions.create({
-    model: 'openai/gpt-oss-120b',
+    model: 'openai/gpt-5-nano',
     temperature: 0,
     top_p: 0.95,
-    max_tokens: 300,
     messages: [
       { role: 'system', content: system },
-      { role: 'user', content: 'Generate the list now. Return only the JSON array, nothing else.' },
     ],
     stream: false,
   });
-
   const content = response.choices[0]?.message?.content?.trim() ?? '';
-  // Attempt to parse JSON array
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    // Try to extract array from code fences if present
-    const match = content.match(/\[([\s\S]*)\]/);
-    if (!match) throw new Error('Model did not return a JSON array');
-    parsed = JSON.parse(`[${match[1]}]`);
+  // Attempt to parse JSON array robustly
+  const tryParseJsonArray = (text: string): string[] | null => {
+    try {
+      const direct = JSON.parse(text);
+      return Array.isArray(direct) ? direct : null;
+    } catch {}
+
+    // Extract from code block if present
+    const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]?.trim();
+    if (codeBlock) {
+      try {
+        const arr = JSON.parse(codeBlock);
+        if (Array.isArray(arr)) return arr;
+      } catch {}
+    }
+
+    // Extract between first [ and last ]
+    const start = text.indexOf('[');
+    const end = text.lastIndexOf(']');
+    if (start >= 0 && end > start) {
+      const inner = text.slice(start, end + 1).trim();
+      try {
+        const arr = JSON.parse(inner);
+        if (Array.isArray(arr)) return arr;
+      } catch {
+        // Last resort: extract quoted strings
+        const matches = inner.match(/(['"])\s*(.*?)\s*\1/g);
+        if (matches && matches.length) {
+          const arr = matches.map((m) => m.replace(/^['"]|['"]$/g, ''));
+          return arr;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const parsedArray = tryParseJsonArray(content);
+  if (!parsedArray) {
+    throw new Error('Model did not return a JSON array');
   }
 
-  if (!Array.isArray(parsed)) throw new Error('Invalid response: not an array');
-  const items = (parsed as unknown[])
+  const items = (parsedArray as unknown[])
     .map((x) => (typeof x === 'string' ? x.trim() : ''))
     .filter((s): s is string => !!s)
     .slice(0, 8);
@@ -119,7 +145,6 @@ export async function GET(_req: NextRequest) {
   } catch (error: any) {
     console.error('Error in /api/recommend:', error);
 
-    // Fallback: if we have latest recommendations, return them with 206
     try {
       const latest = await convex.query(api.recommendations.getLatest, {});
       if (latest?.items?.length) {
