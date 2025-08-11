@@ -522,7 +522,7 @@ export default function AccountSettingsPage() {
                       <label htmlFor="email" className="block text-sm font-medium mb-2">
                         Email
                       </label>
-                      <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
                         <input
                           id="email"
                           type="email"
@@ -534,7 +534,7 @@ export default function AccountSettingsPage() {
                         <button
                           onClick={handleEmailUpdate}
                           disabled={isLoading || email === user?.email}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="w-full sm:w-auto px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center sm:justify-start gap-2"
                         >
                           <Save className="w-4 h-4" />
                           Update
@@ -555,7 +555,7 @@ export default function AccountSettingsPage() {
                       <p className="text-sm text-muted-foreground mb-3">
                         This is the name that will be displayed publicly on your profile.
                       </p>
-                      <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
                         <input
                           id="name"
                           type="text"
@@ -567,7 +567,7 @@ export default function AccountSettingsPage() {
                         <button
                           onClick={handleNameUpdate}
                           disabled={isLoading || name === user?.name}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="w-full sm:w-auto px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center sm:justify-start gap-2"
                         >
                           <Save className="w-4 h-4" />
                           Update
@@ -588,7 +588,7 @@ export default function AccountSettingsPage() {
                       <p className="text-sm text-muted-foreground mb-3">
                         Your unique username will be displayed as @{username || 'username'} under your name.
                       </p>
-                      <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
                         <div className="flex-1 relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">@</span>
                           <input
@@ -603,7 +603,7 @@ export default function AccountSettingsPage() {
                         <button
                           onClick={handleUsernameUpdate}
                           disabled={isLoading || username === user?.username}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="w-full sm:w-auto px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center sm:justify-start gap-2"
                         >
                           <Save className="w-4 h-4" />
                           Update

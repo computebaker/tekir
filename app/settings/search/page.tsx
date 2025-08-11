@@ -313,7 +313,7 @@ export default function SearchSettingsPage() {
               <div className="space-y-4">
                 {/* Karakulak AI Mode */}
                 <div className="rounded-lg border border-border bg-card p-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="text-lg font-medium">Karakulak AI Mode</h4>
@@ -334,17 +334,17 @@ export default function SearchSettingsPage() {
                 {/* AI Model Selection */}
                 {settings.karakulakEnabled && (
                   <div className="rounded-lg border border-border bg-card p-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <h4 className="text-lg font-medium">AI Model</h4>
                         <p className="text-sm text-muted-foreground mt-1">
                           Select your preferred AI model for responses
                         </p>
                       </div>
-            <div className="relative" ref={modelDropdownRef}>
+            <div className="relative w-full sm:w-auto" ref={modelDropdownRef}>
                         <button
                           onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                          className="flex items-center gap-3 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
+                          className="flex items-center gap-3 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors w-full sm:w-auto sm:min-w-[200px] justify-between"
               aria-haspopup="menu"
               aria-expanded={modelDropdownOpen}
               aria-controls="ai-model-menu"
@@ -363,7 +363,7 @@ export default function SearchSettingsPage() {
                         </button>
                         
                         {modelDropdownOpen && (
-                          <div id="ai-model-menu" role="menu" aria-label="AI model options" className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10">
+                          <div id="ai-model-menu" role="menu" aria-label="AI model options" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-80 rounded-lg bg-background border border-border shadow-lg z-10">
                             <div className="p-1">
                               <button
                                 onClick={() => handleModelChange('llama')}
@@ -459,7 +459,7 @@ export default function SearchSettingsPage() {
 
             {/* Clim8 Weather Service */}
             <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h4 className="text-lg font-medium">Clim8 Weather Service</h4>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -539,17 +539,17 @@ export default function SearchSettingsPage() {
             {/* Weather Units */}
             {settings.clim8Enabled && (
               <div className="rounded-lg border border-border bg-card p-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h4 className="text-lg font-medium">Weather Units</h4>
                     <p className="text-sm text-muted-foreground mt-1">
                       Choose between metric (°C, km/h) or imperial (°F, mph) units
                     </p>
                   </div>
-          <div className="relative" ref={weatherUnitsDropdownRef}>
+          <div className="relative w-full sm:w-auto" ref={weatherUnitsDropdownRef}>
                     <button
                       onClick={() => setWeatherUnitsDropdownOpen(!weatherUnitsDropdownOpen)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors w-full sm:w-auto sm:min-w-[140px] justify-between"
             aria-haspopup="menu"
             aria-expanded={weatherUnitsDropdownOpen}
             aria-controls="weather-units-menu"
@@ -561,7 +561,7 @@ export default function SearchSettingsPage() {
                     </button>
                     
                     {weatherUnitsDropdownOpen && (
-                      <div id="weather-units-menu" role="menu" aria-label="Weather unit options" className="absolute right-0 mt-2 w-60 rounded-lg bg-background border border-border shadow-lg z-10">
+                      <div id="weather-units-menu" role="menu" aria-label="Weather unit options" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-60 rounded-lg bg-background border border-border shadow-lg z-10">
                         <div className="p-1">
                           <button
                             onClick={() => handleWeatherUnitsChange('metric')}
@@ -607,17 +607,17 @@ export default function SearchSettingsPage() {
             {/* Weather Placement */}
             {settings.clim8Enabled && (
               <div className="rounded-lg border border-border bg-card p-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h4 className="text-lg font-medium">Weather Placement</h4>
                     <p className="text-sm text-muted-foreground mt-1">
                       Choose where to show the Clim8 widget on the homepage
                     </p>
                   </div>
-                  <div className="relative" ref={weatherPlacementDropdownRef}>
+                  <div className="relative w-full sm:w-auto" ref={weatherPlacementDropdownRef}>
                     <button
                       onClick={() => setWeatherPlacementDropdownOpen(!weatherPlacementDropdownOpen)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors w-full sm:w-auto sm:min-w-[200px] justify-between"
                       aria-haspopup="menu"
                       aria-expanded={weatherPlacementDropdownOpen}
                       aria-controls="weather-placement-menu"
@@ -628,7 +628,7 @@ export default function SearchSettingsPage() {
                       <ChevronDown className={`w-4 h-4 transition-transform ${weatherPlacementDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {weatherPlacementDropdownOpen && (
-                      <div id="weather-placement-menu" role="menu" aria-label="Weather placement options" className="absolute right-0 mt-2 w-72 rounded-lg bg-background border border-border shadow-lg z-10">
+                      <div id="weather-placement-menu" role="menu" aria-label="Weather placement options" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-72 rounded-lg bg-background border border-border shadow-lg z-10">
                         <div className="p-1">
                           <button
                             onClick={() => { updateSetting('weatherPlacement', 'hero'); setWeatherPlacementDropdownOpen(false); }}
@@ -685,14 +685,14 @@ export default function SearchSettingsPage() {
 
             {/* Search Provider */}
             <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h4 className="text-lg font-medium">Search Provider</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Your search engine provider (unchangeable)
                   </p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted w-full sm:w-auto justify-center sm:justify-start">
                   <span className="text-sm font-medium">Brave Search</span>
                 </div>
               </div>
@@ -700,17 +700,17 @@ export default function SearchSettingsPage() {
 
             {/* Autocomplete Provider */}
             <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h4 className="text-lg font-medium">Autocomplete Provider</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Choose your search suggestion provider
                   </p>
                 </div>
-        <div className="relative" ref={autocompleteDropdownRef}>
+        <div className="relative w-full sm:w-auto" ref={autocompleteDropdownRef}>
                   <button
                     onClick={() => setAutocompleteDropdownOpen(!autocompleteDropdownOpen)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors w-full sm:w-auto sm:min-w-[140px] justify-between"
           aria-haspopup="menu"
           aria-expanded={autocompleteDropdownOpen}
           aria-controls="autocomplete-menu"
@@ -722,7 +722,7 @@ export default function SearchSettingsPage() {
                   </button>
                   
                   {autocompleteDropdownOpen && (
-                    <div id="autocomplete-menu" role="menu" aria-label="Autocomplete providers" className="absolute right-0 mt-2 w-full min-w-[140px] rounded-lg bg-background border border-border shadow-lg z-10">
+                    <div id="autocomplete-menu" role="menu" aria-label="Autocomplete providers" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:min-w-[140px] rounded-lg bg-background border border-border shadow-lg z-10">
                       <div className="py-1">
                         <button
                           onClick={() => handleAutocompleteChange('brave')}
@@ -764,17 +764,17 @@ export default function SearchSettingsPage() {
 
             {/* Search Region/Country */}
             <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h4 className="text-lg font-medium">Search Region</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Choose your preferred search region for localized results
                   </p>
                 </div>
-        <div className="relative" ref={countryDropdownRef}>
+        <div className="relative w-full sm:w-auto" ref={countryDropdownRef}>
                   <button
                     onClick={() => setCountryDropdownOpen(!countryDropdownOpen)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[200px] justify-between"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors w-full sm:w-auto sm:min-w-[200px] justify-between"
           aria-haspopup="menu"
           aria-expanded={countryDropdownOpen}
           aria-controls="country-menu"
@@ -784,7 +784,7 @@ export default function SearchSettingsPage() {
                   </button>
                   
                   {countryDropdownOpen && (
-                    <div id="country-menu" role="menu" aria-label="Search regions" className="absolute right-0 mt-2 w-80 rounded-lg bg-background border border-border shadow-lg z-10 max-h-60 overflow-y-auto">
+                    <div id="country-menu" role="menu" aria-label="Search regions" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-80 rounded-lg bg-background border border-border shadow-lg z-10 max-h-60 overflow-y-auto">
                       <div className="p-1">
                         {COUNTRIES.map((country) => (
                           <button
@@ -814,17 +814,17 @@ export default function SearchSettingsPage() {
 
             {/* SafeSearch */}
             <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h4 className="text-lg font-medium">SafeSearch</h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Filter explicit content from your search results
                   </p>
                 </div>
-        <div className="relative" ref={safesearchDropdownRef}>
+        <div className="relative w-full sm:w-auto" ref={safesearchDropdownRef}>
                   <button
                     onClick={() => setSafesearchDropdownOpen(!safesearchDropdownOpen)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors min-w-[140px] justify-between"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors w-full sm:w-auto sm:min-w-[140px] justify-between"
           aria-haspopup="menu"
           aria-expanded={safesearchDropdownOpen}
           aria-controls="safesearch-menu"
@@ -834,7 +834,7 @@ export default function SearchSettingsPage() {
                   </button>
                   
                   {safesearchDropdownOpen && (
-                    <div id="safesearch-menu" role="menu" aria-label="SafeSearch levels" className="absolute right-0 mt-2 w-full min-w-[200px] rounded-lg bg-background border border-border shadow-lg z-10">
+                    <div id="safesearch-menu" role="menu" aria-label="SafeSearch levels" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:min-w-[200px] rounded-lg bg-background border border-border shadow-lg z-10">
                       <div className="p-1">
                         <button
                           onClick={() => handleSafesearchChange('off')}
