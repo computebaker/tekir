@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Star, Settings, Newspaper } from "lucide-react";
+import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Star, Settings, Newspaper, AlertTriangle } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
@@ -167,6 +167,8 @@ function SearchPageContent() {
   const [diveResponse, setDiveResponse] = useState<string | null>(null);
   const [diveSources, setDiveSources] = useState<Array<{url: string, title: string, description?: string}>>([]);
   const [diveLoading, setDiveLoading] = useState(false);
+  const [aiError, setAiError] = useState(false);
+  const [diveError, setDiveError] = useState(false);
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const aiRequestInProgressRef = useRef<string | null>(null);
@@ -201,11 +203,13 @@ function SearchPageContent() {
     setLoading(true);
     setResults([]);
     setWikiData(null);
-    setDiveResponse(null);
-    setDiveSources([]);
-    setDiveLoading(false);
-    setAiResponse(null);
-    setAiLoading(false);
+  setDiveResponse(null);
+  setDiveSources([]);
+  setAiResponse(null);
+  // Loading flags will be set by a dedicated effect reacting to AI/Dive mode
+  // Clear previous errors on new query
+  setAiError(false);
+  setDiveError(false);
     aiRequestInProgressRef.current = null;
     
     const searchId = ++searchIdRef.current;
@@ -414,42 +418,43 @@ function SearchPageContent() {
     }
   }, [searchType, query, searchEngine, imageResults.length, imageLoading]);
 
+  // Keep loading indicators in sync immediately with AI/Dive mode for the current query
+  useEffect(() => {
+    if (!query) {
+      setAiLoading(false);
+      setDiveLoading(false);
+      return;
+    }
+    if (!aiEnabled) {
+      setAiLoading(false);
+      setDiveLoading(false);
+      return;
+    }
+    // Show loading for the active mode only, the request effects will manage completion
+    setAiLoading(!aiDiveEnabled);
+    setDiveLoading(aiDiveEnabled);
+  }, [query, aiEnabled, aiDiveEnabled]);
+
+  // Regular AI (Karakulak) — fire immediately in parallel when Dive mode is OFF
   useEffect(() => {
     if (!query) {
       aiRequestInProgressRef.current = null;
-      // Abort any in-flight AI/Dive request when query clears
       if (aiAbortControllerRef.current) {
         try { aiAbortControllerRef.current.abort(); } catch {}
         aiAbortControllerRef.current = null;
       }
       return;
     }
-
-    if (!aiEnabled) {
-      setAiResponse(null);
-      setDiveResponse(null);
-      setDiveSources([]);
-      aiRequestInProgressRef.current = null;
-      if (aiAbortControllerRef.current) {
-        try { aiAbortControllerRef.current.abort(); } catch {}
-        aiAbortControllerRef.current = null;
-      }
+    if (!aiEnabled || aiDiveEnabled) {
       return;
     }
-
     if (aiModel === undefined && localStorage.getItem("aiModel") !== null) {
-      return; 
+      return;
     }
 
     const modelToUse = aiModel || "gemini";
-    const requestKey = `${query}-${aiDiveEnabled ? 'dive' : 'ai'}-${modelToUse}`;
-    // Avoid duplicate in-flight requests for the same key
+    const requestKey = `${query}-ai-${modelToUse}`;
     if (aiRequestInProgressRef.current === requestKey) return;
-
-    const searchId = searchIdRef.current;
-
-    setDiveResponse(null);
-    setDiveSources([]);
 
     const isModelEnabled = (model: string) => {
       const stored = localStorage.getItem(`karakulakEnabled_${model}`);
@@ -458,151 +463,184 @@ function SearchPageContent() {
 
     const makeAIRequest = async (model: string, isRetry: boolean = false) => {
       try {
-        if (aiDiveEnabled) {
-          // Dive AI Mode - use existing search results to avoid duplicate API calls
-          const cachedDiveResponse = SearchCache.getDive(query);
-          
-          if (cachedDiveResponse) {
-            setDiveResponse(cachedDiveResponse.response);
-            setDiveSources(cachedDiveResponse.sources || []);
-            setDiveLoading(false);
-            setAiResponse(null); // Clear regular AI response when dive is active
-            setAiLoading(false);
-            aiRequestInProgressRef.current = null;
-            return;
-          }
-
-          // Ensure we have fresh results for the current query before proceeding
-          const hasFreshResults = results.length > 0 && lastResultsQueryRef.current === query;
-          if (!hasFreshResults) {
-            // Show loading hint and wait for results effect to rerun when results update
-            setDiveLoading(true);
-            aiRequestInProgressRef.current = null;
-            return;
-          }
-
-          // Send more candidates for better fallback options
-          const candidateResults = results.slice(0, 8).map((r: any) => ({
-            url: r.url,
-            title: r.title,
-            snippet: r.description
-          }));
-
-          // Call dive API with existing search results
-          aiRequestInProgressRef.current = requestKey;
-          setDiveLoading(true);
-          if (aiAbortControllerRef.current) {
-            try { aiAbortControllerRef.current.abort(); } catch {}
-          }
-          aiAbortControllerRef.current = new AbortController();
-          const diveResponse = await fetchWithSessionRefreshAndCache('/api/dive', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, pages: candidateResults }),
-            signal: aiAbortControllerRef.current.signal
-          });
-
-          if (!diveResponse.ok) {
-            throw new Error(`Dive API failed with status ${diveResponse.status}`);
-          }
-
-          const diveData = await diveResponse.json();
-          
-          if (searchId === searchIdRef.current) {
-            setDiveResponse(diveData.response);
-            setDiveSources(diveData.sources || []);
-            setAiResponse(null); 
-            
-            SearchCache.setDive(query, diveData.response, diveData.sources || []);
-          } else {
-            console.log(`Search ID changed, ignoring stale dive response for query: "${query}"`);
-          }
-          
-        } else {
-          // Regular AI Mode
-          const cachedResponse = SearchCache.getAI(model, query);
-
-          if (cachedResponse) {
-            setAiResponse(cachedResponse);
-            setDiveResponse(null); // Clear dive response when regular AI is active
-            setDiveSources([]);
-            setAiLoading(false);
-            setDiveLoading(false);
-            aiRequestInProgressRef.current = null;
-            return;
-          }
-
-          aiRequestInProgressRef.current = requestKey;
-          setAiLoading(true);
-          setDiveLoading(false);
-          // Abort any prior in-flight request before starting a new one
-          if (aiAbortControllerRef.current) {
-            try { aiAbortControllerRef.current.abort(); } catch {}
-          }
-          aiAbortControllerRef.current = new AbortController();
-          const res = await fetchWithSessionRefreshAndCache(`/api/karakulak/${model}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ message: query }),
-            signal: aiAbortControllerRef.current.signal
-          });
-
-          if (!res.ok) {
-            throw new Error(`API returned status ${res.status}`);
-          }
-
-          const aiData = await res.json();
-          const aiResult = aiData.answer.trim();
-          setAiResponse(aiResult);
-          setDiveResponse(null); // Clear dive response when regular AI is active
+        const cachedResponse = SearchCache.getAI(model, query);
+        if (cachedResponse) {
+          setAiResponse(cachedResponse);
+          setDiveResponse(null);
           setDiveSources([]);
-          
-          // Cache the AI response using unified cache
-          SearchCache.setAI(model, query, aiResult);
+          setAiLoading(false);
+          setDiveLoading(false);
+          setAiError(false);
+          aiRequestInProgressRef.current = null;
+          return;
         }
-        
-    setAiLoading(false);
-    setDiveLoading(false);
-        aiRequestInProgressRef.current = null;
-        // Clear controller after completion
+
+        aiRequestInProgressRef.current = requestKey;
+        setAiLoading(true);
+        setDiveLoading(false);
+        setAiError(false);
         if (aiAbortControllerRef.current) {
-          aiAbortControllerRef.current = null;
+          try { aiAbortControllerRef.current.abort(); } catch {}
         }
+        aiAbortControllerRef.current = new AbortController();
+        const res = await fetchWithSessionRefreshAndCache(`/api/karakulak/${model}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: query }),
+          signal: aiAbortControllerRef.current.signal
+        }, {
+          searchType: 'ai',
+          provider: model,
+          query,
+          searchParams: {}
+        });
+
+        if (!res.ok) {
+          throw new Error(`API returned status ${res.status}`);
+        }
+
+        const aiData = await res.json();
+        const aiResult = (aiData.answer || '').trim();
+        setAiResponse(aiResult);
+        setDiveResponse(null);
+        setDiveSources([]);
+        SearchCache.setAI(model, query, aiResult);
+
+  setAiLoading(false);
+  setDiveLoading(false);
+  setAiError(false);
+  aiRequestInProgressRef.current = null;
+  aiAbortControllerRef.current = null;
       } catch (error) {
         console.error(`AI response failed for model ${model}:`, error);
-
-    if (!isRetry && model !== "gemini" && !aiModel && !aiDiveEnabled) {
-          console.log("No user preference found, falling back to Gemini model");
+        if (!isRetry && model !== "gemini" && !aiModel && !aiDiveEnabled) {
           makeAIRequest("gemini", true);
         } else {
           setAiLoading(false);
           setDiveLoading(false);
+          setAiError(true);
           aiRequestInProgressRef.current = null;
-          // Clear controller on error/abort
-          if (aiAbortControllerRef.current) {
-            aiAbortControllerRef.current = null;
-          }
+          aiAbortControllerRef.current = null;
         }
       }
     };
 
-    const selectedModelEnabled = isModelEnabled(modelToUse);
-
-    if (selectedModelEnabled) {
+    if (isModelEnabled(modelToUse)) {
       makeAIRequest(modelToUse);
     } else {
       aiRequestInProgressRef.current = null;
     }
-    // Cleanup on effect re-run or unmount: abort any in-flight request
+
     return () => {
       if (aiAbortControllerRef.current) {
         try { aiAbortControllerRef.current.abort(); } catch {}
         aiAbortControllerRef.current = null;
       }
     };
-  }, [query, aiEnabled, aiModel, aiDiveEnabled, results]);
+  }, [query, aiEnabled, aiModel, aiDiveEnabled]);
+
+  // Dive Mode — wait for web results to arrive, then send Dive request in parallel
+  useEffect(() => {
+    if (!query) {
+      aiRequestInProgressRef.current = null;
+      if (aiAbortControllerRef.current) {
+        try { aiAbortControllerRef.current.abort(); } catch {}
+        aiAbortControllerRef.current = null;
+      }
+      return;
+    }
+    if (!aiEnabled || !aiDiveEnabled) {
+      return;
+    }
+
+    const searchId = searchIdRef.current;
+    const requestKey = `${query}-dive`;
+    if (aiRequestInProgressRef.current === requestKey) return;
+
+    // If cached, use immediately
+    const cachedDiveResponse = SearchCache.getDive(query);
+    if (cachedDiveResponse) {
+      setDiveResponse(cachedDiveResponse.response);
+      setDiveSources(cachedDiveResponse.sources || []);
+      setDiveLoading(false);
+      setAiResponse(null);
+      setAiLoading(false);
+      aiRequestInProgressRef.current = null;
+      return;
+    }
+
+    const hasFreshResults = results.length > 0 && lastResultsQueryRef.current === query;
+    if (!hasFreshResults) {
+      setDiveLoading(true);
+      return;
+    }
+
+    const candidateResults = results.slice(0, 8).map((r: any) => ({
+      url: r.url,
+      title: r.title,
+      snippet: r.description
+    }));
+
+  const makeDiveRequest = async () => {
+      try {
+        aiRequestInProgressRef.current = requestKey;
+        setDiveLoading(true);
+        setAiLoading(false);
+    setDiveError(false);
+        if (aiAbortControllerRef.current) {
+          try { aiAbortControllerRef.current.abort(); } catch {}
+        }
+        aiAbortControllerRef.current = new AbortController();
+        const diveResponse = await fetchWithSessionRefreshAndCache('/api/dive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, pages: candidateResults }),
+          signal: aiAbortControllerRef.current.signal
+        }, {
+          searchType: 'dive',
+          provider: 'dive',
+          query,
+          searchParams: { candidates: String(candidateResults.length) }
+        });
+
+        if (!diveResponse.ok) {
+          throw new Error(`Dive API failed with status ${diveResponse.status}`);
+        }
+
+        const diveData = await diveResponse.json();
+        if (searchId === searchIdRef.current) {
+          setDiveResponse(diveData.response);
+          setDiveSources(diveData.sources || []);
+          setAiResponse(null);
+          SearchCache.setDive(query, diveData.response, diveData.sources || []);
+          setDiveError(false);
+        } else {
+          console.log(`Search ID changed, ignoring stale dive response for query: "${query}"`);
+        }
+
+  setDiveLoading(false);
+  setAiLoading(false);
+        aiRequestInProgressRef.current = null;
+        aiAbortControllerRef.current = null;
+      } catch (error) {
+        console.error('Dive request failed:', error);
+        setDiveLoading(false);
+        setAiLoading(false);
+        setDiveError(true);
+        aiRequestInProgressRef.current = null;
+        aiAbortControllerRef.current = null;
+      }
+    };
+
+    makeDiveRequest();
+
+    return () => {
+      if (aiAbortControllerRef.current) {
+        try { aiAbortControllerRef.current.abort(); } catch {}
+        aiAbortControllerRef.current = null;
+      }
+    };
+  }, [query, aiEnabled, aiDiveEnabled, results]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -626,7 +664,19 @@ function SearchPageContent() {
       try { aiAbortControllerRef.current.abort(); } catch {}
       aiAbortControllerRef.current = null;
     }
-    setAiDiveEnabled(prevAiDiveEnabled => !prevAiDiveEnabled);
+    setAiDiveEnabled(prevAiDiveEnabled => {
+      const next = !prevAiDiveEnabled;
+      if (aiEnabled) {
+        if (next) {
+          setDiveLoading(true);
+          setAiLoading(false);
+        } else {
+          setAiLoading(true);
+          setDiveLoading(false);
+        }
+      }
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -1072,10 +1122,20 @@ function SearchPageContent() {
 
           <div className="flex flex-col md:flex-row md:gap-6 lg:gap-8">
             <div className="flex-1 md:w-2/3 lg:w-3/4 xl:w-2/3 2xl:w-3/4">
+              {/* Standalone AI/Dive error banner */}
+              {(searchType === 'web' && aiEnabled && (aiError || diveError)) ? (
+                <div
+                  role="alert"
+                  className="mb-4 p-3 rounded-md border border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300 text-sm flex items-start gap-2"
+                >
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>Karakulak couldn&apos;t load a response due to an error.</span>
+                </div>
+              ) : null}
               {(() => {
                 if (searchType !== 'web' || !aiEnabled) return false;
-                const hasLoadingOrResponse = aiResponse || diveResponse || aiLoading || diveLoading;
-                if (!hasLoadingOrResponse) return false;
+                const hasSomething = !!(aiResponse || diveResponse || aiLoading || diveLoading);
+                if (!hasSomething) return false;
                 if (aiLoading || diveLoading) return true;
                 const activeResponse = diveResponse || aiResponse;
                 return !shouldHideKarakulak(activeResponse);
@@ -1146,12 +1206,14 @@ function SearchPageContent() {
                         </div>
                       )}
                       
-                      <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
-                        {aiDiveEnabled 
-                          ? "Generated from web sources. May contain inaccuracies." 
-                          : "Auto-generated based on AI knowledge. May contain inaccuracies."
-                        }
-                      </p>
+                      {(diveResponse || aiResponse) ? (
+                        <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
+                          {aiDiveEnabled 
+                            ? "Generated from web sources. May contain inaccuracies." 
+                            : "Auto-generated based on AI knowledge. May contain inaccuracies."
+                          }
+                        </p>
+                      ) : null}
                       
                       <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
                         <div className="flex items-center gap-2">
