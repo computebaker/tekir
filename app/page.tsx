@@ -453,7 +453,34 @@ export default function Home() {
               <div className="flex items-center justify-center">
                 <div className="inline-flex items-center gap-2 sm:gap-3">
                   {(settings.showRecommendations ?? true) ? (
-                    recs.length > 0 ? (
+                    recLoading ? (
+                      <div
+                        className="relative inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-border/50 bg-background/60 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/40 overflow-hidden max-w-[92%] sm:max-w-none"
+                        aria-live="polite"
+                        aria-busy="true"
+                        role="status"
+                        title="Loading daily picks"
+                      >
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0 rounded-full bg-muted/70 dark:bg-muted/50 border border-border/50 animate-pulse pointer-events-none"
+                        />
+                        <div aria-hidden="true" className="shimmer-soft" />
+                        <span className="text-muted-foreground/80">Try:</span>
+                        <span className="inline-block h-4 bg-muted rounded w-[160px] sm:w-[220px] mr-1 sm:mr-2" aria-hidden="true" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          shape="pill"
+                          title="Loading"
+                          className="h-5 w-5 sm:h-6 sm:w-6 opacity-80 ml-0.5 sm:ml-1 cursor-wait"
+                          disabled
+                        >
+                          <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
+                        </Button>
+                      </div>
+                    ) : recs.length > 0 ? (
                       <div className="relative inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-border/50 bg-background/60 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/40 overflow-hidden max-w-[92%] sm:max-w-none whitespace-nowrap">
                         {recSwitching && (
                           <>
