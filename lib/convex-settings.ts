@@ -107,11 +107,42 @@ class ConvexSettingsManager {
     });
   }
 
+  /**
+   * Save settings that came from Convex to localStorage but do not overwrite
+   * any keys that already exist locally. This preserves an explicit local
+   * preference (e.g. the user toggled a setting in the UI) while still
+   * seeding missing values from the server.
+   */
+  private saveConvexToLocalStorageWithoutOverwriting() {
+    if (typeof window === 'undefined') return;
+
+    Object.entries(this.settings).forEach(([key, value]) => {
+      try {
+        const existing = localStorage.getItem(key);
+        if (existing !== null) {
+          // Respect a local explicit value; do not overwrite.
+          return;
+        }
+        if (value !== undefined && value !== null) {
+          if (typeof value === 'object') {
+            localStorage.setItem(key, JSON.stringify(value));
+          } else {
+            localStorage.setItem(key, String(value));
+          }
+        }
+      } catch (e) {
+        // ignore localStorage errors
+      }
+    });
+  }
+
   // Update settings from Convex subscription
   updateFromConvex(convexSettings: any) {
     if (convexSettings?.settings) {
       this.settings = { ...DEFAULT_SETTINGS, ...convexSettings.settings };
-      this.saveToLocalStorage();
+  // When applying server settings, don't overwrite explicit local values
+  // that the user may have set in the browser. Only seed missing keys.
+  this.saveConvexToLocalStorageWithoutOverwriting();
       this.notifyListeners();
       console.log('Settings updated from Convex subscription');
     }
@@ -179,16 +210,22 @@ export function useConvexSettings() {
 
     if (!initializationRef.current || (user?.id && user.id !== convexSettingsManager['userId'])) {
       convexSettingsManager.initialize(user?.id);
-      setIsInitialized(true);
+      // Do not mark 'isInitialized' true here — wait for server-side settings to arrive.
+      // For anonymous / logged-out users there is no server subscription, so mark initialized now.
+      if (!user?.id) {
+        setIsInitialized(true);
+      }
       initializationRef.current = true;
     }
   }, [user?.id, status]);
 
   // Subscribe to real-time settings updates from Convex
   useEffect(() => {
-    if (userSettings && userSettings.settingsSync) {
+    if (userSettings) {
       console.log('Received settings from Convex:', userSettings);
       convexSettingsManager.updateFromConvex(userSettings);
+      // Now that server settings have been applied, the settings manager is fully initialized.
+      setIsInitialized(true);
     }
   }, [userSettings]);
 

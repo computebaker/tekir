@@ -47,7 +47,7 @@ interface Suggestion {
 
 export default function Home() {
   const { user } = useAuth();
-  const { settings } = useSettings();
+  const { settings, isInitialized } = useSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,7 +68,21 @@ export default function Home() {
   const [recLoading, setRecLoading] = useState(false);
   const [recDateLabel, setRecDateLabel] = useState<string | undefined>(undefined);
   const [recSwitching, setRecSwitching] = useState(false);
+  // Tri-state: null = unknown (no explicit local value) | true | false
+  // If user has an explicit local preference in localStorage, use it immediately.
+  // Otherwise keep null and wait for server settings (isInitialized) before rendering.
+  const [localShowRecs, setLocalShowRecs] = useState<boolean | null>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('showRecommendations');
+      if (stored === null) return null;
+      return stored === 'true';
+    }
+    return null;
+  });
   const showHeroWeather = (settings.clim8Enabled ?? true) && ((settings.weatherPlacement || 'topRight') === 'hero');
+
+  // Determine effective preference: true/false when known, null when still unresolved
+  const effectiveShowRecs: boolean | null = localShowRecs !== null ? localShowRecs : (isInitialized ? (settings.showRecommendations ?? false) : null);
 
 
   // Placeholder for handleBangRedirect if it's not globally available or imported
@@ -103,10 +117,37 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch daily recommendations once
+  // Sync local state when settings are initialized from server
+  useEffect(() => {
+    if (isInitialized) {
+      const serverValue = settings.showRecommendations ?? false;
+      setLocalShowRecs(serverValue);
+      try {
+        // If there was no local explicit value, persist server value locally for next loads
+        if (localStorage.getItem('showRecommendations') === null) {
+          localStorage.setItem('showRecommendations', String(serverValue));
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [isInitialized, settings.showRecommendations]);
+
+  // Fetch daily recommendations (only when effective preference is true)
   useEffect(() => {
     let active = true;
     const run = async () => {
+      // Only fetch when effective preference is true. If null or false, skip.
+      if (effectiveShowRecs !== true) {
+        // If recommendations are disabled, ensure clean state and skip fetch
+        if (active) {
+          setRecLoading(false);
+          setRecs([]);
+          setRecIndex(0);
+          setRecDateLabel(undefined);
+        }
+        return;
+      }
       setRecLoading(true);
       try {
         const res = await fetchWithSessionRefreshAndCache<{ results: string[]; date?: string; dateLabel?: string }>(
@@ -136,7 +177,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [effectiveShowRecs]);
 
   useEffect(() => {
     const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -452,7 +493,10 @@ export default function Home() {
             <div className="absolute w-full mt-3 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
               <div className="flex items-center justify-center">
                 <div className="inline-flex items-center gap-2 sm:gap-3">
-                  {(settings.showRecommendations ?? true) ? (
+                  {effectiveShowRecs === null ? (
+                    // still deciding (either waiting for server or local explicit value)
+                    null
+                  ) : effectiveShowRecs ? (
                     recLoading ? (
                       <div
                         className="relative inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-border/50 bg-background/60 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/40 overflow-hidden max-w-[92%] sm:max-w-none"
@@ -556,7 +600,7 @@ export default function Home() {
                       )}
                     </div>
                   )}
-                  {((settings.showRecommendations ?? true) && recs.length > 0 && showHeroWeather) && (
+                  {(effectiveShowRecs === true && recs.length > 0 && showHeroWeather) && (
                     <div className="ml-1 sm:ml-2">
             <WeatherWidget size="link" />
                     </div>
