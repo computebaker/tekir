@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, Cat, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Settings, Newspaper, Video, AlertTriangle, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useSettings } from "@/lib/settings";
 import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -1081,6 +1082,8 @@ function SearchPageContent() {
   const [isVideosInlineOpen, setIsVideosInlineOpen] = useState(true);
   const [isVideosBottomOpen, setIsVideosBottomOpen] = useState(true);
 
+  const { settings } = useSettings();
+
   // Easter egg: show flying cats when query contains "cat" in common languages
   const catEasterEgg = (() => {
     const q = (query || "").trim().toLowerCase();
@@ -1147,7 +1150,7 @@ function SearchPageContent() {
                 <WebResultItem result={result as any} />
 
                 {/* Insert News cluster after 4th result (index 3) */}
-                {index === 3 && newsResults && newsResults.length > 0 && (
+                {index === 3 && settings.enchantedResults !== false && newsResults && newsResults.length > 0 && (
                   <div className="mt-8 mb-8">
                     <button
                       onClick={() => setIsNewsInlineOpen(v => !v)}
@@ -1194,7 +1197,7 @@ function SearchPageContent() {
                 )}
 
                 {/* Insert Videos cluster after 9th result (index 8) */}
-                {index === 8 && videoResults && videoResults.length > 0 && (
+                {index === 8 && settings.enchantedResults !== false && videoResults && videoResults.length > 0 && (
                   <div className="mt-8 mb-8 blurry-outline">
                     <button
                       onClick={() => setIsVideosInlineOpen(v => !v)}
@@ -1239,7 +1242,7 @@ function SearchPageContent() {
             ))}
 
             {/* If results are short, keep the clusters at the bottom as a fallback */}
-            {results.length <= 3 && newsResults && newsResults.length > 0 && (
+            {results.length <= 3 && settings.enchantedResults !== false && newsResults && newsResults.length > 0 && (
               <div className="mt-8 mb-8">
                 <button
                   onClick={() => setIsNewsBottomOpen(v => !v)}
@@ -1289,7 +1292,7 @@ function SearchPageContent() {
               </div>
             )}
 
-            {results.length <= 8 && videoResults && videoResults.length > 0 && (
+            {results.length <= 8 && settings.enchantedResults !== false && videoResults && videoResults.length > 0 && (
               <div className="mt-8 mb-8 blurry-outline">
                 <button
                   onClick={() => setIsVideosBottomOpen(v => !v)}

@@ -31,6 +31,8 @@ export interface UserSettings {
   // UI preferences
   theme?: string;
   searchType?: string;
+  // Enchanted Results — show/hide News and Videos widgets
+  enchantedResults?: boolean;
   
   // AI model-specific settings
   karakulakEnabled_llama?: boolean;
@@ -53,6 +55,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   weatherPlacement: 'topRight',
   theme: "system",
   searchType: "web",
+  enchantedResults: true,
   karakulakEnabled_llama: true,
   karakulakEnabled_gemini: true,
   karakulakEnabled_chatgpt: true,

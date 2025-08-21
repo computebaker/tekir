@@ -188,6 +188,11 @@ export default function SearchSettingsPage() {
     await updateSetting("showRecommendations", newValue);
   };
 
+  const handleEnchantedResultsToggle = async () => {
+    const newValue = !(settings.enchantedResults ?? true);
+    await updateSetting("enchantedResults", newValue);
+  };
+
   // Weather location handlers
   const searchWeatherLocations = async (query: string) => {
     if (query.length < 2) {
@@ -690,6 +695,21 @@ export default function SearchSettingsPage() {
               </div>
               
               <div className="space-y-4">
+
+              {/* Enchanted Results (News & Videos) */}
+              <div className="rounded-lg border border-border bg-card p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h4 className="text-lg font-medium">Enchanted Results</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Toggle News and Videos widgets in search results
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch checked={settings.enchantedResults ?? true} onChange={() => { void handleEnchantedResultsToggle(); }} aria-label="Enchanted Results" />
+                  </div>
+                </div>
+              </div>
 
             {/* Homepage Recommendations */}
             <div className="rounded-lg border border-border bg-card p-6">
