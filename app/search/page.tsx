@@ -177,6 +177,8 @@ function SearchPageContent() {
   const webSearchAbortRef = useRef<AbortController | null>(null);
   const imagesAbortRef = useRef<AbortController | null>(null);
   const newsAbortRef = useRef<AbortController | null>(null);
+  const imageRetryRef = useRef(false);
+  const newsRetryRef = useRef(false);
   const suggestionsAbortRef = useRef<AbortController | null>(null);
   const wikipediaAbortRef = useRef<AbortController | null>(null);
   const aiAbortControllerRef = useRef<AbortController | null>(null);
@@ -294,31 +296,70 @@ function SearchPageContent() {
   useEffect(() => {
     if (!query || searchType !== 'images') return;
     setImageLoading(true);
+    // Abort any previous images request
     if (imagesAbortRef.current) {
       try { imagesAbortRef.current.abort(); } catch {}
     }
     imagesAbortRef.current = new AbortController();
     const imgSignal = imagesAbortRef.current.signal;
+    const imagesUrl = `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`;
     fetchWithSessionRefreshAndCache(
-      `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
+      imagesUrl,
       { signal: imgSignal },
       {
         searchType: 'images',
         provider: searchEngine,
         query: query
       }
-    ) 
+    )
       .then((response) => {
         if (!response.ok) throw new Error(`Image search failed with status ${response.status}`);
         return response.json();
       })
-      .then((data) => {
+      .then(async (data) => {
         if (data.results) {
+          // If cached result is empty, retry once with a cache-busting param
+          if (Array.isArray(data.results) && data.results.length === 0 && !imageRetryRef.current) {
+            imageRetryRef.current = true;
+            try {
+              // Abort previous controller and create a fresh one for retry
+              if (imagesAbortRef.current) {
+                try { imagesAbortRef.current.abort(); } catch {}
+              }
+              imagesAbortRef.current = new AbortController();
+              const retrySignal = imagesAbortRef.current.signal;
+              const retryUrl = `${imagesUrl}&_cb=${Date.now()}`;
+              const retryRes = await fetchWithSessionRefreshAndCache(
+                retryUrl,
+                { signal: retrySignal },
+                {
+                  searchType: 'images',
+                  provider: searchEngine,
+                  query: query,
+                  searchParams: { cacheBust: '1' }
+                }
+              );
+              if (!retryRes.ok) throw new Error(`Image retry failed with status ${retryRes.status}`);
+              const retryData = await retryRes.json();
+              if (retryData.results) setImageResults(retryData.results);
+            } catch (err) {
+              console.error('Image retry failed:', err);
+            } finally {
+              setImageLoading(false);
+            }
+            return;
+          }
+
           setImageResults(data.results);
+          // Clear retry flag if we have real results
+          imageRetryRef.current = false;
         }
       })
       .catch((error) => console.error("Image search failed:", error))
-      .finally(() => setImageLoading(false));
+      .finally(() => {
+        // If a retry is in progress, its own finally will update loading; avoid clobbering
+        if (!imageRetryRef.current) setImageLoading(false);
+      });
     return () => {
       if (imagesAbortRef.current) {
         try { imagesAbortRef.current.abort(); } catch {}
@@ -330,7 +371,7 @@ function SearchPageContent() {
   useEffect(() => {
     if (!query || searchType !== 'news') return;
     setNewsLoading(true);
-    
+
     // Get user preferences from localStorage
     const storedCountry = localStorage.getItem("searchCountry") || "ALL";
     const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
@@ -347,8 +388,9 @@ function SearchPageContent() {
     }
     newsAbortRef.current = new AbortController();
     const newsSignal = newsAbortRef.current.signal;
+    const newsUrl = `/api/news/${searchEngine}?${searchParams}`;
     fetchWithSessionRefreshAndCache(
-      `/api/news/${searchEngine}?${searchParams}`,
+      newsUrl,
       { signal: newsSignal },
       {
         searchType: 'news',
@@ -359,18 +401,52 @@ function SearchPageContent() {
           safesearch: storedSafesearch
         }
       }
-    ) 
+    )
       .then((response) => {
         if (!response.ok) throw new Error(`News search failed with status ${response.status}`);
         return response.json();
       })
-      .then((data) => {
+      .then(async (data) => {
         if (data.results) {
+          // If cached result is empty, retry once with cache-bust
+          if (Array.isArray(data.results) && data.results.length === 0 && !newsRetryRef.current) {
+            newsRetryRef.current = true;
+            try {
+              if (newsAbortRef.current) {
+                try { newsAbortRef.current.abort(); } catch {}
+              }
+              newsAbortRef.current = new AbortController();
+              const retrySignal = newsAbortRef.current.signal;
+              const retryUrl = `${newsUrl}&_cb=${Date.now()}`;
+              const retryRes = await fetchWithSessionRefreshAndCache(
+                retryUrl,
+                { signal: retrySignal },
+                {
+                  searchType: 'news',
+                  provider: searchEngine,
+                  query: query,
+                  searchParams: { country: storedCountry, safesearch: storedSafesearch, cacheBust: '1' }
+                }
+              );
+              if (!retryRes.ok) throw new Error(`News retry failed with status ${retryRes.status}`);
+              const retryData = await retryRes.json();
+              if (retryData.results) setNewsResults(retryData.results);
+            } catch (err) {
+              console.error('News retry failed:', err);
+            } finally {
+              setNewsLoading(false);
+            }
+            return;
+          }
+
           setNewsResults(data.results);
+          newsRetryRef.current = false;
         }
       })
       .catch((error) => console.error("News search failed:", error))
-      .finally(() => setNewsLoading(false));
+      .finally(() => {
+        if (!newsRetryRef.current) setNewsLoading(false);
+      });
     return () => {
       if (newsAbortRef.current) {
         try { newsAbortRef.current.abort(); } catch {}
@@ -378,6 +454,12 @@ function SearchPageContent() {
       }
     };
   }, [query, searchEngine, searchType]);
+
+  // Reset retry flags when query or engine changes so new queries can retry again
+  useEffect(() => {
+    imageRetryRef.current = false;
+    newsRetryRef.current = false;
+  }, [query, searchEngine]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
@@ -685,6 +767,28 @@ function SearchPageContent() {
         setSuggestions([]);
         return;
       }
+      // Implement one-time retry when cached autocomplete is empty to avoid showing
+      // no-suggestions due to stale/empty cache entries.
+      const cacheKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
+      const cached = typeof window !== 'undefined' ? sessionStorage.getItem(cacheKey) : null;
+      if (!(window as any).__autocompleteRetryMap) (window as any).__autocompleteRetryMap = {};
+      const retryMap: Record<string, boolean> = (window as any).__autocompleteRetryMap;
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSuggestions(parsed);
+            return;
+          }
+          if (Array.isArray(parsed) && parsed.length === 0 && retryMap[cacheKey]) {
+            setSuggestions([]);
+            return;
+          }
+          // else fallthrough to fetch
+        } catch (e) {
+          // parsing error -> fallthrough
+        }
+      }
 
       try {
         if (suggestionsAbortRef.current) {
@@ -705,6 +809,8 @@ function SearchPageContent() {
         if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
           const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
           setSuggestions(processedSuggestions);
+          try { sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions)); } catch {}
+          if (retryMap[cacheKey]) delete retryMap[cacheKey];
         } else {
           console.warn('Unexpected suggestion format:', data);
           setSuggestions([]);

@@ -242,9 +242,22 @@ export default function Home() {
 
       const cacheKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
       const cached = sessionStorage.getItem(cacheKey);
+      if (!(window as any).__autocompleteRetryMap) (window as any).__autocompleteRetryMap = {};
+      const retryMap: Record<string, boolean> = (window as any).__autocompleteRetryMap;
       if (cached) {
-        if (isMounted) setSuggestions(JSON.parse(cached));
-        return;
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            if (isMounted) setSuggestions(parsed);
+            return;
+          }
+          if (Array.isArray(parsed) && parsed.length === 0 && retryMap[cacheKey]) {
+            if (isMounted) setSuggestions([]);
+            return;
+          }
+        } catch (e) {
+          // fall through to fetch
+        }
       }
 
       try {
@@ -264,6 +277,8 @@ export default function Home() {
           const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
           if (isMounted) setSuggestions(processedSuggestions);
           sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
+          // clear any retry mark
+          if (retryMap[cacheKey]) delete retryMap[cacheKey];
         } else {
           console.warn('Unexpected suggestion format:', data);
           if (isMounted) setSuggestions([]);
