@@ -22,11 +22,11 @@ export function WebResultItem({ result }: Props) {
         rel="noopener noreferrer"
         className="block group"
       >
-        <p className="text-sm text-muted-foreground mb-1">{result.displayUrl}</p>
-        <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
+        <p className="text-sm text-muted-foreground mb-1 truncate">{result.displayUrl}</p>
+        <h2 className="text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2">
           {result.title}
         </h2>
-        <p className="text-muted-foreground">{result.description}</p>
+        <p className="text-muted-foreground line-clamp-3 break-words">{result.description}</p>
       </a>
     </div>
   );

@@ -4,9 +4,8 @@ import { Suspense } from 'react';
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Star, Settings, Newspaper, AlertTriangle, X } from "lucide-react";
+import { Search, Cat, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Settings, Newspaper, Video, AlertTriangle, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
 import Footer from "@/components/footer";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -20,25 +19,10 @@ import FlyingCats from "@/components/shared/flying-cats";
 
 // Define mobile navigation items
 const mobileNavItems = [
-  {
-    href: "/about",
-    icon: Lock,
-    label: "About Tekir"
-  },
-  {
-    href: "https://chat.tekir.co",
-    icon: MessageCircleMore,
-    label: "AI Chat"
-  },
-  {
-    href: "/settings/search",
-    icon: Settings,
-    label: "Settings"
-  }
+  { href: "/about", icon: Lock, label: "About Tekir" },
+  { href: "https://chat.tekir.co", icon: MessageCircleMore, label: "AI Chat" },
+  { href: "/settings/search", icon: Settings, label: "Settings" }
 ];
-
-// The fetchWithSessionRefresh function is now imported from cache.ts
-// as fetchWithSessionRefreshAndCache with enhanced caching capabilities for all search types including AI
 
 interface SearchResult {
   title: string;
@@ -135,6 +119,7 @@ function SearchPageContent() {
   };
 
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [videoResults, setVideoResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
@@ -260,6 +245,31 @@ function SearchPageContent() {
           if (isMounted && searchId === searchIdRef.current) {
             const resultsArray = searchData.results || [];
             setResults(resultsArray);
+            // Capture videos cluster if present
+            if (Array.isArray(searchData.videos)) {
+              setVideoResults(searchData.videos);
+            } else {
+              setVideoResults([]);
+            }
+            // Capture news cluster if present (normalize to NewsResult[] shape)
+            if (Array.isArray(searchData.news)) {
+              try {
+                const normalized = searchData.news.map((n: any) => ({
+                  title: n.title || n.name || '',
+                  description: n.description || n.snippet || '',
+                  url: n.url || n.link || '',
+                  source: n.meta_url?.netloc || n.source || '',
+                  age: n.age || n.page_age || '',
+                  thumbnail: n.thumbnail?.src || n.thumbnail?.original || undefined,
+                  favicon: n.meta_url?.favicon || undefined
+                }));
+                setNewsResults(normalized);
+              } catch (e) {
+                setNewsResults([]);
+              }
+            } else {
+              setNewsResults([]);
+            }
             setSearchEngine(engine); 
             // Mark that current results correspond to this query
             lastResultsQueryRef.current = currentQuery;
@@ -1066,6 +1076,10 @@ function SearchPageContent() {
   };
 
   const [followUpQuestion, setFollowUpQuestion] = useState("");
+  const [isNewsInlineOpen, setIsNewsInlineOpen] = useState(true);
+  const [isNewsBottomOpen, setIsNewsBottomOpen] = useState(true);
+  const [isVideosInlineOpen, setIsVideosInlineOpen] = useState(true);
+  const [isVideosBottomOpen, setIsVideosBottomOpen] = useState(true);
 
   // Easter egg: show flying cats when query contains "cat" in common languages
   const catEasterEgg = (() => {
@@ -1087,6 +1101,375 @@ function SearchPageContent() {
     });
 
     router.push(`https://chat.tekir.co/?${chatParams.toString()}`);
+  };
+
+  // Helper to normalize thumbnail values which may be a string or an object
+  const resolveImageSrc = (t: any): string | null => {
+    if (!t) return null;
+    if (typeof t === 'string') return t;
+    if (t.src) return t.src;
+  if (t.source) return t.source;
+    if (t.original) return t.original;
+    return null;
+  };
+
+  // Precompute whether the Karakulak box should be shown to simplify JSX
+  const showKarakulak = (() => {
+    if (searchType !== 'web' || !aiEnabled) return false;
+    const hasSomething = !!(aiResponse || diveResponse || aiLoading || diveLoading);
+    if (!hasSomething) return false;
+    if (aiLoading || diveLoading) return true;
+    const activeResponse = diveResponse || aiResponse;
+    return !shouldHideKarakulak(activeResponse);
+  })();
+
+  // Render the main results area. Extracted to avoid large nested JSX/ternaries
+  const renderResultsArea = () => {
+    if (searchType === 'web') {
+      if (loading) {
+        return (
+          <div className="space-y-8">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-muted rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      if (results.length > 0) {
+        return (
+          <div className="space-y-8">
+            {results.map((result, index) => (
+              <div key={`result-${index}`}>
+                <WebResultItem result={result as any} />
+
+                {/* Insert News cluster after 4th result (index 3) */}
+                {index === 3 && newsResults && newsResults.length > 0 && (
+                  <div className="mt-8 mb-8">
+                    <button
+                      onClick={() => setIsNewsInlineOpen(v => !v)}
+                      className="w-full text-left flex items-center justify-between"
+                      aria-expanded={isNewsInlineOpen}
+                      aria-controls="news-inline-cluster"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Newspaper className="w-4 h-4 text-muted-foreground" />
+                        <h3 className="text-sm mb-0 font-medium text-muted-foreground">News</h3>
+                      </div>
+                      <ChevronDown className={`ml-2 transform transition-transform duration-200 ${isNewsInlineOpen ? 'rotate-180' : 'rotate-0'}`} />
+                    </button>
+                    {!isNewsInlineOpen && (
+                      <p className="text-xs text-muted-foreground mt-2">News articles about your search query.</p>
+                    )}
+                    {isNewsInlineOpen && (
+                      <div className="relative mt-4 mb-4 blurry-outline cluster-enter">
+                        <div className="relative">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {newsResults.slice(0, 4).map((article, idx) => (
+                              <a key={`news-${idx}`} href={article.url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
+                                <div className="w-28 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
+                                  {resolveImageSrc(article.thumbnail) ? (
+                                    <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                      <Newspaper className="w-6 h-6" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="text-base font-semibold line-clamp-2 mb-1 group-hover:text-primary">{article.title}</h4>
+                                  {article.description && <p className="text-sm text-muted-foreground line-clamp-2">{article.description}</p>}
+                                  <div className="text-xs text-muted-foreground mt-2">{(article.source || '')}{article.age ? ` • ${article.age}` : ''}</div>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Insert Videos cluster after 9th result (index 8) */}
+                {index === 8 && videoResults && videoResults.length > 0 && (
+                  <div className="mt-8 mb-8 blurry-outline">
+                    <button
+                      onClick={() => setIsVideosInlineOpen(v => !v)}
+                      className="w-full text-left flex items-center justify-between"
+                      aria-expanded={isVideosInlineOpen}
+                      aria-controls="videos-inline-cluster"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-muted-foreground" />
+                        <h3 className="text-sm text-muted-foreground mb-0 font-medium">Videos</h3>
+                      </div>
+                      <ChevronDown className={`ml-2 transform transition-transform duration-200 ${isVideosInlineOpen ? 'rotate-180' : 'rotate-0'}`} />
+                    </button>
+                    {!isVideosInlineOpen && (
+                      <p className="text-xs text-muted-foreground mt-2">Videos about your search query.</p>
+                    )}
+                    {isVideosInlineOpen && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4 cluster-enter">
+                        {videoResults.slice(0, 4).map((v, idx) => (
+                          <a key={`video-${idx}`} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
+                            <div className="w-32 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
+                              {resolveImageSrc(v.thumbnail) ? (
+                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || 'Video'} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <Search className="w-6 h-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-base font-semibold line-clamp-2 mb-1 group-hover:text-primary">{v.title || v.name}</h4>
+                              {v.description && <p className="text-sm text-muted-foreground line-clamp-2">{v.description}</p>}
+                              <div className="text-xs text-muted-foreground mt-2">{v.site || v.source || ''}</div>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* If results are short, keep the clusters at the bottom as a fallback */}
+            {results.length <= 3 && newsResults && newsResults.length > 0 && (
+              <div className="mt-8 mb-8">
+                <button
+                  onClick={() => setIsNewsBottomOpen(v => !v)}
+                  className="w-full text-left flex items-center justify-between"
+                  aria-expanded={isNewsBottomOpen}
+                  aria-controls="news-bottom-cluster"
+                >
+                  <div className="flex items-center gap-2">
+                    <Newspaper className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm text-muted-foreground mb-0 font-medium">News</h3>
+                  </div>
+                  <ChevronDown className={`ml-2 transform transition-transform duration-200 ${isNewsBottomOpen ? 'rotate-180' : 'rotate-0'}`} />
+                </button>
+                {!isNewsBottomOpen && (
+                  <p className="text-xs text-muted-foreground mt-2">News articles about your search query.</p>
+                )}
+                {isNewsBottomOpen && (
+                  <div className="relative mt-4 mb-4 blurry-outline cluster-enter">
+                    <div className="absolute -inset-x-4 -top-3 h-1 bg-blue-500 rounded-sm opacity-80" />
+                    <div className="absolute -inset-x-4 -bottom-3 h-1 bg-blue-500 rounded-sm opacity-80" />
+                    <div className="absolute -left-3 -inset-y-3 w-1 bg-blue-500 rounded-sm opacity-80" />
+                    <div className="absolute -right-3 -inset-y-3 w-1 bg-blue-500 rounded-sm opacity-80" />
+                    <div className="relative">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {newsResults.slice(0, 4).map((article, idx) => (
+                          <a key={`news-bottom-${idx}`} href={article.url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
+                            <div className="w-28 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
+                              {resolveImageSrc(article.thumbnail) ? (
+                                <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <Newspaper className="w-6 h-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-base font-semibold line-clamp-2 mb-1 group-hover:text-primary">{article.title}</h4>
+                              {article.description && <p className="text-sm text-muted-foreground line-clamp-2">{article.description}</p>}
+                              <div className="text-xs text-muted-foreground mt-2">{(article.source || '')}{article.age ? ` • ${article.age}` : ''}</div>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {results.length <= 8 && videoResults && videoResults.length > 0 && (
+              <div className="mt-8 mb-8 blurry-outline">
+                <button
+                  onClick={() => setIsVideosBottomOpen(v => !v)}
+                  className="w-full text-left flex items-center justify-between"
+                  aria-expanded={isVideosBottomOpen}
+                  aria-controls="videos-bottom-cluster"
+                >
+                  <div className="flex items-center gap-2">
+                    <Video className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm text-muted-foreground mb-0 font-medium">Videos</h3>
+                  </div>
+                  <ChevronDown className={`ml-2 transform transition-transform duration-200 ${isVideosBottomOpen ? 'rotate-180' : 'rotate-0'}`} />
+                </button>
+                {!isVideosBottomOpen && (
+                  <p className="text-xs text-muted-foreground mt-2">Videos about your search query.</p>
+                )}
+                {isVideosBottomOpen && (
+                  <div className="relative mt-4 mb-4 cluster-enter">
+                    <div className="absolute -inset-x-4 -top-3 h-1 bg-purple-500 rounded-sm opacity-80" />
+                    <div className="absolute -inset-x-4 -bottom-3 h-1 bg-purple-500 rounded-sm opacity-80" />
+                    <div className="absolute -left-3 -inset-y-3 w-1 bg-purple-500 rounded-sm opacity-80" />
+                    <div className="absolute -right-3 -inset-y-3 w-1 bg-purple-500 rounded-sm opacity-80" />
+                    <div className="relative">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {videoResults.slice(0, 4).map((v, idx) => (
+                          <a key={`video-bottom-${idx}`} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
+                            <div className="w-32 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
+                              {resolveImageSrc(v.thumbnail) ? (
+                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || 'Video'} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <Search className="w-6 h-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-base font-semibold line-clamp-2 mb-1 group-hover:text-primary">{v.title || v.name}</h4>
+                              {v.description && <p className="text-sm text-muted-foreground line-clamp-2">{v.description}</p>}
+                              <div className="text-xs text-muted-foreground mt-2">{v.site || v.source || ''}</div>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        );
+      }
+
+      // no results case
+      if (query) {
+        return <div className="text-center text-muted-foreground">No results found for your search</div>;
+      }
+      return <div className="text-center text-muted-foreground">Enter a search term to see results</div>;
+    }
+
+  if (searchType === 'images') {
+      if (imageLoading) {
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-square bg-muted rounded-lg w-full"></div>
+                <div className="h-4 bg-muted rounded w-3/4 mt-2"></div>
+                <div className="h-3 bg-muted rounded w-1/2 mt-1"></div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      if (imageResults.length > 0) {
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {imageResults.map((image, index) => (
+              <a key={index} href={image.url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden blurry-outline">
+                <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-muted mb-3">
+                  <Image src={image.thumbnail.src} alt={image.title || "Image"} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" placeholder="blur" blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNFNkU2RTYiLz48L3N2Zz4="} />
+                </div>
+                <p className="text-sm font-medium truncate">{image.title || "Image"}</p>
+                <p className="text-xs text-muted-foreground truncate">{image.source}</p>
+              </a>
+            ))}
+          </div>
+        );
+      }
+
+      return <div className="text-center text-muted-foreground">No images found for your search</div>;
+    }
+
+    if (searchType === 'news') {
+      if (newsLoading) {
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="animate-pulse border border-border rounded-lg overflow-hidden bg-card">
+                <div className="w-full h-48 bg-muted"></div>
+                <div className="p-4">
+                  <div className="h-5 bg-muted rounded w-4/5 mb-2"></div>
+                  <div className="h-5 bg-muted rounded w-3/5 mb-4"></div>
+                  <div className="h-3 bg-muted rounded w-full mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-4/5 mb-4"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-muted rounded"></div>
+                    <div className="h-3 bg-muted rounded w-20"></div>
+                    <div className="h-3 bg-muted rounded w-12"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      if (newsResults.length > 0) {
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {newsResults.map((article, index) => (
+              <div key={index} className="border border-border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200 bg-card">
+                <a href={article.url} target="_blank" rel="noopener noreferrer" className="block group h-full">
+                  <div className="relative w-full h-48 bg-muted">
+                    {resolveImageSrc(article.thumbnail) ? (
+                      <div className="relative w-full h-full">
+                        <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-200" onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const placeholder = target.parentElement?.querySelector('.image-placeholder');
+                          if (placeholder) {
+                            (placeholder as HTMLElement).style.display = 'flex';
+                          }
+                        }} />
+                        <div className="image-placeholder w-full h-full flex items-center justify-center bg-muted" style={{ display: 'none' }}>
+                          <Newspaper className="w-12 h-12 text-muted-foreground/50" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <Newspaper className="w-12 h-12 text-muted-foreground/50" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex flex-col h-full">
+                    <div className="flex items-center gap-2 mb-2">
+                      {article.favicon && (
+                        <Image src={article.favicon} alt="" width={16} height={16} className="rounded-sm flex-shrink-0" />
+                      )}
+                      <span className="text-xs text-muted-foreground truncate">
+                        {article.source.replace(/^(https?:\/\/)?(www\.)?/, '')}
+                        {article.age && (
+                          <>
+                            <span className="mx-1">•</span>
+                            {article.age}
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <h2 className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-2 mb-2 leading-tight">{article.title}</h2>
+                    <p className="text-muted-foreground text-sm line-clamp-2 mb-2 flex-grow">{(() => {
+                      const words = article.description.split(' ');
+                      if (words.length <= 14) {
+                        return article.description + '...';
+                      }
+                      return words.slice(0, 14).join(' ') + '...';
+                    })()}</p>
+                  </div>
+                </a>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      return <div className="text-center text-muted-foreground">No news articles found for your search</div>;
+    }
+
+    return null;
   };
 
   return (
@@ -1211,14 +1594,7 @@ function SearchPageContent() {
                   </button>
                 </div>
                 ) : null}
-              {(() => {
-                if (searchType !== 'web' || !aiEnabled) return false;
-                const hasSomething = !!(aiResponse || diveResponse || aiLoading || diveLoading);
-                if (!hasSomething) return false;
-                if (aiLoading || diveLoading) return true;
-                const activeResponse = diveResponse || aiResponse;
-                return !shouldHideKarakulak(activeResponse);
-              })() ? (
+              {showKarakulak ? (
                 <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
@@ -1345,13 +1721,17 @@ function SearchPageContent() {
                     {wikiData.thumbnail && (
                       <div className="float-right ml-4 mb-2">
                       <div className="relative w-32 h-32 overflow-hidden rounded-lg">
-                        <Image 
-                        src={wikiData.thumbnail.source} 
-                        alt={wikiData.title}
-                        className="object-cover"
-                        fill
-                        sizes="128px"
-                        />
+                        {resolveImageSrc(wikiData.thumbnail) ? (
+                          <Image
+                            src={resolveImageSrc(wikiData.thumbnail)!}
+                            alt={wikiData.title}
+                            fill
+                            className="object-cover"
+                            sizes="128px"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted" />
+                        )}
                       </div>
                       </div>
                     )}
@@ -1374,177 +1754,7 @@ function SearchPageContent() {
                 </div>
               )}
 
-              {searchType === 'web' ? (
-                loading ? (
-                  <div className="space-y-8">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-muted rounded w-1/2"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : results.length > 0 ? (
-                  <div className="space-y-8">
-                    {results.map((result, index) => (
-                      <WebResultItem key={index} result={result as any} />
-                    ))}
-                  </div>
-                ) : query ? (
-                  <div className="text-center text-muted-foreground">
-                    No results found for your search
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground">
-                    Enter a search term to see results
-                  </div>
-                )
-              ) : searchType === 'images' ? (
-                imageLoading ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {[...Array(12)].map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="aspect-square bg-muted rounded-lg w-full"></div>
-                        <div className="h-4 bg-muted rounded w-3/4 mt-2"></div>
-                        <div className="h-3 bg-muted rounded w-1/2 mt-1"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : imageResults.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {imageResults.map((image, index) => (
-                      <a 
-                        key={index} 
-                        href={image.url} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group overflow-hidden"
-                      >
-                        <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-muted mb-2">
-                          <Image 
-                            src={image.thumbnail.src} 
-                            alt={image.title || "Image"} 
-                            fill 
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
-                            placeholder="blur"
-                            blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNFNkU2RTYiLz48L3N2Zz4="}
-                          />
-                        </div>
-                        <p className="text-sm font-medium truncate">{image.title || "Image"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{image.source}</p>
-                      </a>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground">
-                    No images found for your search
-                  </div>
-                )
-              ) : searchType === 'news' ? (
-                newsLoading ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {[...Array(8)].map((_, i) => (
-                      <div key={i} className="animate-pulse border border-border rounded-lg overflow-hidden bg-card">
-                        <div className="w-full h-48 bg-muted"></div>
-                        <div className="p-4">
-                          <div className="h-5 bg-muted rounded w-4/5 mb-2"></div>
-                          <div className="h-5 bg-muted rounded w-3/5 mb-4"></div>
-                          <div className="h-3 bg-muted rounded w-full mb-2"></div>
-                          <div className="h-3 bg-muted rounded w-4/5 mb-4"></div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-muted rounded"></div>
-                            <div className="h-3 bg-muted rounded w-20"></div>
-                            <div className="h-3 bg-muted rounded w-12"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : newsResults.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {newsResults.map((article, index) => (
-                      <div key={index} className="border border-border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200 bg-card">
-                        <a
-                          href={article.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block group h-full"
-                        >
-                          <div className="relative w-full h-48 bg-muted">
-                            {article.thumbnail ? (
-                              <div className="relative w-full h-full">
-                                <Image 
-                                  src={article.thumbnail} 
-                                  alt={article.title}
-                                  fill
-                                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                  className="object-cover group-hover:scale-105 transition-transform duration-200"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const placeholder = target.parentElement?.querySelector('.image-placeholder');
-                                    if (placeholder) {
-                                      (placeholder as HTMLElement).style.display = 'flex';
-                                    }
-                                  }}
-                                />
-                                <div className="image-placeholder w-full h-full flex items-center justify-center bg-muted" style={{ display: 'none' }}>
-                                  <Newspaper className="w-12 h-12 text-muted-foreground/50" />
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-muted">
-                                <Newspaper className="w-12 h-12 text-muted-foreground/50" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-4 flex flex-col h-full">
-                            {/* Source info at the top */}
-                            <div className="flex items-center gap-2 mb-2">
-                              {article.favicon && (
-                                <Image 
-                                  src={article.favicon} 
-                                  alt=""
-                                  width={16}
-                                  height={16}
-                                  className="rounded-sm flex-shrink-0"
-                                />
-                              )}
-                              <span className="text-xs text-muted-foreground truncate">
-                                {article.source.replace(/^(https?:\/\/)?(www\.)?/, '')}
-                                {article.age && (
-                                  <>
-                                    <span className="mx-1">•</span>
-                                    {article.age}
-                                  </>
-                                )}
-                              </span>
-                            </div>
-                            
-                            <h2 className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-2 mb-2 leading-tight">
-                              {article.title}
-                            </h2>
-                            <p className="text-muted-foreground text-sm line-clamp-2 mb-2 flex-grow">
-                              {(() => {
-                                const words = article.description.split(' ');
-                                if (words.length <= 14) {
-                                  return article.description + '...';
-                                }
-                                return words.slice(0, 14).join(' ') + '...';
-                              })()}
-                            </p>
-                          </div>
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground">
-                    No news articles found for your search
-                  </div>
-                )
-              ) : null}
+              {renderResultsArea()}
             </div>
             
             {searchType === 'web' && (

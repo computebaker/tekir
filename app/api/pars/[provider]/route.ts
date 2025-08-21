@@ -11,8 +11,10 @@ interface Results {
   source: string;
 }
 
-async function getBrave(q: string, country: string = 'ALL', safesearch: string = 'moderate'): Promise<Results[]> {
+async function getBrave(q: string, country: string = 'ALL', safesearch: string = 'moderate') {
   const results: Results[] = [];
+  let videos: any[] = [];
+  let news: any[] = [];
   try {
     const params = new URLSearchParams({
       q: q,
@@ -32,7 +34,7 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
     });
     if (!res.ok) throw new Error('Network response was not ok');
     const data = await res.json();
-    data.web.results.forEach((item: any) => {
+    (data.web?.results || []).forEach((item: any) => {
       const result: Results = {
         title: item.title || '',
         description: (item.description || '').replace(/<[^>]+>/g, ''),
@@ -42,10 +44,19 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
       };
       results.push(result);
     });
+
+    // capture videos and news clusters if Brave provides them
+    // Brave returns objects like { videos: { results: [...] } } and { news: { results: [...] } }
+    if (data.videos && Array.isArray(data.videos.results)) {
+      videos = data.videos.results;
+    }
+    if (data.news && Array.isArray(data.news.results)) {
+      news = data.news.results;
+    }
   } catch (error) {
     console.error('Error fetching Brave results:', error);
   }
-  return results;
+  return { results, videos, news };
 }
 
 async function getDuck(q: string): Promise<Results[]> {
@@ -120,13 +131,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   let results: Results[] = [];
   const now = Date.now();
 
+  let videos: any[] = [];
+  let news: any[] = [];
   switch (provider.toLowerCase()) {
     case 'duck':
       results = await getDuck(query);
       break;
-    case 'brave':
-      results = await getBrave(query, country, safesearch);
+    case 'brave': {
+      const braveRes = await getBrave(query, country, safesearch);
+      results = braveRes.results;
+      videos = braveRes.videos || [];
+      news = braveRes.news || [];
       break;
+    }
     default:
       return NextResponse.json({ error: 'Unsupported provider.' }, { status: 400 });
   }
@@ -135,6 +152,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   
   return NextResponse.json({ 
     results, 
+  videos,
+  news,
     metadata: { 
       provider: provider.toLowerCase(), 
       query, 
