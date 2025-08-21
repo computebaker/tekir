@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import LegalShell from '@/components/layout/legal-shell'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service - Tekir',
-  description: 'Terms and conditions for using Tekir services',
+  title: 'Terms of Service | Tekir',
+  description: 'Terms and conditions for using Tekir services. Read the rules and policies for Tekir usage.',
 }
 
 export default function TermsPage() {

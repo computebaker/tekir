@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import LegalShell from '@/components/layout/legal-shell'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy - Tekir',
-  description: 'Privacy policy and data protection information for Tekir users',
+  title: 'Privacy Policy | Tekir',
+  description: 'Privacy policy and data protection information for Tekir users. Learn how Tekir protects your data and privacy.',
 }
 
 export default function PrivacyPage() {

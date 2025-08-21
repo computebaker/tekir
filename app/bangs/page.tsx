@@ -25,6 +25,10 @@ export default function BangsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    document.title = "Bangs | Tekir";
+  }, []);
+
+  useEffect(() => {
     // Load bangs from localStorage cache
     const loadBangs = () => {
       const cachedBangs = localStorage.getItem('tekir_bangs_cache');

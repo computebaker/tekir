@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Settings as SettingsIcon, Search, User, Shield, Bell, MessageCircleMore, Lock, MapPin, X } from "lucide-react";
 import Link from "next/link";
@@ -112,6 +111,10 @@ export default function SearchSettingsPage() {
       setWeatherLocationQuery(`${settings.customWeatherLocation.name}, ${settings.customWeatherLocation.country}`);
     }
   }, [settings.customWeatherLocation]);
+
+  useEffect(() => {
+    document.title = "Search Settings | Tekir";
+  }, []);
 
   // Click outside handler
   useEffect(() => {

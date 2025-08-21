@@ -1,3 +1,9 @@
+
+import type { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "About Tekir | Privacy-first AI Search Engine",
+  description: "Learn about Tekir, the open-source, privacy-focused AI search engine. Discover features, philosophy, and team.",
+};
 "use client";
 
 import { useState, useRef } from "react";

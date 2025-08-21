@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Shield, Search, User, Download, Upload, FileText, Cloud, List, AlertCircle, CheckCircle2, ClipboardCopy } from "lucide-react";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
@@ -57,6 +56,10 @@ export default function PrivacySettingsPage() {
       return () => clearTimeout(t);
     }
   }, [message]);
+
+  useEffect(() => {
+    document.title = "Privacy Settings | Tekir";
+  }, []);
 
   const sidebarItems: SettingsNavItem[] = [
     { href: "/settings/search", icon: Search, label: "Search" },

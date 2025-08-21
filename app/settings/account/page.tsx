@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
@@ -90,6 +89,10 @@ export default function AccountSettingsPage() {
       setAvatarRefreshKey(Date.now());
     }
   }, [user]);
+
+  useEffect(() => {
+    document.title = "Account Settings | Tekir";
+  }, []);
 
   // Auto-hide messages after 5 seconds
   useEffect(() => {
