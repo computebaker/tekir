@@ -924,76 +924,39 @@ function SearchPageContent() {
   }, []);
 
   const handleSearchTypeChange = (type: 'web' | 'images' | 'news') => {
+    // Immediately clear stale results and show loading skeletons so the UI
+    // doesn't flash a "No results" state while the fetch starts.
+    if (type === 'images') {
+      // clear previous images and show skeleton if we have a query
+      setImageResults([]);
+      if (imagesAbortRef.current) {
+        try { imagesAbortRef.current.abort(); } catch {}
+        imagesAbortRef.current = null;
+      }
+      if (query) setImageLoading(true);
+    } else {
+      // turning off images tab
+      setImageLoading(false);
+    }
+
+    if (type === 'news') {
+      // clear previous news and show skeleton if we have a query
+      setNewsResults([]);
+      if (newsAbortRef.current) {
+        try { newsAbortRef.current.abort(); } catch {}
+        newsAbortRef.current = null;
+      }
+      if (query) setNewsLoading(true);
+    } else {
+      setNewsLoading(false);
+    }
+
     setSearchType(type);
     localStorage.setItem("searchType", type);
 
-    if (type === 'images' && query && imageResults.length === 0 && !imageLoading) {
-      setImageLoading(true);
-      if (imagesAbortRef.current) {
-        try { imagesAbortRef.current.abort(); } catch {}
-      }
-      imagesAbortRef.current = new AbortController();
-      const imgSignal = imagesAbortRef.current.signal;
-      fetchWithSessionRefreshAndCache(
-        `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
-        { signal: imgSignal },
-        {
-          searchType: 'images',
-          provider: searchEngine,
-          query: query
-        }
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.results) {
-            setImageResults(data.results);
-          }
-        })
-        .catch((error) => console.error("Image search failed:", error))
-        .finally(() => setImageLoading(false));
-    }
-
-    if (type === 'news' && query && newsResults.length === 0 && !newsLoading) {
-      setNewsLoading(true);
-      
-      // Get user preferences from localStorage
-      const storedCountry = localStorage.getItem("searchCountry") || "ALL";
-      const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
-      
-      // Build query parameters
-      const searchParams = new URLSearchParams({
-        q: query,
-        country: storedCountry,
-        safesearch: storedSafesearch
-      });
-      
-      if (newsAbortRef.current) {
-        try { newsAbortRef.current.abort(); } catch {}
-      }
-      newsAbortRef.current = new AbortController();
-      const newsSignal = newsAbortRef.current.signal;
-      fetchWithSessionRefreshAndCache(
-        `/api/news/${searchEngine}?${searchParams}`,
-        { signal: newsSignal },
-        {
-          searchType: 'news',
-          provider: searchEngine,
-          query: query,
-          searchParams: {
-            country: storedCountry,
-            safesearch: storedSafesearch
-          }
-        }
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.results) {
-            setNewsResults(data.results);
-          }
-        })
-        .catch((error) => console.error("News search failed:", error))
-        .finally(() => setNewsLoading(false));
-    }
+    // Note: the existing useEffect hooks (watching searchType/query) will
+    // perform the actual fetch. We only prepare UI state here so skeletons
+    // render immediately when the user switches tabs.
   };
 
   const [followUpQuestion, setFollowUpQuestion] = useState("");
