@@ -1,12 +1,6 @@
-
-import type { Metadata } from "next";
-export const metadata: Metadata = {
-  title: "About Tekir | Privacy-first AI Search Engine",
-  description: "Learn about Tekir, the open-source, privacy-focused AI search engine. Discover features, philosophy, and team.",
-};
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -20,6 +14,10 @@ export default function AboutPage() {
   const [demoQuery, setDemoQuery] = useState("What is Tekir?");
   const [demoWikiQuery, setDemoWikiQuery] = useState("Turkish Van Cat");
   const [followUpQuestion, setFollowUpQuestion] = useState("");
+
+  useEffect(() => {
+    document.title = "About Us | Tekir";
+  }, []);
 
   // Demo Wikipedia data
   const wikiData = {
