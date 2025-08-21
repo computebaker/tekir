@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Star, Settings, Newspaper, AlertTriangle } from "lucide-react";
+import { Search, Cat, Instagram, Github, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Star, Settings, Newspaper, AlertTriangle, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
@@ -1192,15 +1192,25 @@ function SearchPageContent() {
           <div className="flex flex-col md:flex-row md:gap-6 lg:gap-8">
             <div className="flex-1 md:w-2/3 lg:w-3/4 xl:w-2/3 2xl:w-3/4">
               {/* Standalone AI/Dive error banner */}
-              {(searchType === 'web' && aiEnabled && (aiError || diveError)) ? (
+                {(searchType === 'web' && aiEnabled && (aiError || diveError)) ? (
                 <div
                   role="alert"
-                  className="mb-4 p-3 rounded-md border border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300 text-sm flex items-start gap-2"
+                  className="mb-4 p-3 rounded-md border border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300 text-sm flex items-center gap-2"
                 >
-                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   <span>Karakulak couldn&apos;t load a response due to an error.</span>
+                  <button 
+                  onClick={() => {
+                    setAiError(false);
+                    setDiveError(false);
+                  }}
+                  className="ml-auto text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100"
+                  aria-label="Dismiss error"
+                  >
+                  <X className="w-4 h-4" />
+                  </button>
                 </div>
-              ) : null}
+                ) : null}
               {(() => {
                 if (searchType !== 'web' || !aiEnabled) return false;
                 const hasSomething = !!(aiResponse || diveResponse || aiLoading || diveLoading);
