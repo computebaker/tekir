@@ -11,6 +11,40 @@ interface NewsResult {
   favicon?: string;
 }
 
+// Helper: remove HTML tags and decode common HTML entities and numeric entities
+function stripTags(input: string): string {
+  return input.replace(/<[^>]+>/g, '');
+}
+
+function decodeHTMLEntities(str: string): string {
+  if (!str) return '';
+  return str.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
+    if (entity.charAt(0) === '#') {
+      // numeric entity
+      const isHex = entity.charAt(1)?.toLowerCase() === 'x';
+      const num = isHex ? parseInt(entity.substring(2), 16) : parseInt(entity.substring(1), 10);
+      if (!isNaN(num)) return String.fromCodePoint(num);
+      return '';
+    }
+    // named entities (common subset)
+    switch (entity) {
+      case 'amp': return '&';
+      case 'lt': return '<';
+      case 'gt': return '>';
+      case 'quot': return '"';
+      case 'apos': return "'";
+      case 'nbsp': return ' ';
+      default: return '';
+    }
+  });
+}
+
+function sanitizeText(value: any): string {
+  if (value === undefined || value === null) return '';
+  const s = String(value);
+  return decodeHTMLEntities(stripTags(s)).trim();
+}
+
 async function getBraveNews(q: string, country: string = 'ALL', safesearch: string = 'moderate'): Promise<NewsResult[]> {
   const results: NewsResult[] = [];
   try {
@@ -61,10 +95,10 @@ async function getBraveNews(q: string, country: string = 'ALL', safesearch: stri
       
       newsResults.forEach((item: any) => {
         const result: NewsResult = {
-          title: item.title || '',
-          description: (item.description || '').replace(/<[^>]+>/g, ''),
+          title: sanitizeText(item.title || ''),
+          description: sanitizeText(item.description || ''),
           url: item.url || '',
-          source: item.meta_url?.hostname || new URL(item.url || '').hostname || '',
+          source: sanitizeText(item.meta_url?.hostname || (item.url ? new URL(item.url).hostname : '')),
           age: item.age || 'Recently',
           thumbnail: item.thumbnail?.src || undefined,
           favicon: item.meta_url?.favicon || undefined

@@ -11,6 +11,38 @@ interface Results {
   source: string;
 }
 
+// Helper: remove HTML tags and decode common HTML entities and numeric entities
+function stripTags(input: string): string {
+  return input.replace(/<[^>]+>/g, '');
+}
+
+function decodeHTMLEntities(str: string): string {
+  if (!str) return '';
+  return str.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
+    if (entity.charAt(0) === '#') {
+      const isHex = entity.charAt(1)?.toLowerCase() === 'x';
+      const num = isHex ? parseInt(entity.substring(2), 16) : parseInt(entity.substring(1), 10);
+      if (!isNaN(num)) return String.fromCodePoint(num);
+      return '';
+    }
+    switch (entity) {
+      case 'amp': return '&';
+      case 'lt': return '<';
+      case 'gt': return '>';
+      case 'quot': return '"';
+      case 'apos': return "'";
+      case 'nbsp': return ' ';
+      default: return '';
+    }
+  });
+}
+
+function sanitizeText(value: any): string {
+  if (value === undefined || value === null) return '';
+  const s = String(value);
+  return decodeHTMLEntities(stripTags(s)).trim();
+}
+
 async function getBrave(q: string, country: string = 'ALL', safesearch: string = 'moderate') {
   const results: Results[] = [];
   let videos: any[] = [];
@@ -36,9 +68,9 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
     const data = await res.json();
     (data.web?.results || []).forEach((item: any) => {
       const result: Results = {
-        title: item.title || '',
-        description: (item.description || '').replace(/<[^>]+>/g, ''),
-        displayUrl: (item.url || '').replace(/^https?:\/\//, ''),
+        title: sanitizeText(item.title || ''),
+        description: sanitizeText(item.description || ''),
+        displayUrl: sanitizeText((item.url || '').replace(/^https?:\/\//, '')),
         url: item.url || '',
         source: 'Brave'
       };
@@ -48,10 +80,18 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
     // capture videos and news clusters if Brave provides them
     // Brave returns objects like { videos: { results: [...] } } and { news: { results: [...] } }
     if (data.videos && Array.isArray(data.videos.results)) {
-      videos = data.videos.results;
+      videos = data.videos.results.map((v: any) => ({
+        ...v,
+        title: sanitizeText(v.title || v.name || ''),
+        description: sanitizeText(v.description || ''),
+      }));
     }
     if (data.news && Array.isArray(data.news.results)) {
-      news = data.news.results;
+      news = data.news.results.map((n: any) => ({
+        ...n,
+        title: sanitizeText(n.title || ''),
+        description: sanitizeText(n.description || ''),
+      }));
     }
   } catch (error) {
     console.error('Error fetching Brave results:', error);
@@ -79,8 +119,8 @@ async function getDuck(q: string): Promise<Results[]> {
       const snippetElement = $(element).find('.result__snippet');
       const urlElement = $(element).find('.result__url');
       
-      const title = titleElement.text().trim();
-      const description = snippetElement.text().trim();
+  const title = sanitizeText(titleElement.text().trim());
+  const description = sanitizeText(snippetElement.text().trim());
       const url = titleElement.attr('href') || '';
       const displayUrl = urlElement.text().trim().replace(/^https?:\/\//, '');
       
