@@ -31,6 +31,7 @@ interface SearchResult {
   displayUrl: string;
   url: string;
   source: string;
+  favicon?: string;
 }
 
 interface Suggestion {
