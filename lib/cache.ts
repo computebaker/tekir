@@ -20,7 +20,7 @@ export class SearchCache {
    * Generate a cache key based on search type, provider, query, and optional parameters
    */
   private static generateCacheKey(
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive',
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos',
     provider: string,
     query: string,
     searchParams?: Record<string, string>
@@ -42,7 +42,7 @@ export class SearchCache {
   /**
    * Clean up expired cache entries and maintain cache size limits
    */
-  private static cleanupCache(searchType: 'search' | 'images' | 'news' | 'ai' | 'dive'): void {
+  private static cleanupCache(searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos'): void {
     if (typeof window === 'undefined') return;
 
     try {
@@ -87,7 +87,7 @@ export class SearchCache {
    * Get cached data for a search request
    */
   static get<T = any>(
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive',
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos',
     provider: string,
     query: string,
     searchParams?: Record<string, string>
@@ -121,7 +121,7 @@ export class SearchCache {
    * Set cached data for a search request
    */
   static set<T = any>(
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive',
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos',
     provider: string,
     query: string,
     data: T,
@@ -167,7 +167,7 @@ export class SearchCache {
   /**
    * Clear all cached data for a specific search type
    */
-  static clearType(searchType: 'search' | 'images' | 'news' | 'ai' | 'dive'): void {
+  static clearType(searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos'): void {
     if (typeof window === 'undefined') return;
 
     try {
@@ -219,42 +219,45 @@ export class SearchCache {
     news: number; 
     ai: number;
     dive: number;
+    videos: number;
     total: number;
     totalSize: number;
   } {
     if (typeof window === 'undefined') {
-      return { search: 0, images: 0, news: 0, ai: 0, dive: 0, total: 0, totalSize: 0 };
+      return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, total: 0, totalSize: 0 };
     }
 
     try {
       const allKeys = Object.keys(sessionStorage);
-      const searchKeys = allKeys.filter(key => key.startsWith('search-'));
-      const imageKeys = allKeys.filter(key => key.startsWith('images-'));
-      const newsKeys = allKeys.filter(key => key.startsWith('news-'));
-      const aiKeys = allKeys.filter(key => key.startsWith('ai-'));
-      const diveKeys = allKeys.filter(key => key.startsWith('dive-'));
+  const searchKeys = allKeys.filter(key => key.startsWith('search-'));
+  const imageKeys = allKeys.filter(key => key.startsWith('images-'));
+  const newsKeys = allKeys.filter(key => key.startsWith('news-'));
+  const aiKeys = allKeys.filter(key => key.startsWith('ai-'));
+  const diveKeys = allKeys.filter(key => key.startsWith('dive-'));
+  const videoKeys = allKeys.filter(key => key.startsWith('videos-'));
       
       // Calculate approximate storage size
       let totalSize = 0;
-      [...searchKeys, ...imageKeys, ...newsKeys, ...aiKeys, ...diveKeys].forEach(key => {
+  [...searchKeys, ...imageKeys, ...newsKeys, ...aiKeys, ...diveKeys, ...videoKeys].forEach(key => {
         const item = sessionStorage.getItem(key);
         if (item) {
           totalSize += item.length * 2; // Rough estimate: 2 bytes per character in UTF-16
         }
       });
 
-      return {
-        search: searchKeys.length,
-        images: imageKeys.length,
-        news: newsKeys.length,
-        ai: aiKeys.length,
-        dive: diveKeys.length,
-        total: searchKeys.length + imageKeys.length + newsKeys.length + aiKeys.length + diveKeys.length,
-        totalSize
-      };
+  return {
+  search: searchKeys.length,
+  images: imageKeys.length,
+  news: newsKeys.length,
+  ai: aiKeys.length,
+  dive: diveKeys.length,
+  videos: videoKeys.length,
+  total: searchKeys.length + imageKeys.length + newsKeys.length + aiKeys.length + diveKeys.length + videoKeys.length,
+    totalSize
+  };
     } catch (error) {
       console.warn('Error getting cache stats:', error);
-      return { search: 0, images: 0, news: 0, ai: 0, dive: 0, total: 0, totalSize: 0 };
+    return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, total: 0, totalSize: 0 };
     }
   }
 
@@ -262,7 +265,7 @@ export class SearchCache {
    * Check if a specific cache entry exists and is valid
    */
   static has(
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive',
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos',
     provider: string,
     query: string,
     searchParams?: Record<string, string>
@@ -314,7 +317,7 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
   url: RequestInfo | URL,
   options?: RequestInit,
   cacheConfig?: {
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive';
+  searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos';
     provider: string;
     query: string;
     searchParams?: Record<string, string>;

@@ -122,6 +122,7 @@ function SearchPageContent() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [videoResults, setVideoResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -144,7 +145,7 @@ function SearchPageContent() {
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiExpanded, setWikiExpanded] = useState(false);
-  const [searchType, setSearchType] = useState<'web' | 'images' | 'news'>('web');
+  const [searchType, setSearchType] = useState<'web' | 'images' | 'news' | 'videos'>('web');
   const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [newsResults, setNewsResults] = useState<NewsResult[]>([]);
@@ -163,8 +164,10 @@ function SearchPageContent() {
   const webSearchAbortRef = useRef<AbortController | null>(null);
   const imagesAbortRef = useRef<AbortController | null>(null);
   const newsAbortRef = useRef<AbortController | null>(null);
+  const videosAbortRef = useRef<AbortController | null>(null);
   const imageRetryRef = useRef(false);
   const newsRetryRef = useRef(false);
+  const videoRetryRef = useRef(false);
   const suggestionsAbortRef = useRef<AbortController | null>(null);
   const wikipediaAbortRef = useRef<AbortController | null>(null);
   const aiAbortControllerRef = useRef<AbortController | null>(null);
@@ -375,6 +378,79 @@ function SearchPageContent() {
       if (imagesAbortRef.current) {
         try { imagesAbortRef.current.abort(); } catch {}
         imagesAbortRef.current = null;
+      }
+    };
+  }, [query, searchEngine, searchType]);
+
+  useEffect(() => {
+    if (!query || searchType !== 'videos') return;
+    setVideoLoading(true);
+
+    // Abort any previous videos request
+    if (videosAbortRef.current) {
+      try { videosAbortRef.current.abort(); } catch {}
+    }
+    videosAbortRef.current = new AbortController();
+    const vidSignal = videosAbortRef.current.signal;
+    const videosUrl = `/api/videos/${searchEngine}?q=${encodeURIComponent(query)}`;
+    fetchWithSessionRefreshAndCache(
+      videosUrl,
+      { signal: vidSignal },
+      {
+        searchType: 'videos',
+        provider: searchEngine,
+        query: query
+      }
+    )
+      .then((response) => {
+        if (!response.ok) throw new Error(`Video search failed with status ${response.status}`);
+        return response.json();
+      })
+      .then(async (data) => {
+        if (data.results) {
+          if (Array.isArray(data.results) && data.results.length === 0 && !videoRetryRef.current) {
+            videoRetryRef.current = true;
+            try {
+              if (videosAbortRef.current) {
+                try { videosAbortRef.current.abort(); } catch {}
+              }
+              videosAbortRef.current = new AbortController();
+              const retrySignal = videosAbortRef.current.signal;
+              const retryUrl = `${videosUrl}&_cb=${Date.now()}`;
+              const retryRes = await fetchWithSessionRefreshAndCache(
+                retryUrl,
+                { signal: retrySignal },
+                {
+                  searchType: 'videos',
+                  provider: searchEngine,
+                  query: query,
+                  searchParams: { cacheBust: '1' }
+                }
+              );
+              if (!retryRes.ok) throw new Error(`Video retry failed with status ${retryRes.status}`);
+              const retryData = await retryRes.json();
+              if (retryData.results) setVideoResults(retryData.results);
+            } catch (err) {
+              console.error('Video retry failed:', err);
+            } finally {
+              setVideoLoading(false);
+            }
+            return;
+          }
+
+          setVideoResults(data.results);
+          videoRetryRef.current = false;
+        }
+      })
+      .catch((error) => console.error("Video search failed:", error))
+      .finally(() => {
+        if (!videoRetryRef.current) setVideoLoading(false);
+      });
+
+    return () => {
+      if (videosAbortRef.current) {
+        try { videosAbortRef.current.abort(); } catch {}
+        videosAbortRef.current = null;
       }
     };
   }, [query, searchEngine, searchType]);
@@ -1035,12 +1111,12 @@ function SearchPageContent() {
 
   useEffect(() => {
     const storedSearchType = localStorage.getItem("searchType");
-    if (storedSearchType === 'web' || storedSearchType === 'images' || storedSearchType === 'news') {
-      setSearchType(storedSearchType as 'web' | 'images' | 'news');
+    if (storedSearchType === 'web' || storedSearchType === 'images' || storedSearchType === 'news' || storedSearchType === 'videos') {
+      setSearchType(storedSearchType as 'web' | 'images' | 'news' | 'videos');
     }
   }, []);
 
-  const handleSearchTypeChange = (type: 'web' | 'images' | 'news') => {
+  const handleSearchTypeChange = (type: 'web' | 'images' | 'news' | 'videos') => {
     // Immediately clear stale results and show loading skeletons so the UI
     // doesn't flash a "No results" state while the fetch starts.
     if (type === 'images') {
@@ -1066,6 +1142,18 @@ function SearchPageContent() {
       if (query) setNewsLoading(true);
     } else {
       setNewsLoading(false);
+    }
+
+    if (type === 'videos') {
+      // clear previous videos and show skeleton if we have a query
+      setVideoResults([]);
+      if (videosAbortRef.current) {
+        try { videosAbortRef.current.abort(); } catch {}
+        videosAbortRef.current = null;
+      }
+      if (query) setVideoLoading(true);
+    } else {
+      setVideoLoading(false);
     }
 
     setSearchType(type);
@@ -1470,6 +1558,50 @@ function SearchPageContent() {
       }
 
       return <div className="text-center text-muted-foreground">No news articles found for your search</div>;
+    }
+
+    if (searchType === 'videos') {
+      if (videoLoading) {
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="animate-pulse border border-border rounded-lg overflow-hidden bg-card">
+                <div className="w-full h-48 bg-muted"></div>
+                <div className="p-4">
+                  <div className="h-5 bg-muted rounded w-4/5 mb-2"></div>
+                  <div className="h-5 bg-muted rounded w-3/5 mb-4"></div>
+                  <div className="h-3 bg-muted rounded w-full mb-2"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      if (videoResults.length > 0) {
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {videoResults.map((v, index) => (
+              <a key={index} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="group overflow-hidden blurry-outline border border-border rounded-lg p-2 bg-card hover:shadow-lg transition-all">
+                <div className="relative w-full h-48 bg-muted rounded-md overflow-hidden mb-3">
+                  {resolveImageSrc(v.thumbnail) ? (
+                    <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || 'Video'} fill className="object-cover group-hover:scale-105 transition-transform" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      <Search className="w-6 h-6" />
+                    </div>
+                  )}
+                </div>
+                <h4 className="text-base font-semibold line-clamp-2 mb-1 group-hover:text-primary">{v.title || v.name}</h4>
+                {v.description && <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{v.description}</p>}
+                <div className="text-xs text-muted-foreground">{v.site || v.source || ''}</div>
+              </a>
+            ))}
+          </div>
+        );
+      }
+
+      return <div className="text-center text-muted-foreground">No videos found for your search</div>;
     }
 
     return null;
