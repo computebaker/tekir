@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
 
-async function brave(query: string, count: number = 4) {
-    const url = `https://api.search.brave.com/res/v1/suggest/search?q=${query}&count=${count}`;
+async function brave(query: string, count: number = 4, country?: string, lang?: string, safesearch?: string) {
+    const params = new URLSearchParams({ q: query, count: String(count) });
+    if (country) params.set('country', country);
+    if (lang) params.set('lang', lang);
+    if (safesearch) params.set('safesearch', safesearch);
+    const url = `https://api.search.brave.com/res/v1/suggest/search?${params.toString()}`;
     const headers = {
         "Accept": "application/json",
         "Accept-Encoding": "gzip",
@@ -28,8 +32,22 @@ async function brave(query: string, count: number = 4) {
     }
 }
 
-async function duck(query: string, count: number = 8) {
-    const url = `https://duckduckgo.com/ac/?q=${query}&kl=wt-wt`;
+async function duck(query: string, count: number = 8, country?: string, lang?: string, safesearch?: string) {
+        // Map country/lang to DuckDuckGo 'kl' parameter when possible. Default to wt-wt
+        let kl = 'wt-wt';
+        try {
+            if (country && lang) {
+                // Example mapping: 'us' + 'en' -> 'us-en'
+                kl = `${country.toLowerCase()}-${lang.toLowerCase()}`;
+            } else if (country) {
+                kl = country.toLowerCase();
+            } else if (lang) {
+                kl = `${lang.toLowerCase()}-${lang.toLowerCase()}`;
+            }
+        } catch (e) {
+            kl = 'wt-wt';
+        }
+        const url = `https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}&kl=${encodeURIComponent(kl)}`;
     const headers = {
         "Accept": "application/json",
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:135.0) Gecko/20100101 Firefox/135.0"
@@ -78,6 +96,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     }
     
     const query = req.nextUrl.searchParams.get('q');
+    const country = req.nextUrl.searchParams.get('country') || undefined;
+    const safesearch = req.nextUrl.searchParams.get('safesearch') || undefined;
+    const lang = req.nextUrl.searchParams.get('lang') || req.nextUrl.searchParams.get('language') || undefined;
     if (!query) {
         return NextResponse.json({ error: 'Missing query parameter "q".' }, { status: 400 });
     }
@@ -86,10 +107,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
         let answer: any;
         switch (provider.toLowerCase()) {
             case 'brave':
-                answer = await brave(query);
+                answer = await brave(query, 4, country, lang, safesearch);
                 break;
             case 'duck':
-                answer = await duck(query);
+                answer = await duck(query, 8, country, lang, safesearch);
                 break;
             default:
                 return NextResponse.json({ error: `Provider '${provider}' is not supported` }, { status: 404 });

@@ -222,12 +222,14 @@ function SearchPageContent() {
           // Get user preferences from localStorage
           const storedCountry = localStorage.getItem("searchCountry") || "ALL";
           const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
+          const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
           
           // Build query parameters
           const searchParams = new URLSearchParams({
             q: currentQuery,
             country: storedCountry,
-            safesearch: storedSafesearch
+            safesearch: storedSafesearch,
+            ...(storedLang ? { lang: storedLang } : {})
           });
           
           const apiUrl = `${apiEndpoints.search.pars(engine)}?${searchParams}`;
@@ -240,9 +242,10 @@ function SearchPageContent() {
               provider: engine,
               query: currentQuery,
               searchParams: {
-                country: storedCountry,
-                safesearch: storedSafesearch
-              }
+                  country: storedCountry,
+                  safesearch: storedSafesearch,
+                  ...(storedLang ? { lang: storedLang } : {})
+                }
             }
           );
           if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
@@ -317,14 +320,16 @@ function SearchPageContent() {
     }
     imagesAbortRef.current = new AbortController();
     const imgSignal = imagesAbortRef.current.signal;
-    const imagesUrl = `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`;
+    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
+    const imagesUrl = `/api/images/${searchEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
       imagesUrl,
       { signal: imgSignal },
       {
         searchType: 'images',
         provider: searchEngine,
-        query: query
+        query: query,
+        searchParams: storedLang ? { lang: storedLang } : undefined
       }
     )
       .then((response) => {
@@ -344,6 +349,7 @@ function SearchPageContent() {
               imagesAbortRef.current = new AbortController();
               const retrySignal = imagesAbortRef.current.signal;
               const retryUrl = `${imagesUrl}&_cb=${Date.now()}`;
+              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -351,7 +357,7 @@ function SearchPageContent() {
                   searchType: 'images',
                   provider: searchEngine,
                   query: query,
-                  searchParams: { cacheBust: '1' }
+                  searchParams: { cacheBust: '1', ...(storedLang ? { lang: storedLang } : {}) }
                 }
               );
               if (!retryRes.ok) throw new Error(`Image retry failed with status ${retryRes.status}`);
@@ -393,14 +399,16 @@ function SearchPageContent() {
     }
     videosAbortRef.current = new AbortController();
     const vidSignal = videosAbortRef.current.signal;
-    const videosUrl = `/api/videos/${searchEngine}?q=${encodeURIComponent(query)}`;
+    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
+    const videosUrl = `/api/videos/${searchEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
       videosUrl,
       { signal: vidSignal },
       {
         searchType: 'videos',
         provider: searchEngine,
-        query: query
+        query: query,
+        searchParams: storedLang ? { lang: storedLang } : undefined
       }
     )
       .then((response) => {
@@ -418,6 +426,7 @@ function SearchPageContent() {
               videosAbortRef.current = new AbortController();
               const retrySignal = videosAbortRef.current.signal;
               const retryUrl = `${videosUrl}&_cb=${Date.now()}`;
+              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -425,7 +434,7 @@ function SearchPageContent() {
                   searchType: 'videos',
                   provider: searchEngine,
                   query: query,
-                  searchParams: { cacheBust: '1' }
+                  searchParams: { cacheBust: '1', ...(storedLang ? { lang: storedLang } : {}) }
                 }
               );
               if (!retryRes.ok) throw new Error(`Video retry failed with status ${retryRes.status}`);
@@ -476,6 +485,7 @@ function SearchPageContent() {
     }
     newsAbortRef.current = new AbortController();
     const newsSignal = newsAbortRef.current.signal;
+    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
     const newsUrl = `/api/news/${searchEngine}?${searchParams}`;
     fetchWithSessionRefreshAndCache(
       newsUrl,
@@ -486,7 +496,8 @@ function SearchPageContent() {
         query: query,
         searchParams: {
           country: storedCountry,
-          safesearch: storedSafesearch
+          safesearch: storedSafesearch,
+          ...(storedLang ? { lang: storedLang } : {})
         }
       }
     )
@@ -506,6 +517,7 @@ function SearchPageContent() {
               newsAbortRef.current = new AbortController();
               const retrySignal = newsAbortRef.current.signal;
               const retryUrl = `${newsUrl}&_cb=${Date.now()}`;
+              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -513,7 +525,7 @@ function SearchPageContent() {
                   searchType: 'news',
                   provider: searchEngine,
                   query: query,
-                  searchParams: { country: storedCountry, safesearch: storedSafesearch, cacheBust: '1' }
+                  searchParams: { country: storedCountry, safesearch: storedSafesearch, cacheBust: '1', ...(storedLang ? { lang: storedLang } : {}) }
                 }
               );
               if (!retryRes.ok) throw new Error(`News retry failed with status ${retryRes.status}`);
@@ -855,9 +867,19 @@ function SearchPageContent() {
         setSuggestions([]);
         return;
       }
-      // Implement one-time retry when cached autocomplete is empty to avoid showing
-      // no-suggestions due to stale/empty cache entries.
-      const cacheKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
+  // Include user settings (country, safesearch, lang) in the cache key so
+  // suggestions are scoped to these preferences. Use query-string style so
+  // keys look like: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
+  const country = (typeof window !== 'undefined' && localStorage.getItem('searchCountry')) || 'ALL';
+  const safesearch = (typeof window !== 'undefined' && localStorage.getItem('safesearch')) || 'moderate';
+  const lang = (typeof window !== 'undefined' && (localStorage.getItem('language') || navigator.language?.slice(0,2))) || '';
+  const baseKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
+  const _paramsForKey = new URLSearchParams();
+  // ensure requested order: country, lang, safesearch
+  _paramsForKey.set('country', country);
+  if (lang) _paramsForKey.set('lang', lang);
+  _paramsForKey.set('safesearch', safesearch);
+  const cacheKey = `${baseKey}?${_paramsForKey.toString()}`;
       const cached = typeof window !== 'undefined' ? sessionStorage.getItem(cacheKey) : null;
       if (!(window as any).__autocompleteRetryMap) (window as any).__autocompleteRetryMap = {};
       const retryMap: Record<string, boolean> = (window as any).__autocompleteRetryMap;
@@ -882,9 +904,15 @@ function SearchPageContent() {
         if (suggestionsAbortRef.current) {
           try { suggestionsAbortRef.current.abort(); } catch {}
         }
-        suggestionsAbortRef.current = new AbortController();
-        const sugSignal = suggestionsAbortRef.current.signal;
-        const response = await fetchWithSessionRefreshAndCache(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchInput)}`, {
+  suggestionsAbortRef.current = new AbortController();
+  const sugSignal = suggestionsAbortRef.current.signal;
+  const params = new URLSearchParams();
+  params.set('q', searchInput);
+  if (country) params.set('country', country);
+  if (safesearch) params.set('safesearch', safesearch);
+  if (lang) params.set('lang', lang);
+  const url = `/api/autocomplete/${autocompleteSource}?${params.toString()}`;
+  const response = await fetchWithSessionRefreshAndCache(url, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

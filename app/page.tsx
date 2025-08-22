@@ -240,8 +240,19 @@ export default function Home() {
         return;
       }
 
-      const cacheKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
-      const cached = sessionStorage.getItem(cacheKey);
+  // Include user settings in cache key and in the request so suggestions
+  // are scoped to country/lang/safesearch. Use query-string style so keys
+  // match: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
+  const country = (typeof window !== 'undefined' && localStorage.getItem('searchCountry')) || 'ALL';
+  const safesearch = (typeof window !== 'undefined' && localStorage.getItem('safesearch')) || 'moderate';
+  const lang = (typeof window !== 'undefined' && (localStorage.getItem('language') || navigator.language?.slice(0,2))) || '';
+  const baseKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
+  const _paramsForKey = new URLSearchParams();
+  _paramsForKey.set('country', country);
+  if (lang) _paramsForKey.set('lang', lang);
+  _paramsForKey.set('safesearch', safesearch);
+  const cacheKey = `${baseKey}?${_paramsForKey.toString()}`;
+  const cached = sessionStorage.getItem(cacheKey);
       if (!(window as any).__autocompleteRetryMap) (window as any).__autocompleteRetryMap = {};
       const retryMap: Record<string, boolean> = (window as any).__autocompleteRetryMap;
       if (cached) {
@@ -261,7 +272,13 @@ export default function Home() {
       }
 
       try {
-        const response = await fetchWithSessionRefresh(`/api/autocomplete/${autocompleteSource}?q=${encodeURIComponent(searchQuery)}`, {
+  const params = new URLSearchParams();
+  params.set('q', searchQuery);
+  params.set('country', country);
+  if (lang) params.set('lang', lang);
+  params.set('safesearch', safesearch);
+  const url = `/api/autocomplete/${autocompleteSource}?${params.toString()}`;
+  const response = await fetchWithSessionRefresh(url, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
