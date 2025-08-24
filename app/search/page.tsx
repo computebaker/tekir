@@ -157,6 +157,7 @@ function SearchPageContent() {
   const [diveLoading, setDiveLoading] = useState(false);
   const [aiError, setAiError] = useState(false);
   const [diveError, setDiveError] = useState(false);
+  const [karakulakCollapsed, setKarakulakCollapsed] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -1876,6 +1877,16 @@ function SearchPageContent() {
                         <Sparkles className="w-4 h-4 hidden sm:block" />
                         <span>Dive</span>
                       </button>
+
+                      <button
+                        onClick={() => setKarakulakCollapsed(prev => !prev)}
+                        aria-expanded={!karakulakCollapsed}
+                        title={karakulakCollapsed ? 'Expand Karakulak' : 'Collapse Karakulak'}
+                        className="px-2 py-1 rounded-md text-sm text-muted-foreground hover:bg-muted transition-colors flex items-center gap-2"
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform ${karakulakCollapsed ? 'rotate-180' : ''}`} />
+                        <span className="sr-only">{karakulakCollapsed ? 'Expand' : 'Collapse'}</span>
+                      </button>
                     </div>
                   </div>
                   
@@ -1890,62 +1901,68 @@ function SearchPageContent() {
                     </div>
                   ) : (
                     <>
-                      <p className="text-left text-blue-800 dark:text-blue-100 mb-3">
+                      <p className={`text-left text-blue-800 dark:text-blue-100 mb-3 ${karakulakCollapsed ? 'line-clamp-2' : ''}`}>
                         {diveResponse || aiResponse}
                       </p>
-                      
-                      {diveSources && diveSources.length > 0 && (
-                        <div className="mb-4">
-                          <div className="flex flex-wrap gap-2">
-                            {diveSources.map((source, index) => (
-                              <a
-                                key={index}
-                                href={source.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 text-sm hover:bg-blue-200 dark:hover:bg-blue-800/70 transition-colors"
-                                title={source.description}
-                              >
-                                <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mr-2">
-                                  {index + 1}
-                                </span>
-                                <span className="truncate max-w-[150px]">{source.title}</span>
-                                <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
-                              </a>
-                            ))}
+
+                      <div
+                        className="overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out"
+                        style={{ maxHeight: karakulakCollapsed ? 0 : 1000, opacity: karakulakCollapsed ? 0 : 1, transform: karakulakCollapsed ? 'translateY(-6px)' : 'translateY(0px)' }}
+                        aria-hidden={karakulakCollapsed}
+                      >
+                        {diveSources && diveSources.length > 0 && (
+                          <div className="mb-4">
+                            <div className="flex flex-wrap gap-2">
+                              {diveSources.map((source, index) => (
+                                <a
+                                  key={index}
+                                  href={source.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 text-sm hover:bg-blue-200 dark:hover:bg-blue-800/70 transition-colors"
+                                  title={source.description}
+                                >
+                                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mr-2">
+                                    {index + 1}
+                                  </span>
+                                  <span className="truncate max-w-[150px]">{source.title}</span>
+                                  <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
+                                </a>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      
-                      {(diveResponse || aiResponse) ? (
-                        <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
-                          {aiDiveEnabled 
-                            ? "Generated from web sources. May contain inaccuracies." 
-                            : "Auto-generated based on AI knowledge. May contain inaccuracies."
-                          }
-                        </p>
-                      ) : null}
-                      
-                      <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={followUpQuestion}
-                            onChange={(e) => setFollowUpQuestion(e.target.value)}
-                            placeholder="Ask a follow-up question..."
-                            maxLength={400}
-                            className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                          />
-                          <button
-                            type="submit"
-                            disabled={!followUpQuestion.trim()}
-                            className="p-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                            aria-label="Ask follow-up question"
-                          >
-                            <ArrowRight className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </form>
+                        )}
+
+                        {(diveResponse || aiResponse) ? (
+                          <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
+                            {aiDiveEnabled 
+                              ? "Generated from web sources. May contain inaccuracies." 
+                              : "Auto-generated based on AI knowledge. May contain inaccuracies."
+                            }
+                          </p>
+                        ) : null}
+
+                        <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={followUpQuestion}
+                              onChange={(e) => setFollowUpQuestion(e.target.value)}
+                              placeholder="Ask a follow-up question..."
+                              maxLength={400}
+                              className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!followUpQuestion.trim()}
+                              className="p-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                              aria-label="Ask follow-up question"
+                            >
+                              <ArrowRight className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </>
                   )}
                 </div>
