@@ -112,6 +112,13 @@
   html {
     overflow-x: hidden;
   }
+  /* Prevent the main element from becoming an independent scroll container
+     which can cause double scrollbars in some browsers. The document
+     (body/html) should be the primary scroll container. */
+  main {
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Blurry white outline used around main content clusters (adjusted for better visibility) */

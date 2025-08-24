@@ -475,7 +475,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="h-screen flex flex-col items-center justify-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10">
+  <section className="h-screen flex flex-col items-center justify-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10">
         <div className="w-full max-w-3xl space-y-8 text-center -mt-6 sm:-mt-10 md:-mt-14">
           {/* Logo */}
           <div className="flex justify-center">

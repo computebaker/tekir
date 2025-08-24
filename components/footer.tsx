@@ -36,26 +36,26 @@ function LazyStatusBadge() {
   }, [hasLoaded]);
 
   return (
-    <div 
+    <div
       ref={iframeRef}
-      className="rounded max-w-full h-auto"
-      style={{ width: '250px', height: '30px' }}
+      className="rounded max-w-full"
+      style={{ width: '250px', height: '30px', overflow: 'hidden' }}
     >
       {isVisible ? (
-        <iframe 
-          src="https://status.tekir.co/en/badge" 
-          width="250" 
-          height="30" 
+        <iframe
+          src="https://status.tekir.co/en/badge"
+          width="250"
+          height="30"
           frameBorder="0"
           scrolling="no"
-          style={{ colorScheme: 'normal', maxWidth: '100%', width: '100%' }}
-          className="rounded max-w-full h-auto"
+          style={{ colorScheme: 'normal', maxWidth: '100%', width: '100%', height: '30px', display: 'block', border: '0' }}
+          className="rounded max-w-full"
           loading="lazy"
         />
       ) : (
-        <div 
+        <div
           className="bg-gray-200 dark:bg-gray-700 rounded animate-pulse flex items-center justify-center text-xs text-gray-500 dark:text-gray-400"
-          style={{ width: '250px', height: '30px' }}
+          style={{ width: '250px', height: '30px', overflow: 'hidden' }}
         >
           Loading status...
         </div>
