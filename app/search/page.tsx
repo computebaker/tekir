@@ -12,7 +12,7 @@ import Footer from "@/components/footer";
 import { handleBangRedirect } from "@/utils/bangs";
 import { fetchWithSessionRefreshAndCache, SearchCache } from "@/lib/cache";
 import { apiEndpoints } from "@/lib/migration-config";
-import { Input } from "@/components/ui/input";
+import { Input, SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SearchTabs from "@/components/search/search-tabs";
 import WebResultItem from "@/components/search/web-result-item";
@@ -157,6 +157,8 @@ function SearchPageContent() {
   const [diveLoading, setDiveLoading] = useState(false);
   const [aiError, setAiError] = useState(false);
   const [diveError, setDiveError] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const aiRequestInProgressRef = useRef<string | null>(null);
@@ -995,6 +997,30 @@ function SearchPageContent() {
   }, [query]);
 
   useEffect(() => {
+    const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
+    let rafId: number | null = null;
+    const onScroll = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(() => {
+        const y = window.scrollY || 0;
+        const start = 120;
+        const span = 220;
+        const raw = Math.min(1, Math.max(0, (y - start) / span));
+        const eased = easeOutCubic(raw);
+        setScrollProgress(eased);
+        setIsScrolled(y > start);
+        rafId = null;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (suggestionsRef.current &&
           !suggestionsRef.current.contains(event.target as Node) &&
@@ -1637,7 +1663,73 @@ function SearchPageContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <>
+      <header
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/70"
+        style={{
+          opacity: scrollProgress,
+          transform: `translateY(${(-8) * (1 - scrollProgress)}px)`,
+          transition: "opacity 150ms ease-out, transform 150ms ease-out",
+          pointerEvents: scrollProgress > 0.1 ? "auto" : "none",
+        }}
+        aria-hidden={scrollProgress < 0.05}
+      >
+        <div className="container mx-auto flex items-center gap-4 h-14 px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <Image src="/tekir-head.png" alt="Tekir" width={36} height={12} priority style={{ transform: `scale(1)`, transition: "transform 150ms ease-out" }} />
+            <span className="sr-only">Tekir</span>
+          </Link>
+
+          <form onSubmit={handleSearch} className="flex-1 max-w-2xl relative">
+            <div className="relative">
+              <SearchInput
+                type="text"
+                value={searchInput}
+                onChange={(e) => { setSearchInput(e.target.value); setShowSuggestions(true); }}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setShowSuggestions(true)}
+                placeholder="Search..."
+                className="w-full pr-12 h-10"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <Button type="submit" variant="ghost" size="icon" shape="pill" title="Search">
+                  <Search className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Autocomplete dropdown tied to the header input */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div ref={suggestionsRef} className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={suggestion.query}
+                    onClick={() => {
+                      setSearchInput(suggestion.query);
+                      router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+                      setShowSuggestions(false);
+                    }}
+                    className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
+                      index === selectedIndex ? 'bg-muted' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Search className="w-4 h-4 text-muted-foreground" />
+                      <span>{suggestion.query}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </form>
+
+          <div className="flex items-center gap-3 ml-auto">
+            <UserProfile avatarSize={36} />
+          </div>
+        </div>
+      </header>
+
+  <div className="min-h-screen flex flex-col">
       <main className="p-4 md:p-8 flex-grow">
   {/* Flying Cats Easter Egg overlay */}
   <FlyingCats show={!!catEasterEgg} />
@@ -1981,6 +2073,7 @@ function SearchPageContent() {
 
       <Footer variant="minimal" />
     </div>
+    </>
   );
 }
 
