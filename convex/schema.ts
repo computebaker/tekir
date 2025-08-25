@@ -114,4 +114,21 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_date", ["date"]),
+
+  feedbacks: defineTable({
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
+    query: v.optional(v.string()),
+    searchEngine: v.optional(v.string()),
+    searchType: v.optional(v.string()),
+    results: v.optional(v.any()),
+    wikipedia: v.optional(v.any()),
+    autocomplete: v.optional(v.any()),
+    karakulak: v.optional(v.any()),
+    liked: v.boolean(),
+    comment: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"]) 
+    .index("by_createdAt", ["createdAt"]),
 });

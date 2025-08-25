@@ -18,6 +18,7 @@ import SearchTabs from "@/components/search/search-tabs";
 import WebResultItem from "@/components/search/web-result-item";
 import FlyingCats from "@/components/shared/flying-cats";
 import WikiNotebook from '@/components/wiki-notebook';
+import FloatingFeedback from '@/components/feedback/floating-feedback';
 
 // Define mobile navigation items
 const mobileNavItems = [
@@ -2029,6 +2030,15 @@ function SearchPageContent() {
       </main>
 
       <Footer variant="minimal" />
+      <FloatingFeedback
+        query={query}
+        results={results}
+        wikiData={wikiData}
+        suggestions={suggestions}
+        aiResponse={aiResponse || diveResponse}
+        searchEngine={searchEngine}
+        searchType={searchType}
+      />
     </div>
     </>
   );
