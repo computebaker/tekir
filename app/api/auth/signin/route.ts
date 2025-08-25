@@ -71,7 +71,8 @@ export async function POST(req: NextRequest) {
         userId: user._id, 
         email: user.email, 
         username: user.username,
-        name: user.name
+        name: user.name,
+        roles: Array.isArray(user.roles) ? user.roles : []
       },
       jwtSecret,
       { expiresIn: '7d' }
@@ -96,7 +97,8 @@ export async function POST(req: NextRequest) {
         id: user._id, 
         email: user.email, 
         name: user.name,
-        username: user.username
+  username: user.username,
+  roles: Array.isArray(user.roles) ? user.roles : []
       } 
     });
 

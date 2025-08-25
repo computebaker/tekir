@@ -9,7 +9,8 @@ declare module "next-auth" {
       image?: string | null
       username?: string | null
       imageType?: string | null
-      updatedAt?: string | null
+  updatedAt?: string | null
+  roles?: string[] | null
     }
   }
 
@@ -20,7 +21,8 @@ declare module "next-auth" {
     image?: string | null
     username?: string | null
     imageType?: string | null
-    updatedAt?: string | Date | null
+  updatedAt?: string | Date | null
+  roles?: string[] | null
   }
 }
 
@@ -29,6 +31,7 @@ declare module "next-auth/jwt" {
     id: string
     username?: string | null
     imageType?: string | null
-    updatedAt?: string | null
+  updatedAt?: string | null
+  roles?: string[] | null
   }
 }

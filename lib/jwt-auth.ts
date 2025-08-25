@@ -6,6 +6,7 @@ export interface JWTUser {
   email: string;
   username: string;
   name: string;
+  roles?: string[];
 }
 
 export async function getJWTUser(request: NextRequest): Promise<JWTUser | null> {
@@ -24,7 +25,8 @@ export async function getJWTUser(request: NextRequest): Promise<JWTUser | null> 
       userId: decoded.userId,
       email: decoded.email,
       username: decoded.username,
-      name: decoded.name
+      name: decoded.name,
+      roles: Array.isArray(decoded.roles) ? decoded.roles : []
     };
   } catch (error) {
     console.log('JWT verification failed:', error);

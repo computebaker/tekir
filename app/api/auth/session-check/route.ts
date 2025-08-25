@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
       image: user.image,
       avatar: user.image,
       isEmailVerified: !!user.emailVerified,
-      settings: user.settings
+  settings: user.settings,
+  roles: Array.isArray(user.roles) ? user.roles : []
     });
 
   } catch (error) {

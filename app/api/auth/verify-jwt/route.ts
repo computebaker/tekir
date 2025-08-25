@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
           imageType: user.imageType, // Include image type for proper cache busting
           avatar: user.image, // For compatibility
           updatedAt: user.updatedAt, // Include update timestamp for cache busting
-          isEmailVerified: !!user.emailVerified // Convert emailVerified timestamp to boolean
+          isEmailVerified: !!user.emailVerified, // Convert emailVerified timestamp to boolean
+          roles: Array.isArray(user.roles) ? user.roles : []
         }
       });
     } catch (jwtError) {

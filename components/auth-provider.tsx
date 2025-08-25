@@ -12,6 +12,7 @@ interface User {
   avatar?: string;
   updatedAt?: number;
   isEmailVerified: boolean;
+  roles?: string[];
   settings?: any;
 }
 

@@ -11,6 +11,7 @@ export default defineSchema({
     password: v.string(),
     image: v.optional(v.string()),
     imageType: v.optional(v.string()),
+    roles: v.optional(v.array(v.string())),
     settingsSync: v.boolean(),
     settings: v.optional(v.any()), // JSON settings
     createdAt: v.number(), // Unix timestamp

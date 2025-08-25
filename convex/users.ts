@@ -48,6 +48,7 @@ export const createUser = mutation({
     name: v.optional(v.string()),
     image: v.optional(v.string()),
     imageType: v.optional(v.string()),
+    roles: v.optional(v.array(v.string())),
     emailVerificationToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -72,6 +73,7 @@ export const updateUser = mutation({
     password: v.optional(v.string()),
     image: v.optional(v.string()),
     imageType: v.optional(v.string()),
+    roles: v.optional(v.array(v.string())),
     settingsSync: v.optional(v.boolean()),
     settings: v.optional(v.any()),
   },
