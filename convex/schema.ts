@@ -2,6 +2,38 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Daily aggregated search usage per provider and type
+  searchUsageDaily: defineTable({
+    day: v.number(), // yyyymmdd
+    provider: v.string(), // e.g., 'brave', 'duck'
+    type: v.string(), // e.g., 'web', 'images', 'news'
+    count: v.number(),
+    totalResponseTimeMs: v.number(),
+    totalResults: v.number(),
+  })
+    .index("by_day", ["day"]) // range queries
+    .index("by_day_provider", ["day", "provider"]) // day + provider breakdown
+    .index("by_day_type", ["day", "type"]), // day + type breakdown
+
+  // Daily token frequency from search queries (no raw queries stored)
+  searchTokenDaily: defineTable({
+    day: v.number(), // yyyymmdd
+    token: v.string(),
+    count: v.number(),
+  })
+    .index("by_day", ["day"]) // for ranges
+    .index("by_day_token", ["day", "token"]),
+
+  // Daily AI (Karakulak) usage per model
+  aiUsageDaily: defineTable({
+    day: v.number(), // yyyymmdd
+    model: v.string(), // 'gemini', 'llama', 'mistral', 'chatgpt'
+    count: v.number(),
+    totalLatencyMs: v.number(),
+    totalAnswerChars: v.number(),
+  })
+    .index("by_day", ["day"]) // for ranges
+    .index("by_day_model", ["day", "model"]),
   users: defineTable({
     name: v.optional(v.string()),
     username: v.optional(v.string()),

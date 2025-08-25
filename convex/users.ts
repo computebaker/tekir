@@ -39,6 +39,28 @@ export const getUserByVerificationToken = query({
   },
 });
 
+// Admin: list users (recent first)
+export const listUsers = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
+    const items = await ctx.db
+      .query("users")
+      .order("desc")
+      .collect();
+    return items.slice(0, limit);
+  },
+});
+
+// Admin: count users
+export const countUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("users").collect();
+    return all.length;
+  },
+});
+
 // Mutations
 export const createUser = mutation({
   args: {

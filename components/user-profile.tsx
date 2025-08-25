@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/auth-provider";
 import Link from "next/link";
 import Image from "next/image";
-import { User, LogOut, LogIn, Settings, LucideIcon } from "lucide-react";
+import { User, LogOut, LogIn, Settings, LucideIcon, LayoutDashboard } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
 
@@ -183,6 +183,16 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
           </div>
           
           <div className="p-1">
+            {Array.isArray((user as any).roles) && (user as any).roles.includes('admin') && (
+              <Link
+                href="/admin/analytics"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left"
+                onClick={() => setIsOpen(false)}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </Link>
+            )}
             <Link
               href="/settings/account"
               className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left"

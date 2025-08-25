@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { load } from 'cheerio';
 import iconv from 'iconv-lite';
 import { isValidSessionToken, isConvexConfigured, incrementAndCheckRequestCount } from '@/lib/convex-session';
+import { getConvexClient } from '@/lib/convex-client';
+import { api } from '@/convex/_generated/api';
 
 // Server-side favicon fetch settings
 const FAVICON_TIMEOUT_MS = 3000;
@@ -308,6 +310,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   }
 
   const responseTime = Date.now() - now;
+  // Fire-and-forget usage logging (no PII, aggregated daily)
+  try {
+    const convex = getConvexClient();
+    const type = 'web'; // this route serves web; videos/news are included in payload
+    await convex.mutation(api.usage.logSearchUsage, {
+      provider: provider.toLowerCase(),
+      type,
+      responseTimeMs: responseTime,
+      totalResults: results.length,
+      queryText: query || undefined,
+    });
+  } catch (e) {
+    console.warn('Failed to log search usage:', e);
+  }
   
   return NextResponse.json({ 
     results, 

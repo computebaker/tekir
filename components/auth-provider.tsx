@@ -81,6 +81,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           
           // Only update user if the data has actually changed
           setUser(prevUser => {
+            const prevRoles = (prevUser?.roles ?? []).join(',');
+            const nextRoles = (newUser?.roles ?? []).join(',');
             if (!prevUser || 
                 prevUser.id !== newUser.id ||
                 prevUser.email !== newUser.email ||
@@ -88,7 +90,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 prevUser.username !== newUser.username ||
                 prevUser.image !== newUser.image ||
                 prevUser.imageType !== newUser.imageType ||
-                (prevUser as any).updatedAt !== (newUser as any).updatedAt) {
+                (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
+                prevRoles !== nextRoles) {
               console.log('AuthProvider: User data changed, updating...');
               return newUser;
             }
@@ -212,6 +215,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           
           // Only update user if the data has actually changed
           setUser(prevUser => {
+            const prevRoles = (prevUser?.roles ?? []).join(',');
+            const nextRoles = (newUser?.roles ?? []).join(',');
             if (!prevUser || 
                 prevUser.id !== newUser.id ||
                 prevUser.email !== newUser.email ||
@@ -219,7 +224,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
                 prevUser.username !== newUser.username ||
                 prevUser.image !== newUser.image ||
                 prevUser.imageType !== newUser.imageType ||
-                (prevUser as any).updatedAt !== (newUser as any).updatedAt) {
+                (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
+                prevRoles !== nextRoles) {
               console.log('AuthProvider: Fresh user data changed, updating...');
               return newUser;
             }

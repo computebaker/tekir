@@ -37,3 +37,36 @@ export const createFeedback = mutation({
     return { success: true };
   },
 });
+
+// Admin: list feedbacks (recent first)
+export const listFeedbacks = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
+    const items = await ctx.db
+      .query("feedbacks")
+      .order("desc")
+      .collect();
+    return items.slice(0, limit);
+  },
+});
+
+// Admin: delete a feedback record
+export const deleteFeedback = mutation({
+  args: { id: v.id("feedbacks") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+    return true;
+  },
+});
+
+// Admin: count feedbacks
+export const countFeedbacks = query({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.db.query("feedbacks").collect();
+    return items.length;
+  },
+});

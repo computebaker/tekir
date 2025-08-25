@@ -4,6 +4,8 @@ import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 import { generateText, streamText } from 'ai';
 import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
+import { getConvexClient } from '@/lib/convex-client';
+import { api } from '@/convex/_generated/api';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -191,6 +193,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
 
   try {
     let answer: string;
+    const t0 = Date.now();
     switch (model.toLowerCase()) {
       case 'gemini':
         answer = await gemini(sanitizedMessage);
@@ -206,6 +209,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
         break;
       default:
         return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 404 });
+    }
+    const latency = Date.now() - t0;
+    // Fire-and-forget AI usage logging
+    try {
+      const convex = getConvexClient();
+      await convex.mutation(api.usage.logAiUsage, {
+        model: model.toLowerCase(),
+        latencyMs: latency,
+        answerChars: (answer || '').length,
+      });
+    } catch (e) {
+      console.warn('Failed to log AI usage:', e);
     }
     return NextResponse.json({ answer }, { headers });
   } catch (error: any) {
