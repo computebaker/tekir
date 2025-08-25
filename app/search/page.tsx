@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import SearchTabs from "@/components/search/search-tabs";
 import WebResultItem from "@/components/search/web-result-item";
 import FlyingCats from "@/components/shared/flying-cats";
+import WikiNotebook from '@/components/wiki-notebook';
 
 // Define mobile navigation items
 const mobileNavItems = [
@@ -146,6 +147,7 @@ function SearchPageContent() {
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiExpanded, setWikiExpanded] = useState(false);
+  const [wikiReadMore, setWikiReadMore] = useState(false);
   const [searchType, setSearchType] = useState<'web' | 'images' | 'news' | 'videos'>('web');
   const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
@@ -1970,60 +1972,35 @@ function SearchPageContent() {
               
               {searchType === 'web' && (
                 <div className="md:hidden">
-                {wikiLoading ? (
-                  <div className="mb-8 p-4 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
-                  <div className="flex items-center mb-3">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3"></div>
-                  </div>
-                  <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
-                  </div>
-                ) : wikiData ? (
-                  <div className="mb-8 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
-                  <button 
-                    onClick={() => setWikiExpanded(!wikiExpanded)}
-                    className="w-full flex items-center justify-between p-4 text-left"
-                  >
-                    <div className="flex items-center">
-                    <span className="font-medium">From Wikipedia ({wikiData.language?.toUpperCase() || 'EN'}): {wikiData.title}</span>
-                    </div>
-                    <ChevronDown className={`w-5 h-5 transition-transform ${wikiExpanded ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {wikiExpanded && (
-                    <div className="p-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    {wikiData.thumbnail && (
-                      <div className="float-right ml-4 mb-2">
-                      <div className="relative w-32 h-32 overflow-hidden rounded-lg">
-                        {resolveImageSrc(wikiData.thumbnail) ? (
-                          <Image
-                            src={resolveImageSrc(wikiData.thumbnail)!}
-                            alt={wikiData.title}
-                            fill
-                            className="object-cover"
-                            sizes="128px"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-muted" />
-                        )}
+                  {wikiLoading ? (
+                    <div className="mb-8 p-4 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                      <div className="flex items-center mb-3">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3"></div>
                       </div>
-                      </div>
-                    )}
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-                      {wikiData.extract}
-                    </p>
-                    <a 
-                      href={wikiData.pageUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      Learn more on Wikipedia ({wikiData.language?.toUpperCase() || 'EN'})
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                      <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
                     </div>
-                  )}
-                  </div>
-                ) : null}
+                  ) : wikiData ? (
+                    <div className="mb-8 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
+                      <button
+                        onClick={() => setWikiExpanded(!wikiExpanded)}
+                        className="w-full flex items-center justify-between p-4 text-left"
+                      >
+                        <div className="flex items-center">
+                          <span className="font-medium">From Wikipedia ({wikiData.language?.toUpperCase() || 'EN'}): {wikiData.title}</span>
+                        </div>
+                        <ChevronDown className={`w-5 h-5 transition-transform ${wikiExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {wikiExpanded && (
+                        <div className="p-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                              {/* Mobile expanded WikiNotebook */}
+                              <div>
+                                <WikiNotebook wikiData={wikiData} />
+                              </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               )}
 
@@ -2041,45 +2018,8 @@ function SearchPageContent() {
                     <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
                   </div>
                 ) : wikiData ? (
-                  <div className="p-4 lg:p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg lg:text-xl font-semibold mb-1 leading-tight">{wikiData.title}</h3>
-                    </div>
-                    {wikiData.description && (
-                      <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 mb-3 lg:mb-4">{wikiData.description}</p>
-                    )}
-                    
-                    {wikiData.thumbnail && (
-                      <div className="mb-3 lg:mb-4 w-full">
-                        <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg">
-                          <Image 
-                            src={wikiData.thumbnail.source} 
-                            alt={wikiData.title}
-                            className="object-cover"
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 25vw, (max-width: 1280px) 33vw, 25vw"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="mb-3 lg:mb-4">
-                      <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        {wikiData.extract}
-                      </p>
-                    </div>
-                    
-                    <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">
-                      <span>Read more in </span>
-                      <a 
-                        href={wikiData.pageUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Wikipedia ({wikiData.language?.toUpperCase() || 'EN'})
-                      </a>
-                    </div>
+                  <div>
+                    <WikiNotebook wikiData={wikiData} />
                   </div>
                 ) : null}
               </div>
