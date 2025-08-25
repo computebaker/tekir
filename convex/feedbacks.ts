@@ -48,8 +48,31 @@ export const listFeedbacks = query({
     const items = await ctx.db
       .query("feedbacks")
       .order("desc")
-      .collect();
-    return items.slice(0, limit);
+      .take(limit);
+
+    // Enrich with user info when available
+    const userIds = Array.from(
+      new Set(
+        items
+          .map((it) => it.userId)
+          .filter((id): id is NonNullable<typeof id> => !!id)
+      )
+    );
+
+    const userMap = new Map<any, any>();
+    for (const uid of userIds) {
+      const user = await ctx.db.get(uid);
+      if (user) userMap.set(uid, user);
+    }
+
+  return items.map((it) => {
+      const u = it.userId ? userMap.get(it.userId) : undefined;
+      return {
+        ...it,
+        userUsername: u?.username,
+        userEmail: u?.email,
+      } as any;
+    });
   },
 });
 

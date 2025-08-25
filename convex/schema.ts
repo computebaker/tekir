@@ -34,6 +34,20 @@ export default defineSchema({
   })
     .index("by_day", ["day"]) // for ranges
     .index("by_day_model", ["day", "model"]),
+  
+  // Daily site visits (privacy-safe): incremented when a new session is created
+  siteVisitsDaily: defineTable({
+    day: v.number(), // yyyymmdd
+    count: v.number(),
+  })
+    .index("by_day", ["day"]),
+
+  // Daily API hits (privacy-safe): incremented when rate-limited call is allowed
+  apiHitsDaily: defineTable({
+    day: v.number(), // yyyymmdd
+    count: v.number(),
+  })
+    .index("by_day", ["day"]),
   users: defineTable({
     name: v.optional(v.string()),
     username: v.optional(v.string()),

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { yyyymmdd } from "./usage";
 
 // Rate limiting constants
 const RATE_LIMITS = {
@@ -49,6 +50,16 @@ export const registerSessionToken = mutation({
         await ctx.db.patch(existingUserSession._id, {
           expiresAt, // Extend expiration
         });
+        // Count site visit once per day per user on first reuse within day
+        try {
+          const day = yyyymmdd(Date.now());
+          const existingDay = await ctx.db
+            .query('siteVisitsDaily')
+            .withIndex('by_day', q => q.eq('day', day))
+            .first();
+          if (existingDay) await ctx.db.patch(existingDay._id, { count: existingDay.count + 1 });
+          else await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
+        } catch {}
         return existingUserSession.sessionToken;
       }
 
@@ -61,6 +72,17 @@ export const registerSessionToken = mutation({
         expiresAt,
         isActive: true,
       });
+
+      // Count site visit for new authenticated session
+      try {
+        const day = yyyymmdd(Date.now());
+        const existingDay = await ctx.db
+          .query('siteVisitsDaily')
+          .withIndex('by_day', q => q.eq('day', day))
+          .first();
+        if (existingDay) await ctx.db.patch(existingDay._id, { count: existingDay.count + 1 });
+        else await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
+      } catch {}
 
       return args.sessionToken;
     }
@@ -83,6 +105,16 @@ export const registerSessionToken = mutation({
         await ctx.db.patch(existingIpSession._id, {
           expiresAt, // Extend expiration
         });
+        // Count site visit on reuse within day
+        try {
+          const day = yyyymmdd(Date.now());
+          const existingDay = await ctx.db
+            .query('siteVisitsDaily')
+            .withIndex('by_day', q => q.eq('day', day))
+            .first();
+          if (existingDay) await ctx.db.patch(existingDay._id, { count: existingDay.count + 1 });
+          else await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
+        } catch {}
         return existingIpSession.sessionToken;
       }
     }
@@ -96,6 +128,17 @@ export const registerSessionToken = mutation({
       expiresAt,
       isActive: true,
     });
+
+    // Count site visit for new anonymous session
+    try {
+      const day = yyyymmdd(Date.now());
+      const existingDay = await ctx.db
+        .query('siteVisitsDaily')
+        .withIndex('by_day', q => q.eq('day', day))
+        .first();
+      if (existingDay) await ctx.db.patch(existingDay._id, { count: existingDay.count + 1 });
+      else await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
+    } catch {}
 
     return args.sessionToken;
   },
@@ -192,6 +235,16 @@ export const incrementAndCheckRequestCount = mutation({
         await ctx.db.patch(session._id, {
           requestCount: newCount,
         });
+        // Count API hit on allowed request
+        try {
+          const day = yyyymmdd(Date.now());
+          const existing = await ctx.db
+            .query('apiHitsDaily')
+            .withIndex('by_day', q => q.eq('day', day))
+            .first();
+          if (existing) await ctx.db.patch(existing._id, { count: existing.count + 1 });
+          else await ctx.db.insert('apiHitsDaily', { day, count: 1 });
+        } catch {}
         
         return {
           allowed: true,

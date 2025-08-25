@@ -9,6 +9,8 @@ import { api } from "@/convex/_generated/api";
 type Feedback = {
   _id: string;
   userId?: string;
+  userUsername?: string;
+  userEmail?: string;
   sessionToken?: string;
   query?: string;
   liked: boolean;
@@ -46,7 +48,7 @@ export default function AdminFeedbackPage() {
         </div>
         {/* Errors can be surfaced via an ErrorBoundary if desired */}
         <div className="rounded-lg border border-border overflow-hidden bg-card">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" aria-busy={loading}>
             <thead className="bg-muted/50 border-b border-border">
               <tr>
                 <th className="text-left p-3">When</th>
@@ -59,14 +61,34 @@ export default function AdminFeedbackPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={`s-${i}`} className="border-b last:border-0 border-border">
+                    <td className="p-3"><div className="h-3 w-32 bg-muted rounded animate-pulse" /></td>
+                    <td className="p-3"><div className="h-3 w-24 bg-muted rounded animate-pulse" /></td>
+                    <td className="p-3"><div className="h-3 w-60 bg-muted rounded animate-pulse" /></td>
+                    <td className="p-3"><div className="h-5 w-5 bg-muted rounded-full animate-pulse" /></td>
+                    <td className="p-3"><div className="h-3 w-64 bg-muted rounded animate-pulse" /></td>
+                    <td className="p-3 text-right"><div className="h-6 w-16 bg-muted rounded animate-pulse inline-block" /></td>
+                  </tr>
+                ))
               ) : !items || items.length === 0 ? (
                 <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No feedback</td></tr>
               ) : (
                 items.map((f) => (
                   <tr key={f._id} className="border-b last:border-0 border-border">
                     <td className="p-3">{new Date(f.createdAt).toLocaleString()}</td>
-                    <td className="p-3">{f.userId || '-'}</td>
+                    <td className="p-3">
+                      {f.userUsername || f.userEmail || f.userId ? (
+                        <span
+                          className="underline decoration-dotted underline-offset-2 cursor-help"
+                          title={`ID: ${f.userId || 'N/A'}`}
+                        >
+                          {f.userUsername || f.userEmail || f.userId}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
                     <td className="p-3 truncate max-w-[240px]" title={f.query}>{f.query || '-'}</td>
                     <td className="p-3">{f.liked ? '👍' : '👎'}</td>
                     <td className="p-3 truncate max-w-[260px]" title={f.comment}>{f.comment || '-'}</td>

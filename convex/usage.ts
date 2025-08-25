@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-function yyyymmdd(ts: number) {
+export function yyyymmdd(ts: number) {
   const d = new Date(ts);
   const y = d.getUTCFullYear();
   const m = (d.getUTCMonth() + 1).toString().padStart(2, '0');
@@ -167,6 +167,63 @@ export const rangeAiUsage = query({
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query('aiUsageDaily')
+      .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
+      .collect();
+    return rows;
+  },
+});
+
+// Site visits — aggregated daily
+export const logSiteVisit = mutation({
+  args: { timestamp: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const now = args.timestamp ?? Date.now();
+    const day = yyyymmdd(now);
+    const existing = await ctx.db
+      .query('siteVisitsDaily')
+      .withIndex('by_day', q => q.eq('day', day))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { count: existing.count + 1 });
+    } else {
+      await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
+    }
+    return { ok: true };
+  },
+});
+
+export const rangeSiteVisits = query({
+  args: { fromDay: v.number(), toDay: v.number() },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query('siteVisitsDaily')
+      .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
+      .collect();
+    return rows;
+  },
+});
+
+// API hits — aggregated daily
+export const logApiHit = mutation({
+  args: { timestamp: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const now = args.timestamp ?? Date.now();
+    const day = yyyymmdd(now);
+    const existing = await ctx.db
+      .query('apiHitsDaily')
+      .withIndex('by_day', q => q.eq('day', day))
+      .first();
+    if (existing) await ctx.db.patch(existing._id, { count: existing.count + 1 });
+    else await ctx.db.insert('apiHitsDaily', { day, count: 1 });
+    return { ok: true };
+  },
+});
+
+export const rangeApiHits = query({
+  args: { fromDay: v.number(), toDay: v.number() },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query('apiHitsDaily')
       .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
       .collect();
     return rows;

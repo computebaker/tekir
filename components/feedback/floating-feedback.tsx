@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircleMore } from 'lucide-react';
+import { useAuth } from '@/components/auth-provider';
 
 interface Props {
   query?: string;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function FloatingFeedback({ query, results, wikiData, suggestions, aiResponse, searchEngine, searchType }: Props) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [liked, setLiked] = useState<boolean | null>(null);
   const [comment, setComment] = useState('');
@@ -29,6 +31,8 @@ export default function FloatingFeedback({ query, results, wikiData, suggestions
     karakulak: aiResponse,
     searchEngine,
     searchType,
+    // Include userId if logged in so admin can see username/email in feedback list
+    userId: user?.id,
     liked,
     comment,
   });
