@@ -52,10 +52,10 @@ export default function WikiNotebook({ wikiData }: WikiProps) {
   if (!wikiData) return null;
 
   return (
-    <div className="p-4 lg:p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md">
+  <div className="p-4 lg:p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md break-words whitespace-normal overflow-hidden">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h3 className="text-lg lg:text-xl font-semibold mb-1 leading-tight">{wikiData.title}</h3>
+          <h3 className="text-lg lg:text-xl font-semibold mb-1 leading-tight break-words">{wikiData.title}</h3>
           {wikiData.description && (
             <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 mb-2 lg:mb-3">{wikiData.description}</p>
           )}
@@ -68,7 +68,7 @@ export default function WikiNotebook({ wikiData }: WikiProps) {
       </div>
 
       <div className="mt-2">
-        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">{expanded ? full : first}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2 whitespace-normal break-words">{expanded ? full : first}</p>
         {full !== first && (
           <button
             onClick={() => setExpanded(prev => !prev)}
@@ -102,7 +102,7 @@ export default function WikiNotebook({ wikiData }: WikiProps) {
                 null
               )}
               {!loadingFacts && !factsError && facts && (
-                <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1 break-words whitespace-normal">
                   {Object.keys(facts).map((key) => {
                     const val = (facts as any)[key];
                     if (val == null) return null;
@@ -132,13 +132,13 @@ export default function WikiNotebook({ wikiData }: WikiProps) {
                             typeof p === 'string'
                               ? (
                                 /^https?:\/\//i.test(p)
-                                  ? <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{p}{i < parts.length - 1 ? ', ' : ''}</a>
+                                  ? <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words max-w-full">{p}{i < parts.length - 1 ? ', ' : ''}</a>
                                   : <span key={i}>{p}{i < parts.length - 1 ? ', ' : ''}</span>
                               )
                               : (
                                 p.wikidataUrl
-                                  ? <a key={i} href={p.wikidataUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{p.label || p.id}{i < parts.length - 1 ? ', ' : ''}</a>
-                                  : <a key={i} href={p.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{p.text}{i < parts.length - 1 ? ', ' : ''}</a>
+                                  ? <a key={i} href={p.wikidataUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words max-w-full">{p.label || p.id}{i < parts.length - 1 ? ', ' : ''}</a>
+                                  : <a key={i} href={p.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words max-w-full">{p.text}{i < parts.length - 1 ? ', ' : ''}</a>
                               )
                           ))}
                         </div>
@@ -149,15 +149,15 @@ export default function WikiNotebook({ wikiData }: WikiProps) {
                     if (typeof val === 'number') return <div key={key}><span className="font-medium">{label}:</span> {val.toLocaleString()}</div>;
 
                     // objects with label or url
-                    if (typeof val === 'object') {
-                      if (val.url && typeof val.url === 'string') return <div key={key}><span className="font-medium">{label}:</span> <a href={val.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{val.label || val.url}</a></div>;
+            if (typeof val === 'object') {
+              if (val.url && typeof val.url === 'string') return <div key={key}><span className="font-medium">{label}:</span> <a href={val.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words max-w-full">{val.label || val.url}</a></div>;
                       if (val.label || val.id) return <div key={key}><span className="font-medium">{label}:</span> {val.label || val.id}</div>;
                       return <div key={key}><span className="font-medium">{label}:</span> {JSON.stringify(val)}</div>;
                     }
 
                     // fallback: render http/https as links
                     if (typeof val === 'string' && /^https?:\/\//i.test(val)) {
-                      return <div key={key}><span className="font-medium">{label}:</span> <a href={val} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{val}</a></div>;
+                      return <div key={key}><span className="font-medium">{label}:</span> <a href={val} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words max-w-full">{val}</a></div>;
                     }
                     return <div key={key}><span className="font-medium">{label}:</span> {String(val)}</div>;
                   })}
