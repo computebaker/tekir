@@ -28,7 +28,7 @@ export const logSearchUsage = mutation({
     type: v.string(), // 'web' | 'images' | 'news'
     responseTimeMs: v.optional(v.number()),
     totalResults: v.optional(v.number()),
-    queryText: v.optional(v.string()), // used only for token frequency, not stored
+  queryText: v.optional(v.string()), // full query; used for full-query frequency (and legacy tokens)
     timestamp: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -59,20 +59,19 @@ export const logSearchUsage = mutation({
       });
     }
 
-    // Token frequency (privacy-safe): do not store raw queries, only token counts
+    // Full query frequency: store the raw query string exactly as typed after ?q=
     if (args.queryText) {
-      const tokens = tokenize(args.queryText);
-      for (const token of tokens) {
-        const tokenRow = await ctx.db
-          .query('searchTokenDaily')
-          .withIndex('by_day_token', q => q.eq('day', day).eq('token', token))
+      const qtext = args.queryText.trim().slice(0, 512);
+      if (qtext.length > 0) {
+        const qRow = await ctx.db
+          .query('searchQueryDaily')
+          .withIndex('by_day_query', q => q.eq('day', day).eq('query', qtext))
           .first();
-        if (tokenRow) {
-          await ctx.db.patch(tokenRow._id, { count: tokenRow.count + 1 });
-        } else {
-          await ctx.db.insert('searchTokenDaily', { day, token, count: 1 });
-        }
+        if (qRow) await ctx.db.patch(qRow._id, { count: qRow.count + 1 });
+        else await ctx.db.insert('searchQueryDaily', { day, query: qtext, count: 1 });
       }
+
+  // No longer logging tokenized queries; we store full queries only now.
     }
 
     return { ok: true };
@@ -141,6 +140,20 @@ export const topSearchTokensByDay = query({
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query('searchTokenDaily')
+      .withIndex('by_day', q => q.eq('day', args.day))
+      .collect();
+    const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
+    return rows
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+  },
+});
+
+export const topSearchQueriesByDay = query({
+  args: { day: v.number(), limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query('searchQueryDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
       .collect();
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
@@ -227,5 +240,30 @@ export const rangeApiHits = query({
       .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
       .collect();
     return rows;
+  },
+});
+
+// Admin-only: Purge all analytics aggregates
+export const purgeAnalytics = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Helper to delete all rows from a table by scanning a cheap index
+  async function deleteAll(table: 'searchUsageDaily' | 'aiUsageDaily' | 'siteVisitsDaily' | 'apiHitsDaily' | 'searchQueryDaily' | 'searchTokenDaily') {
+      // Use by_day index where available for chunked deletes
+      const batch = await ctx.db.query(table).collect();
+      for (const row of batch) {
+        await ctx.db.delete(row._id);
+      }
+    }
+
+  await deleteAll('searchUsageDaily');
+    await deleteAll('aiUsageDaily');
+    await deleteAll('siteVisitsDaily');
+    await deleteAll('apiHitsDaily');
+    await deleteAll('searchQueryDaily');
+  // Legacy token frequency table (kept for backward compatibility)
+  await deleteAll('searchTokenDaily');
+
+    return { purged: true };
   },
 });

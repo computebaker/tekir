@@ -24,6 +24,15 @@ export default defineSchema({
     .index("by_day", ["day"]) // for ranges
     .index("by_day_token", ["day", "token"]),
 
+  // Daily full query frequency (stores raw query string after ?q=)
+  searchQueryDaily: defineTable({
+    day: v.number(), // yyyymmdd
+    query: v.string(),
+    count: v.number(),
+  })
+    .index("by_day", ["day"]) // for ranges
+    .index("by_day_query", ["day", "query"]),
+
   // Daily AI (Karakulak) usage per model
   aiUsageDaily: defineTable({
     day: v.number(), // yyyymmdd

@@ -46,8 +46,8 @@ export default function AdminAnalyticsPage() {
   const aiRange = useQuery(api.usage.rangeAiUsage as any, { fromDay, toDay }) as any[] | undefined;
   const siteVisits = useQuery(api.usage.rangeSiteVisits as any, { fromDay, toDay }) as any[] | undefined;
   const apiHits = useQuery(api.usage.rangeApiHits as any, { fromDay, toDay }) as any[] | undefined;
-  // Top tokens for end day of range (kept simple)
-  const topTokens = useQuery(api.usage.topSearchTokensByDay as any, { day: toDay, limit: 20 }) as any[] | undefined;
+  // Top queries for end day of range (kept simple)
+  const topQueries = useQuery(api.usage.topSearchQueriesByDay as any, { day: toDay, limit: 20 }) as any[] | undefined;
 
   // Cache last known data so we don't blank the UI on filter changes
   const [usersCache, setUsersCache] = useState<number | undefined>(undefined);
@@ -56,7 +56,7 @@ export default function AdminAnalyticsPage() {
   const [aiRangeCache, setAiRangeCache] = useState<any[] | undefined>(undefined);
   const [siteVisitsCache, setSiteVisitsCache] = useState<any[] | undefined>(undefined);
   const [apiHitsCache, setApiHitsCache] = useState<any[] | undefined>(undefined);
-  const [topTokensCache, setTopTokensCache] = useState<any[] | undefined>(undefined);
+  const [topQueriesCache, setTopQueriesCache] = useState<any[] | undefined>(undefined);
 
   useEffect(() => { if (typeof users === 'number') setUsersCache(users); }, [users]);
   useEffect(() => { if (typeof feedbacks === 'number') setFeedbacksCache(feedbacks); }, [feedbacks]);
@@ -64,7 +64,7 @@ export default function AdminAnalyticsPage() {
   useEffect(() => { if (aiRange) setAiRangeCache(aiRange); }, [aiRange]);
   useEffect(() => { if (siteVisits) setSiteVisitsCache(siteVisits); }, [siteVisits]);
   useEffect(() => { if (apiHits) setApiHitsCache(apiHits); }, [apiHits]);
-  useEffect(() => { if (topTokens) setTopTokensCache(topTokens); }, [topTokens]);
+  useEffect(() => { if (topQueries) setTopQueriesCache(topQueries); }, [topQueries]);
 
   const displayUsers = users ?? usersCache;
   const displayFeedbacks = feedbacks ?? feedbacksCache;
@@ -72,7 +72,7 @@ export default function AdminAnalyticsPage() {
   const displayAiRange = React.useMemo(() => (aiRange ?? aiRangeCache ?? EMPTY), [aiRange, aiRangeCache]);
   const displaySiteVisits = React.useMemo(() => (siteVisits ?? siteVisitsCache ?? EMPTY), [siteVisits, siteVisitsCache]);
   const displayApiHits = React.useMemo(() => (apiHits ?? apiHitsCache ?? EMPTY), [apiHits, apiHitsCache]);
-  const displayTopTokens = React.useMemo(() => (topTokens ?? topTokensCache ?? EMPTY), [topTokens, topTokensCache]);
+  const displayTopQueries = React.useMemo(() => (topQueries ?? topQueriesCache ?? EMPTY), [topQueries, topQueriesCache]);
 
   const initialPageLoading =
     (users ?? usersCache) === undefined &&
@@ -80,8 +80,8 @@ export default function AdminAnalyticsPage() {
     (searchRange ?? searchRangeCache) === undefined &&
     (aiRange ?? aiRangeCache) === undefined &&
     (siteVisits ?? siteVisitsCache) === undefined &&
-    (apiHits ?? apiHitsCache) === undefined &&
-    (topTokens ?? topTokensCache) === undefined;
+  (apiHits ?? apiHitsCache) === undefined &&
+  (topQueries ?? topQueriesCache) === undefined;
 
   // Provider/type filters (null = include all)
   const [providerFilter, setProviderFilter] = useState<string[] | null>(null);
@@ -115,7 +115,7 @@ export default function AdminAnalyticsPage() {
     return { totalCount, avgLatency, totalChars };
   }, [displayAiRange]);
 
-  const loading = [users, feedbacks, searchRange, aiRange, siteVisits, apiHits, topTokens].some(v => v === undefined);
+  const loading = [users, feedbacks, searchRange, aiRange, siteVisits, apiHits, topQueries].some(v => v === undefined);
 
   // Prepare daily series for charts (by day key)
   const dayKeys = useMemo(() => {
@@ -403,15 +403,15 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
             <div className="rounded-lg border border-border bg-card p-6">
-              <div className="text-sm text-muted-foreground mb-2">Top Search Tokens (latest day)</div>
+              <div className="text-sm text-muted-foreground mb-2">Top Search Queries (latest day)</div>
               <div className="text-sm space-y-1">
-                {(displayTopTokens || []).map((t: any) => (
-                  <div key={t.token} className="flex items-center justify-between">
-                    <span>{t.token}</span>
+                {(displayTopQueries || []).map((t: any) => (
+                  <div key={t.query} className="flex items-center justify-between">
+                    <span className="truncate max-w-[75%]" title={t.query}>{t.query}</span>
                     <span className="font-semibold">{t.count}</span>
                   </div>
                 ))}
-                {((topTokens ?? topTokensCache) === undefined) && (
+                {((topQueries ?? topQueriesCache) === undefined) && (
                   <div className="space-y-1">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <div key={i} className="flex items-center justify-between">
@@ -421,7 +421,7 @@ export default function AdminAnalyticsPage() {
                     ))}
                   </div>
                 )}
-                {(displayTopTokens.length === 0 && (topTokens ?? topTokensCache) !== undefined) && (
+                {(displayTopQueries.length === 0 && (topQueries ?? topQueriesCache) !== undefined) && (
                   <div className="text-muted-foreground">No data yet</div>
                 )}
               </div>
