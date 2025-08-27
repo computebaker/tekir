@@ -59,6 +59,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
     return (
       <div className="relative" ref={dropdownRef}>
         <button
+          type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
         >
@@ -106,6 +107,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
       >
@@ -216,6 +218,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
             
             <div className="border-t border-border mt-1 pt-1">
               <button
+                type="button"
                 onClick={() => {
                   setIsOpen(false);
                   signOut();
