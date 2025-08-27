@@ -15,6 +15,7 @@ import { Input, SearchInput } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BadgeChip } from "@/components/shared/badge-chip";
 import { SectionHeading } from "@/components/shared/section-heading";
+import { cn } from "@/lib/utils";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -50,6 +51,11 @@ export default function Home() {
   const { settings, isInitialized } = useSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  // Mobile keyboard awareness
+  const [isMobile, setIsMobile] = useState(false);
+  const [vvHeight, setVvHeight] = useState<number | null>(null);
+  const [kbVisible, setKbVisible] = useState(false);
+  const [isHeroInputFocused, setIsHeroInputFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -63,11 +69,18 @@ export default function Home() {
   const [hasBang, setHasBang] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const heroFormRef = useRef<HTMLFormElement>(null);
   const [recs, setRecs] = useState<string[]>([]);
   const [recIndex, setRecIndex] = useState(0);
   const [recLoading, setRecLoading] = useState(false);
   const [recDateLabel, setRecDateLabel] = useState<string | undefined>(undefined);
   const [recSwitching, setRecSwitching] = useState(false);
+  // Lock raised state while submitting so it doesn't animate back before redirect
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Focus lock on mobile: keep input focused until back/outside tap
+  const [isFocusLocked, setIsFocusLocked] = useState(false);
+  const unlockingRef = useRef(false);
+  const pushedStateRef = useRef(false);
   // Tri-state: null = unknown (no explicit local value) | true | false
   // If user has an explicit local preference in localStorage, use it immediately.
   // Otherwise keep null and wait for server settings (isInitialized) before rendering.
@@ -203,6 +216,78 @@ export default function Home() {
     };
   }, []);
 
+  // When focus is locked on mobile, use history entry so Back unlocks instead of leaving immediately
+  useEffect(() => {
+    const onPopState = (_e: PopStateEvent) => {
+      if (!isMobile) return;
+      if (isFocusLocked) {
+        unlockingRef.current = true;
+        setIsFocusLocked(false);
+        setIsHeroInputFocused(false);
+        try { searchInputRef.current?.blur(); } catch {}
+        window.setTimeout(() => { unlockingRef.current = false; }, 80);
+  pushedStateRef.current = false;
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [isMobile, isFocusLocked]);
+
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      if (!isMobile || !isFocusLocked) return;
+      const target = ev.target as Node | null;
+      const insideSuggestions = suggestionsRef.current?.contains(target as Node) ?? false;
+      const insideForm = heroFormRef.current?.contains(target as Node) ?? false;
+      if (!insideForm && !insideSuggestions) {
+        unlockingRef.current = true;
+        setIsFocusLocked(false);
+        setIsHeroInputFocused(false);
+        try { searchInputRef.current?.blur(); } catch {}
+        if (pushedStateRef.current) {
+          try { history.back(); } catch {}
+          pushedStateRef.current = false;
+        }
+        window.setTimeout(() => { unlockingRef.current = false; }, 80);
+      }
+    };
+    document.addEventListener('touchstart', handler, { passive: true });
+    document.addEventListener('mousedown', handler);
+    return () => {
+      document.removeEventListener('touchstart', handler as any);
+      document.removeEventListener('mousedown', handler as any);
+    };
+  }, [isMobile, isFocusLocked]);
+
+  // Track mobile viewport and virtual keyboard visibility
+  useEffect(() => {
+    const updateIsMobile = () => setIsMobile(window.innerWidth < 768);
+    updateIsMobile();
+    window.addEventListener("resize", updateIsMobile, { passive: true });
+
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    const handleVV = () => {
+      if (!vv) return;
+      const h = Math.round(vv.height);
+      setVvHeight(h);
+      // Heuristic: if the visual viewport is notably shorter than the layout viewport, keyboard is likely visible
+      const reduced = (window.innerHeight || h) - h;
+      setKbVisible(reduced > 120); // ~ keyboard height threshold in px
+    };
+    if (vv) {
+      vv.addEventListener("resize", handleVV);
+      vv.addEventListener("scroll", handleVV);
+      handleVV();
+    }
+    return () => {
+      window.removeEventListener("resize", updateIsMobile as any);
+      if (vv) {
+        vv.removeEventListener("resize", handleVV);
+        vv.removeEventListener("scroll", handleVV);
+      }
+    };
+  }, []);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowSuggestions(false);
@@ -211,6 +296,7 @@ export default function Home() {
 
     // It's generally better to handle bang redirects before deciding the target path,
     // as a bang might take the user to a completely different site.
+    if (isMobile && isHeroInputFocused) setIsSubmitting(true);
     const isBangRedirected = await handleBangRedirect(trimmed);
     if (isBangRedirected) {
       return; // If redirected by a bang, no further action is needed here.
@@ -225,6 +311,8 @@ export default function Home() {
       // Use a timeout to allow visual feedback before navigation
       setTimeout(() => {
         router.replace(`${targetPath}?${params.toString()}`);
+  // safety: in case navigation is delayed/cancelled by browser, release lock after a bit
+  setTimeout(() => setIsSubmitting(false), 1000);
       }, 100); 
     });
   };
@@ -392,16 +480,18 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleGlobalKeydown);
   }, []);
 
+  const keyboardAware = isMobile && (isHeroInputFocused || kbVisible || isSubmitting);
+
   return (
     <main className="min-h-[100vh] relative overflow-x-hidden">
       {/* Top Right Welcome + Profile (only when not scrolled) */}
   <div
         className="fixed top-4 right-4 z-50"
         style={{
-          opacity: 1 - scrollProgress,
+          opacity: keyboardAware ? 0 : (1 - scrollProgress),
           transform: `translateY(${-6 * scrollProgress}px) scale(${1 - 0.08 * scrollProgress})`,
           transition: "opacity 150ms ease-out, transform 150ms ease-out",
-          pointerEvents: scrollProgress > 0.4 ? "none" : "auto",
+          pointerEvents: (scrollProgress > 0.4 || keyboardAware) ? "none" : "auto",
         }}
         aria-hidden={scrollProgress > 0.9}
       >
@@ -475,10 +565,26 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-  <section className="h-screen flex flex-col items-center justify-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10">
-        <div className="w-full max-w-3xl space-y-8 text-center -mt-6 sm:-mt-10 md:-mt-14">
+  <section
+        className={cn(
+          "flex flex-col items-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10 transition-[height,padding] duration-200 ease-out",
+          keyboardAware ? "justify-start pt-3" : "justify-center h-screen",
+        )}
+        style={{
+          height: keyboardAware && vvHeight ? `${Math.max(320, vvHeight - 140)}px` : undefined
+        }}
+      >
+        <div className={cn(
+          "w-full max-w-3xl text-center",
+          keyboardAware ? "space-y-2 -mt-1" : "space-y-8 -mt-6 sm:-mt-10 md:-mt-14"
+        )}>
           {/* Logo */}
-          <div className="flex justify-center">
+          <div
+            className={cn(
+              "flex justify-center overflow-hidden transition-[opacity,transform,max-height] duration-200 ease-out",
+              keyboardAware ? "opacity-0 -translate-y-2 max-h-0" : "opacity-100 translate-y-0 max-h-[120px]"
+            )}
+          >
             <div 
               onMouseEnter={() => setIsLogoHovered(true)}
               onMouseLeave={() => setIsLogoHovered(false)}
@@ -495,11 +601,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="relative w-full">
+      {/* Search Bar */}
+  <form ref={heroFormRef} onSubmit={handleSearch} className={cn("relative w-full transition-[margin,transform] duration-200 ease-out", keyboardAware && "mt-6")}> 
             <div className="relative group">
               {/* Search input */}
-              <SearchInput
+      <SearchInput
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
@@ -508,7 +614,28 @@ export default function Home() {
                   setShowSuggestions(true);
                 }}
                 onKeyDown={handleKeyDown}
-                onFocus={() => setShowSuggestions(true)}
+    onFocus={() => { 
+          setShowSuggestions(true); 
+          setIsHeroInputFocused(true); 
+          if (isMobile) {
+            if (!isFocusLocked) {
+              setIsFocusLocked(true);
+              try { history.pushState({ focusLock: true }, "", location.href); pushedStateRef.current = true; } catch {}
+            }
+            window.setTimeout(() => {
+              try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+            }, 50);
+          }
+        }}
+    onBlur={() => { 
+          if (isSubmitting) return; 
+          if (isMobile && isFocusLocked && !unlockingRef.current) {
+            window.setTimeout(() => searchInputRef.current?.focus(), 0);
+            return;
+          }
+          setIsHeroInputFocused(false);
+          setIsFocusLocked(false);
+        }}
                 placeholder="What's on your mind?"
                 className="w-full pr-24 shadow-lg transition-all duration-300 relative z-10"
               />
@@ -522,7 +649,7 @@ export default function Home() {
             </div>
             
             {/* Recommendations row under the search bar (toggleable) */}
-            <div className="absolute w-full mt-3 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
+            <div className="absolute w-full mt-2 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
               <div className="flex items-center justify-center">
                 <div className="inline-flex items-center gap-2 sm:gap-3">
                   {effectiveShowRecs === null ? (
