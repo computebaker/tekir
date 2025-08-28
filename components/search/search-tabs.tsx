@@ -49,9 +49,11 @@ export function SearchTabs({ active, onChange }: Props) {
                 {t.label}
               </span>
             </div>
-            {isActive && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: "100%", maxWidth: 64, margin: "0 auto" }} />
-            )}
+            <div
+              className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-primary rounded-full transition-all duration-300 ease-out ${
+                isActive ? 'w-16 opacity-100' : 'w-0 opacity-0'
+              }`}
+            />
           </button>
         );
       })}
@@ -86,9 +88,11 @@ export function SearchTabs({ active, onChange }: Props) {
                   {t.label}
                 </span>
               </div>
-              {isActive && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" style={{ width: "100%", maxWidth: 64, margin: "0 auto" }} />
-              )}
+              <div
+                className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-primary rounded-full transition-all duration-300 ease-out ${
+                  isActive ? 'w-16 opacity-100' : 'w-0 opacity-0'
+                }`}
+              />
             </button>
           );
         })}
