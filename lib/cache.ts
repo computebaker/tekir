@@ -197,7 +197,9 @@ export class SearchCache {
         key.startsWith('images-') || 
         key.startsWith('news-') ||
         key.startsWith('ai-') ||
-        key.startsWith('dive-')
+        key.startsWith('dive-') ||
+        key.startsWith('videos-') ||
+        key.startsWith('autocomplete-')
       );
       
       searchKeys.forEach(key => {

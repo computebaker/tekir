@@ -4,6 +4,7 @@ import { ChevronDown, Settings as SettingsIcon, Search, User, Shield, Bell, Mess
 import Link from "next/link";
 import Image from "next/image";
 import { useSettings } from "@/lib/settings";
+import SearchCache from "@/lib/cache";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -94,6 +95,8 @@ export default function SearchSettingsPage() {
   const [weatherUnitsDropdownOpen, setWeatherUnitsDropdownOpen] = useState(false);
   const [weatherPlacementDropdownOpen, setWeatherPlacementDropdownOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
+  const [cacheClearedAt, setCacheClearedAt] = useState<number | null>(null);
+  const [cacheCleared, setCacheCleared] = useState(false);
 
   // Refs for click outside handling
   const autocompleteDropdownRef = useRef<HTMLDivElement>(null);
@@ -105,12 +108,16 @@ export default function SearchSettingsPage() {
   const weatherPlacementDropdownRef = useRef<HTMLDivElement>(null);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
-  // Update query display when custom location changes
+  // Reset cache cleared state after 3 seconds
   useEffect(() => {
-    if (settings.customWeatherLocation) {
-      setWeatherLocationQuery(`${settings.customWeatherLocation.name}, ${settings.customWeatherLocation.country}`);
+    if (cacheCleared) {
+      const timer = setTimeout(() => {
+        setCacheCleared(false);
+        setCacheClearedAt(null);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [settings.customWeatherLocation]);
+  }, [cacheCleared]);
 
   useEffect(() => {
     document.title = "Search Settings | Tekir";
@@ -939,6 +946,43 @@ export default function SearchSettingsPage() {
                 </div>
               </div>
             </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cache Management */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xl font-semibold">Cache</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Tekir saves some data in your device&apos;s cache to serve faster responses. You can clear it anytime.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h4 className="text-lg font-medium">Clear search cache</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Removes cached search, images, news, videos, AI, Dive, and autocomplete entries stored locally.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant={cacheCleared ? "default" : "outline"}
+                    disabled={false}
+                    className={cacheCleared ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
+                    onClick={() => {
+                      SearchCache.clearAll();
+                      setCacheClearedAt(Date.now());
+                      setCacheCleared(true);
+                    }}
+                    aria-live="polite"
+                  >
+                    {cacheCleared ? 'Cleared!' : 'Clear search cache'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
