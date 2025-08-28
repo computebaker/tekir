@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageCircleMore } from 'lucide-react';
+import { MessageCircleMore, Check, X } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 
 interface Props {
@@ -94,7 +94,7 @@ export default function FloatingFeedback({ query, results, wikiData, suggestions
 
           {sent ? (
             <div className="w-80 p-6 rounded-xl shadow-lg bg-card border border-border text-sm text-foreground flex flex-col items-center gap-2" role="status" aria-live="polite" style={{ animation: 'tekir-feedback-success-fade 1400ms ease-in forwards' }}>
-              <div className="text-4xl font-extrabold text-green-600" style={{ animation: 'tekir-feedback-check 360ms cubic-bezier(.2,.9,.2,1)' }}>✔</div>
+              <Check className="w-12 h-12 text-green-600" style={{ animation: 'tekir-feedback-check 360ms cubic-bezier(.2,.9,.2,1)' }} />
               <div className="font-semibold">Feedback sent</div>
             </div>
           ) : (
@@ -105,13 +105,15 @@ export default function FloatingFeedback({ query, results, wikiData, suggestions
                   onClick={() => setLiked(true)}
                   className={`flex-1 px-3 py-2 rounded-md transition-colors duration-150 ${liked === true ? 'bg-green-600 text-white' : 'bg-background border border-border text-foreground'}`}
                 >
-                  ✅ I liked the results
+                  <Check className="w-4 h-4 inline mr-2" />
+                  Yes
                 </button>
                 <button
                   onClick={() => setLiked(false)}
                   className={`flex-1 px-3 py-2 rounded-md transition-colors duration-150 ${liked === false ? 'bg-red-600 text-white' : 'bg-background border border-border text-foreground'}`}
                 >
-                 ❌ I did not like the results
+                  <X className="w-4 h-4 inline mr-2" />
+                  No
                 </button>
               </div>
               <div className="mb-3">
