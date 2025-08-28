@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getRedirectUrlWithFallback } from "@/lib/utils";
 
 export default function SignInPage() {
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -41,7 +42,8 @@ export default function SignInPage() {
         
         // Small delay to allow AuthProvider to update before redirect
         setTimeout(() => {
-          router.push("/");
+          const redirectUrl = getRedirectUrlWithFallback('/');
+          router.push(redirectUrl);
         }, 100);
       } else {
         setError(data.error || "Invalid credentials");

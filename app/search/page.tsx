@@ -19,6 +19,7 @@ import WebResultItem from "@/components/search/web-result-item";
 import FlyingCats from "@/components/shared/flying-cats";
 import WikiNotebook from '@/components/wiki-notebook';
 import FloatingFeedback from '@/components/feedback/floating-feedback';
+import { storeRedirectUrl } from "@/lib/utils";
 
 // Define mobile navigation items
 const mobileNavItems = [
@@ -1804,7 +1805,7 @@ function SearchPageContent() {
                   AI Chat
                 </span>
               </Link>
-              <Link href="/settings/search" className="group inline-flex items-center overflow-hidden transition-all duration-300">
+              <Link href="/settings/search" className="group inline-flex items-center overflow-hidden transition-all duration-300" onClick={() => storeRedirectUrl(window.location.href)}>
                 <Settings className="w-5 h-5 text-muted-foreground" />
                 <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] transition-all duration-300 ease-out">
                   Settings

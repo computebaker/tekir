@@ -3,6 +3,7 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronDown, Settings as SettingsIcon, ArrowLeft, type LucideIcon } from "lucide-react";
+import { getRedirectUrlWithFallback } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
 
@@ -71,7 +72,7 @@ export function SettingsShell({
         <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <Link 
-              href="/" 
+              href={getRedirectUrlWithFallback("/")} 
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />

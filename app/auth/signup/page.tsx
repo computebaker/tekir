@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { storeRedirectUrl, getRedirectUrlWithFallback } from "@/lib/utils";
 
 export default function SignUpPage() {
   const [username, setUsername] = useState("");
@@ -66,8 +67,9 @@ export default function SignUpPage() {
       if (data.requiresVerification) {
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } else {
-        // Redirect to signin page after successful signup
-        router.push("/auth/signin?message=Account created successfully. Please sign in.");
+        // If no verification required, redirect to stored URL or home
+        const redirectUrl = getRedirectUrlWithFallback('/');
+        router.push(redirectUrl);
       }
     } catch (error) {
       setError("An error occurred. Please try again.");

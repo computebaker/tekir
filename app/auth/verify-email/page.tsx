@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, CheckCircle2, AlertCircle, ArrowLeft, RotateCcw, Loader2 } from "lucide-react";
+import { getRedirectUrlWithFallback } from "@/lib/utils";
 
 function VerifyEmailForm() {
   const [code, setCode] = useState("");
@@ -36,14 +37,33 @@ function VerifyEmailForm() {
 
       if (response.ok) {
         setSuccess(true);
-        setTimeout(() => {
-          router.push("/auth/signin?message=Email verified successfully");
-        }, 2000);
+        
+        // Notify auth provider that user has been authenticated
+        window.dispatchEvent(new CustomEvent('auth-login'));
+        
+        // Check if user was automatically authenticated
+        if (data.authenticated && data.user) {
+          setTimeout(() => {
+            const redirectUrl = getRedirectUrlWithFallback('/');
+            router.push(redirectUrl);
+          }, 2000);
+        } else {
+          // Fallback to login if authentication failed
+          setTimeout(() => {
+            const redirectUrl = getRedirectUrlWithFallback('/auth/signin?message=Email verified successfully');
+            router.push(redirectUrl);
+          }, 2000);
+        }
       } else {
         setError(data.error || "Verification failed");
       }
     } catch (error) {
-      setError("An error occurred. Please try again.");
+      console.error("Email verification error:", error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError("An error occurred. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +90,7 @@ function VerifyEmailForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="max-w-md w-full mx-4">
           <div className="bg-card border border-border rounded-xl shadow-lg p-8 text-center space-y-6">
             <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
@@ -79,7 +99,7 @@ function VerifyEmailForm() {
             <div className="space-y-2">
               <h2 className="text-2xl font-bold text-foreground">Email Verified!</h2>
               <p className="text-muted-foreground">
-                Your email has been successfully verified. Redirecting to login...
+                Your email has been successfully verified. Signing you in...
               </p>
             </div>
             <div className="flex justify-center">
@@ -92,7 +112,7 @@ function VerifyEmailForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md w-full mx-4">
         <div className="bg-card border border-border rounded-xl shadow-lg p-8 space-y-8">
           {/* Header */}
@@ -188,7 +208,7 @@ function VerifyEmailForm() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md w-full mx-4">
         <div className="bg-card border border-border rounded-xl shadow-lg p-8 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { User, LogOut, LogIn, Settings, LucideIcon, LayoutDashboard } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
+import { storeRedirectUrl } from "@/lib/utils";
 
 interface MobileNavItem {
   href: string;
@@ -92,7 +93,10 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               <Link
                 href="/auth/signin"
                 className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  storeRedirectUrl();
+                  setIsOpen(false);
+                }}
               >
                 <LogIn className="w-4 h-4" />
                 Sign in
@@ -209,7 +213,12 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 key={item.href}
                 href={item.href}
                 className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left sm:hidden"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  if (item.href === '/settings/search') {
+                    storeRedirectUrl(window.location.href);
+                  }
+                  setIsOpen(false);
+                }}
               >
                 <item.icon className="w-4 h-4" />
                 {item.label}
