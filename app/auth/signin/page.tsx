@@ -70,7 +70,7 @@ export default function SignInPage() {
             Sign in to your account
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Already have an account?{" "}
+            Need an account?{" "}
             <Link className="text-primary hover:underline" href="/auth/signup">
               Sign up
             </Link>
