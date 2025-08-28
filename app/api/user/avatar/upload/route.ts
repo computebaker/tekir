@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJWTUser } from '@/lib/jwt-auth';
 import { getConvexClient } from '@/lib/convex-client';
 import { validateAndProcessImage } from '@/lib/image-processing';
+import { regenerateAvatar } from '@/lib/avatar';
 import { z } from 'zod';
 import { api } from '@/convex/_generated/api';
 
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const user = await getJWTUser(request);
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -82,22 +83,37 @@ export async function DELETE(request: NextRequest) {
 
     const convex = getConvexClient();
 
-    // Remove the user's custom profile picture and reset to generated avatar
+    // Get the current user data to use for avatar generation
+    const userRecord = await convex.query(api.users.getUserById, { id: user.userId as any });
+
+    if (!userRecord) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Generate a new avatar URL using the regenerate function
+    const newAvatarUrl = regenerateAvatar(userRecord._id, userRecord.email);
+
+    // Update user's profile picture in the database with the new generated avatar
     await convex.mutation(api.users.updateUser, {
       id: user.userId as any,
-      image: undefined, // This will be set to null in the mutation
-      imageType: undefined
+      image: newAvatarUrl,
+      imageType: 'generated'
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Profile picture removed successfully',
+      message: 'Profile picture removed and new avatar generated successfully',
+      image: newAvatarUrl,
+      imageType: 'generated',
       updatedAt: Date.now()
     });
 
   } catch (error) {
     console.error('Error removing profile picture:', error);
-    
+
     return NextResponse.json(
       { error: 'Failed to remove profile picture' },
       { status: 500 }
