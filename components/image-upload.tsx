@@ -25,6 +25,12 @@ export default function ImageUpload({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper function to determine if we should use Next.js Image or regular img
+  const shouldUseNextImage = (src: string) => {
+    // Use regular img for DiceBear URLs to hit API directly
+    return !src.includes('api.dicebear.com');
+  };
+
   const handleFileSelect = useCallback(async (file: File) => {
     if (disabled) return;
 
@@ -123,13 +129,29 @@ export default function ImageUpload({
         onClick={openFileDialog}
       >
         {currentImage ? (
-        <Image
-          src={currentImage}
-          alt="Profile"
-          width={size}
-          height={size}
-          className="w-full h-full object-cover"
-        />
+          (() => {
+            if (shouldUseNextImage(currentImage)) {
+              return (
+                <Image
+                  src={currentImage}
+                  alt="Profile"
+                  width={size}
+                  height={size}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
+              );
+            } else {
+              return (
+                <img
+                  src={currentImage}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  style={{ width: size, height: size }}
+                />
+              );
+            }
+          })()
         ) : (
         <div className="w-full h-full flex flex-col items-center justify-center bg-muted/30">
           <Camera className="w-8 h-8 text-muted-foreground/60 mb-2" />

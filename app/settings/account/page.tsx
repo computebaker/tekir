@@ -269,9 +269,9 @@ export default function AccountSettingsPage() {
         // Refresh user data from backend to get the latest avatar
         await refreshUser();
         
-        setTimeout(() => {
-          setAvatarRefreshKey(Date.now());
-        }, 100);
+        // Force avatar refresh with a new key
+        const newKey = Date.now();
+        setAvatarRefreshKey(newKey);
         
         setMessage({ type: 'success', text: 'Profile avatar regenerated successfully' });
       } else {

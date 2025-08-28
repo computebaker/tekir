@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJWTUser } from '@/lib/jwt-auth';
 import { getConvexClient } from '@/lib/convex-client';
-import { generateAvatarUrl } from '@/lib/avatar';
+import { regenerateAvatar } from '@/lib/avatar';
 import { api } from '@/convex/_generated/api';
 
 export async function POST(request: NextRequest) {
@@ -27,11 +27,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a new avatar URL with current timestamp to ensure uniqueness
-    const avatarSeed = `${userRecord.name || userRecord.email || 'User'}-${Date.now()}`;
-    const newAvatarUrl = generateAvatarUrl(avatarSeed);
+    // Generate a new avatar URL using the regenerate function which includes timestamp for uniqueness
+    const newAvatarUrl = regenerateAvatar(userRecord._id, userRecord.email);
 
-    // Update user avatar
+    // Update user avatar - store the URL and mark as generated
     await convex.mutation(api.users.updateUser, {
       id: user.userId as any,
       image: newAvatarUrl,

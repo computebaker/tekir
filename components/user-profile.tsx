@@ -47,6 +47,12 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
     }
   }, [user]);
 
+  // Helper function to determine if we should use Next.js Image or regular img
+  const shouldUseNextImage = (src: string) => {
+    // Use regular img for DiceBear URLs to hit API directly
+    return !src.includes('api.dicebear.com');
+  };
+
   if (status === "loading") {
     return (
       <div
@@ -119,29 +125,54 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
           className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-border flex-shrink-0`}
           style={{ width: avatarPx, height: avatarPx }}
         >
-          <Image
-            key={`avatar-${user.id}-${avatarKey}`}
-            src={getUserAvatarUrl({
+          {(() => {
+            const avatarUrl = getUserAvatarUrl({
               id: user.id,
               image: user.image,
               imageType: (user as any).imageType,
               email: user.email,
               name: user.name,
               updatedAt: (user as any).updatedAt
-            })}
-            alt={user.name || "Profile"}
-            width={avatarPx}
-            height={avatarPx}
-            className="w-full h-full object-cover"
-            unoptimized
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              const userId = user.id;
-              target.src = user.image
-                ? generateAvatarUrl(userId, user.email || undefined)
-                : generateInitialsAvatar(user.name || user.email || "User");
-            }}
-          />
+            });
+
+            if (shouldUseNextImage(avatarUrl)) {
+              return (
+                <Image
+                  key={`avatar-${user.id}-${avatarKey}`}
+                  src={avatarUrl}
+                  alt={user.name || "Profile"}
+                  width={avatarPx}
+                  height={avatarPx}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const userId = user.id;
+                    target.src = user.image
+                      ? generateAvatarUrl(userId, user.email || undefined)
+                      : generateInitialsAvatar(user.name || user.email || "User");
+                  }}
+                />
+              );
+            } else {
+              return (
+                <img
+                  key={`avatar-${user.id}-${avatarKey}`}
+                  src={avatarUrl}
+                  alt={user.name || "Profile"}
+                  className="w-full h-full object-cover"
+                  style={{ width: avatarPx, height: avatarPx }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const userId = user.id;
+                    target.src = user.image
+                      ? generateAvatarUrl(userId, user.email || undefined)
+                      : generateInitialsAvatar(user.name || user.email || "User");
+                  }}
+                />
+              );
+            }
+          })()}
         </div>
         {!showOnlyAvatar && (
           <span className="hidden sm:block truncate max-w-24">
@@ -155,29 +186,54 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
           <div className="p-3 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
-                <Image
-                  key={`dropdown-avatar-${user.id}-${avatarKey}`}
-                  src={getUserAvatarUrl({
+                {(() => {
+                  const dropdownAvatarUrl = getUserAvatarUrl({
                     id: user.id,
                     image: user.image,
                     imageType: (user as any).imageType,
                     email: user.email,
                     name: user.name,
                     updatedAt: (user as any).updatedAt
-                  })}
-                  alt={user.name || "Profile"}
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    const userId = user.id;
-                    target.src = user.image
-                      ? generateAvatarUrl(userId, user.email || undefined)
-                      : generateInitialsAvatar(user.name || user.email || "User");
-                  }}
-                />
+                  });
+
+                  if (shouldUseNextImage(dropdownAvatarUrl)) {
+                    return (
+                      <Image
+                        key={`dropdown-avatar-${user.id}-${avatarKey}`}
+                        src={dropdownAvatarUrl}
+                        alt={user.name || "Profile"}
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                        unoptimized
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          const userId = user.id;
+                          target.src = user.image
+                            ? generateAvatarUrl(userId, user.email || undefined)
+                            : generateInitialsAvatar(user.name || user.email || "User");
+                        }}
+                      />
+                    );
+                  } else {
+                    return (
+                      <img
+                        key={`dropdown-avatar-${user.id}-${avatarKey}`}
+                        src={dropdownAvatarUrl}
+                        alt={user.name || "Profile"}
+                        className="w-full h-full object-cover"
+                        style={{ width: 40, height: 40 }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          const userId = user.id;
+                          target.src = user.image
+                            ? generateAvatarUrl(userId, user.email || undefined)
+                            : generateInitialsAvatar(user.name || user.email || "User");
+                        }}
+                      />
+                    );
+                  }
+                })()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user.name || "User"}</p>
