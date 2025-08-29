@@ -998,8 +998,8 @@ export default function Home() {
               <Link href="/about" className={buttonVariants({ variant: "default", size: "lg" }) + " rounded-full px-8"}>
                 Learn More
               </Link>
-              <Link href="/settings" className={buttonVariants({ variant: "secondary", size: "lg" }) + " rounded-full px-8"} onClick={() => storeRedirectUrl(window.location.href)}>
-                Customize Settings
+              <Link href="/settings/search" className={buttonVariants({ variant: "secondary", size: "lg" }) + " rounded-full px-8"} onClick={() => storeRedirectUrl(window.location.href)}>
+                Settings
               </Link>
             </div>
           </div>

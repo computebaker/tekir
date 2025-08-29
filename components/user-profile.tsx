@@ -84,7 +84,14 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         {isOpen && (
           <div className="absolute right-0 mt-2 w-48 rounded-lg bg-background border border-border shadow-lg z-50">
             <div className="p-3 border-b border-border">
-              <div className="flex items-center gap-3">
+              <Link
+                href="/auth/signin"
+                className="flex items-center gap-3 hover:bg-muted/50 transition-colors rounded-md p-2 -m-2 cursor-pointer"
+                onClick={() => {
+                  storeRedirectUrl();
+                  setIsOpen(false);
+                }}
+              >
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0">
                   <User className="w-5 h-5 text-muted-foreground" />
                 </div>
@@ -92,7 +99,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   <p className="text-sm font-medium">Guest</p>
                   <p className="text-xs text-muted-foreground">Not signed in</p>
                 </div>
-              </div>
+              </Link>
             </div>
             
             <div className="p-1">
@@ -184,7 +191,14 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 rounded-lg bg-background border border-border shadow-lg z-50">
           <div className="p-3 border-b border-border">
-            <div className="flex items-center gap-3">
+            <Link
+              href="/settings/account"
+              className="flex items-center gap-3 hover:bg-muted/50 transition-colors rounded-md p-2 -m-2 cursor-pointer"
+              onClick={() => {
+                storeRedirectUrl(window.location.href);
+                setIsOpen(false);
+              }}
+            >
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
                 {(() => {
                   const dropdownAvatarUrl = getUserAvatarUrl({
@@ -241,7 +255,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   @{(user as any).username || user.email?.split('@')[0] || "user"}
                 </p>
               </div>
-            </div>
+            </Link>
           </div>
           
           <div className="p-1">
@@ -256,7 +270,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               </Link>
             )}
             <Link
-              href="/settings/account"
+              href="/settings/search"
               className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left"
               onClick={() => {
                 storeRedirectUrl(window.location.href);
@@ -264,7 +278,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               }}
             >
               <Settings className="w-4 h-4" />
-              Account Settings
+              Settings
             </Link>
             
             {mobileNavItems.map((item) => (

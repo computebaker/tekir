@@ -1821,12 +1821,6 @@ function SearchPageContent() {
 
         <div className="max-w-6xl w-full md:ml-8 md:mr-8 relative">
           {query && (
-            <p className="text-muted-foreground mb-4 md:w-4/5 xl:w-2/3">
-              Showing results for: <span className="font-medium text-foreground">{query}</span>
-            </p>
-          )}
-
-          {query && (
             <div className="mb-6 border-b border-border">
               <SearchTabs active={searchType} onChange={handleSearchTypeChange} />
             </div>
