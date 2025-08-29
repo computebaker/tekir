@@ -5,94 +5,21 @@ import { isValidSessionToken, isConvexConfigured, incrementAndCheckRequestCount 
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
 
-// Server-side favicon fetch settings
-const FAVICON_TIMEOUT_MS = 3000;
-const FAVICON_MAX_BYTES = 32 * 1024; // 32KB
-const FAVICON_CONCURRENCY = 6;
-
-async function fetchAndEncodeFavicon(url: string): Promise<string | undefined> {
-  if (!url) return undefined;
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FAVICON_TIMEOUT_MS);
-    const res = await fetch(url, { signal: controller.signal, redirect: 'follow' });
-    clearTimeout(timeout);
-    if (!res.ok) return undefined;
-
-    const contentLength = res.headers.get('content-length');
-    if (contentLength && Number(contentLength) > FAVICON_MAX_BYTES) return undefined;
-
-    const buffer = Buffer.from(await res.arrayBuffer());
-    if (buffer.length === 0 || buffer.length > FAVICON_MAX_BYTES) return undefined;
-
-    let contentType = res.headers.get('content-type') || '';
-    if (!contentType) {
-      // Infer from extension when possible
-      const lower = url.split('?')[0].toLowerCase();
-      if (lower.endsWith('.svg')) contentType = 'image/svg+xml';
-      else if (lower.endsWith('.png')) contentType = 'image/png';
-      else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) contentType = 'image/jpeg';
-      else if (lower.endsWith('.ico')) contentType = 'image/x-icon';
-      else contentType = 'application/octet-stream';
-    }
-
-    const b64 = buffer.toString('base64');
-    return `data:${contentType};base64,${b64}`;
-  } catch (err) {
-    return undefined;
-  }
-}
-
 async function fetchFaviconsForResults(items: Array<{ url: string; favicon?: string }>) {
   if (!Array.isArray(items) || items.length === 0) return;
 
-  // Work queue for concurrency
-  const queue = items.slice();
-
-  const worker = async () => {
-    while (queue.length > 0) {
-      const item = queue.shift();
-      if (!item) break;
+  for (const item of items) {
+    if (!item.favicon) {
       try {
-        // Candidate favicon URLs in order: existing favicon value, duckduckgo shortcut, origin/favicon.ico
-        const candidates: string[] = [];
-        if (item.favicon) candidates.push(item.favicon);
-        try {
-          const origin = new URL(item.url).origin;
-          candidates.push(`https://icons.duckduckgo.com/ip3/${new URL(item.url).hostname}.ico`);
-          candidates.push(`${origin}/favicon.ico`);
-        } catch (e) {
-          // ignore origin parsing errors
-        }
-
-        let got: string | undefined = undefined;
-        for (const c of candidates) {
-          try {
-            const encoded = await fetchAndEncodeFavicon(c);
-            if (encoded) {
-              got = encoded;
-              break;
-            }
-          } catch (e) {
-            // try next
-          }
-        }
-
-        if (got) {
-          item.favicon = got;
-        } else {
-          item.favicon = '';
-        }
+        const origin = new URL(item.url).origin;
+        // Use DuckDuckGo's public favicon service
+        item.favicon = `https://icons.duckduckgo.com/ip3/${new URL(item.url).hostname}.ico`;
       } catch (e) {
-        // ensure we don't crash the whole processing
-        if (item) item.favicon = '';
+        // If URL parsing fails, skip favicon
+        item.favicon = '';
       }
     }
-  };
-
-  // Start workers
-  const workers = Array.from({ length: Math.max(1, Math.min(FAVICON_CONCURRENCY, items.length)) }).map(() => worker());
-  await Promise.all(workers);
+  }
 }
 
 interface Results {
@@ -292,21 +219,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       return NextResponse.json({ error: 'Unsupported provider.' }, { status: 400 });
   }
 
-  // Attempt to fetch and inline favicons for returned results so the client
-  // doesn't need to load remote Brave/Duck domains directly.
+  // Generate favicon URLs for returned results using DuckDuckGo's public favicon service
   try {
-    // Only fetch favicons for a reasonable subset to avoid costly work
     const toFetch = results.slice(0, 20).map(r => ({ url: r.url, favicon: r.favicon }));
     await fetchFaviconsForResults(toFetch as any);
-    // copy back encoded favicons into results
     for (let i = 0; i < toFetch.length; i++) {
       if (toFetch[i].favicon) {
         results[i].favicon = toFetch[i].favicon;
       }
     }
   } catch (e) {
-    // ignore favicon fetch failures — results still returned without favicons
-    console.warn('Favicon fetching failed:', e);
+    console.warn('Favicon processing failed:', e);
   }
 
   const responseTime = Date.now() - now;

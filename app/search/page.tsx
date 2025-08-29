@@ -1589,7 +1589,7 @@ function SearchPageContent() {
                   <div className="p-4 flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-2">
                       {article.favicon && (
-                        <Image src={article.favicon} alt="" width={16} height={16} className="rounded-sm flex-shrink-0" />
+                        <img src={article.favicon} alt="" className="w-4 h-4 rounded-sm flex-shrink-0" />
                       )}
                       <span className="text-xs text-muted-foreground truncate">
                         {article.source.replace(/^(https?:\/\/)?(www\.)?/, '')}
