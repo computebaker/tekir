@@ -275,8 +275,7 @@ function SearchPageContent() {
                   url: n.url || n.link || '',
                   source: n.meta_url?.netloc || n.source || '',
                   age: n.age || n.page_age || '',
-                  thumbnail: n.thumbnail?.src || n.thumbnail?.original || undefined,
-                  favicon: n.meta_url?.favicon || undefined
+                  thumbnail: n.thumbnail?.src || n.thumbnail?.original || undefined
                 }));
                 setNewsResults(normalized);
               } catch (e) {

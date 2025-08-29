@@ -13,12 +13,6 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'imgs.search.brave.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
         hostname: 'i.ytimg.com',
         port: '',
         pathname: '/**',

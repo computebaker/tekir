@@ -100,8 +100,8 @@ async function getBraveNews(q: string, country: string = 'ALL', safesearch: stri
           url: item.url || '',
           source: sanitizeText(item.meta_url?.hostname || (item.url ? new URL(item.url).hostname : '')),
           age: item.age || 'Recently',
-          thumbnail: item.thumbnail?.src || undefined,
-          favicon: item.meta_url?.favicon || undefined
+          thumbnail: item.thumbnail?.src || undefined
+          // Don't extract favicon from Brave - let DuckDuckGo handle all favicons
         };
         results.push(result);
       });

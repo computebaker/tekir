@@ -11,9 +11,9 @@ async function fetchFaviconsForResults(items: Array<{ url: string; favicon?: str
   for (const item of items) {
     if (!item.favicon) {
       try {
-        const origin = new URL(item.url).origin;
-        // Use DuckDuckGo's public favicon service
-        item.favicon = `https://icons.duckduckgo.com/ip3/${new URL(item.url).hostname}.ico`;
+        const hostname = new URL(item.url).hostname;
+        // Use our favicon proxy instead of direct DuckDuckGo requests
+        item.favicon = `/api/favicon/${hostname}`;
       } catch (e) {
         // If URL parsing fails, skip favicon
         item.favicon = '';
@@ -92,8 +92,8 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
         description: sanitizeText(item.description || ''),
         displayUrl: sanitizeText((item.url || '').replace(/^https?:\/\//, '')),
         url: item.url || '',
-  source: 'Brave',
-  favicon: sanitizeText(item.meta_url?.favicon || item.profile?.img || '')
+        source: 'Brave'
+        // Don't extract favicon from Brave - let DuckDuckGo handle all favicons
       };
       results.push(result);
     });
@@ -149,8 +149,8 @@ async function getDuck(q: string): Promise<Results[]> {
         let favicon = '';
         try {
           const hostname = new URL(url).hostname;
-          // DuckDuckGo public favicon endpoint
-          favicon = `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
+          // Use our favicon proxy instead of direct DuckDuckGo requests
+          favicon = `/api/favicon/${hostname}`;
         } catch (e) {
           favicon = '';
         }
@@ -219,7 +219,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       return NextResponse.json({ error: 'Unsupported provider.' }, { status: 400 });
   }
 
-  // Generate favicon URLs for returned results using DuckDuckGo's public favicon service
+  // Generate favicon URLs for returned results using our favicon proxy
   try {
     const toFetch = results.slice(0, 20).map(r => ({ url: r.url, favicon: r.favicon }));
     await fetchFaviconsForResults(toFetch as any);
