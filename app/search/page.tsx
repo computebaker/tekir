@@ -1810,25 +1810,7 @@ function SearchPageContent() {
                 </div>
               )}
             </div>
-            <div className="hidden md:flex items-center gap-4">
-              <Link href="/about" className="group inline-flex items-center overflow-hidden transition-all duration-300">
-                <Lock className="w-5 h-5 text-muted-foreground" />
-                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] transition-all duration-300 ease-out">
-                  Your searches are private.
-                </span>
-              </Link>
-              <Link href="https://chat.tekir.co" className="group inline-flex items-center overflow-hidden transition-all duration-300">
-                <MessageCircleMore className="w-5 h-5 text-muted-foreground" />
-                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] transition-all duration-300 ease-out">
-                  AI Chat
-                </span>
-              </Link>
-              <Link href="/settings/search" className="group inline-flex items-center overflow-hidden transition-all duration-300" onClick={() => storeRedirectUrl(window.location.href)}>
-                <Settings className="w-5 h-5 text-muted-foreground" />
-                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] transition-all duration-300 ease-out">
-                  Settings
-                </span>
-              </Link>
+            <div className="hidden md:flex items-center gap-4 ml-auto">
               <UserProfile mobileNavItems={mobileNavItems} />
             </div>
             <div className="md:hidden">
