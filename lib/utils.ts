@@ -20,10 +20,11 @@ export function storeRedirectUrl(url?: string) {
 
 export function getRedirectUrl(): string | null {
   if (typeof window === 'undefined') return null;
-  return sessionStorage.getItem(REDIRECT_STORAGE_KEY);
+  const stored = sessionStorage.getItem(REDIRECT_STORAGE_KEY);
+  return stored;
 }
 
-export function clearRedirectUrl() {
+export function clearRedirectUrlOnNavigation() {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
 }
@@ -31,7 +32,7 @@ export function clearRedirectUrl() {
 export function getRedirectUrlWithFallback(fallback: string = '/'): string {
   const stored = getRedirectUrl();
   if (stored) {
-    clearRedirectUrl(); // Clear after use
+    // Don't clear immediately - only clear when user navigates away from settings
     return stored;
   }
   return fallback;

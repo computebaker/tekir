@@ -16,6 +16,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { BadgeChip } from "@/components/shared/badge-chip";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { cn } from "@/lib/utils";
+import { storeRedirectUrl } from "@/lib/utils";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -891,7 +892,7 @@ export default function Home() {
             </Link>
 
             {/* Smart Autocomplete */}
-            <Link href="/settings/search" className="block group">
+            <Link href="/settings/search" className="block group" onClick={() => storeRedirectUrl(window.location.href)}>
               <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-400/20 to-transparent rounded-full blur-2xl"></div>
                 <div className="relative z-10">
@@ -941,7 +942,7 @@ export default function Home() {
             </Link>
 
             {/* Multiple Providers */}
-            <Link href="/settings/search" className="lg:col-span-2 block group">
+            <Link href="/settings/search" className="lg:col-span-2 block group" onClick={() => storeRedirectUrl(window.location.href)}>
               <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/20 to-transparent rounded-full blur-3xl"></div>
                 <div className="relative z-10">
@@ -997,7 +998,7 @@ export default function Home() {
               <Link href="/about" className={buttonVariants({ variant: "default", size: "lg" }) + " rounded-full px-8"}>
                 Learn More
               </Link>
-              <Link href="/settings" className={buttonVariants({ variant: "secondary", size: "lg" }) + " rounded-full px-8"}>
+              <Link href="/settings" className={buttonVariants({ variant: "secondary", size: "lg" }) + " rounded-full px-8"} onClick={() => storeRedirectUrl(window.location.href)}>
                 Customize Settings
               </Link>
             </div>

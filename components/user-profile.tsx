@@ -258,7 +258,10 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
             <Link
               href="/settings/account"
               className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left"
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                storeRedirectUrl(window.location.href);
+                setIsOpen(false);
+              }}
             >
               <Settings className="w-4 h-4" />
               Account Settings

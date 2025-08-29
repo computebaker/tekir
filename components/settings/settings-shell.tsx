@@ -3,7 +3,7 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronDown, Settings as SettingsIcon, ArrowLeft, type LucideIcon } from "lucide-react";
-import { getRedirectUrlWithFallback } from "@/lib/utils";
+import { getRedirectUrlWithFallback, clearRedirectUrlOnNavigation } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import UserProfile from "@/components/user-profile";
 
@@ -60,6 +60,28 @@ export function SettingsShell({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeydown);
+    };
+  }, []);
+
+  // Clear redirect URL when navigating away from settings
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      clearRedirectUrlOnNavigation();
+    };
+
+    const handlePopState = () => {
+      // Check if we're leaving settings pages
+      if (!window.location.pathname.startsWith('/settings')) {
+        clearRedirectUrlOnNavigation();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
