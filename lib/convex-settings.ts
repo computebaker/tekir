@@ -1,8 +1,8 @@
-import { useAuth } from "@/components/auth-provider";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useAuth } from "@/components/auth-provider";
 
 // Define the settings structure
 export interface UserSettings {
@@ -12,11 +12,11 @@ export interface UserSettings {
   safesearch?: string;
   autocompleteSource?: string;
   showRecommendations?: boolean;
-  
+
   // AI preferences
   aiModel?: string;
   karakulakEnabled?: boolean;
-  
+
   // Weather preferences
   clim8Enabled?: boolean;
   weatherUnits?: string;
@@ -27,13 +27,16 @@ export interface UserSettings {
     lon: number;
   };
   weatherPlacement?: 'hero' | 'topRight';
-  
+
   // UI preferences
   theme?: string;
   searchType?: string;
   // Enchanted Results — show/hide News and Videos widgets
   enchantedResults?: boolean;
-  
+
+  // Wikipedia preferences
+  wikipediaEnabled?: boolean;
+
   // AI model-specific settings
   karakulakEnabled_llama?: boolean;
   karakulakEnabled_gemini?: boolean;
@@ -56,6 +59,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   theme: "system",
   searchType: "web",
   enchantedResults: true,
+  wikipediaEnabled: true,
   karakulakEnabled_llama: true,
   karakulakEnabled_gemini: true,
   karakulakEnabled_chatgpt: true,

@@ -201,6 +201,11 @@ export default function SearchSettingsPage() {
     await updateSetting("enchantedResults", newValue);
   };
 
+  const handleWikipediaToggle = async () => {
+    const newValue = !(settings.wikipediaEnabled ?? true);
+    await updateSetting("wikipediaEnabled", newValue);
+  };
+
   // Weather location handlers
   const searchWeatherLocations = async (query: string) => {
     if (query.length < 2) {
@@ -719,6 +724,21 @@ export default function SearchSettingsPage() {
                 </div>
               </div>
 
+              {/* Wikipedia Results */}
+              <div className="rounded-lg border border-border bg-card p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h4 className="text-lg font-medium">Wikipedia Results</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Show Wikipedia summaries and information in search results
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch checked={settings.wikipediaEnabled ?? true} onChange={() => { void handleWikipediaToggle(); }} aria-label="Wikipedia Results" />
+                  </div>
+                </div>
+              </div>
+
             {/* Homepage Recommendations */}
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -965,7 +985,7 @@ export default function SearchSettingsPage() {
                 <div>
                   <h4 className="text-lg font-medium">Clear search cache</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Removes cached search, images, news, videos, AI, Dive, and autocomplete entries stored locally.
+                    Removes cached search, images, news, videos, AI, Dive, Wikipedia, and autocomplete entries stored locally.
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

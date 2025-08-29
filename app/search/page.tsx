@@ -86,6 +86,7 @@ function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
+  const { settings } = useSettings();
 
   // Helper function to check if a response should hide Karakulak
   const shouldHideKarakulak = (response: string | null): boolean => {
@@ -1049,17 +1050,27 @@ function SearchPageContent() {
     const fetchWikipediaData = async () => {
       setWikiLoading(true);
       try {
+        // Get browser language (first 2 characters of the locale)
+        const browserLanguage = navigator.language?.slice(0, 2);
+        
+        // Get search country from localStorage
+        const searchCountry = localStorage.getItem("searchCountry") || "ALL";
+        
+        // Check cache first
+        const cachedWikiData = SearchCache.getWikipedia(query, browserLanguage);
+        if (cachedWikiData) {
+          console.log('Wikipedia cache hit for:', query);
+          setWikiData(cachedWikiData);
+          setWikiLoading(false);
+          return;
+        }
+
         // Abort any in-flight Wikipedia requests
         if (wikipediaAbortRef.current) {
           try { wikipediaAbortRef.current.abort(); } catch {}
         }
         wikipediaAbortRef.current = new AbortController();
         const wikiSignal = wikipediaAbortRef.current.signal;
-        // Get browser language (first 2 characters of the locale)
-        const browserLanguage = navigator.language?.slice(0, 2);
-        
-        // Get search country from localStorage
-        const searchCountry = localStorage.getItem("searchCountry") || "ALL";
         
         // Build Wikipedia suggestion API URL with priority parameters
         const suggestionUrl = new URL(`/api/suggest/wikipedia`, window.location.origin);
@@ -1099,6 +1110,8 @@ function SearchPageContent() {
               language: language,
             };
 
+            // Cache the successful result
+            SearchCache.setWikipedia(query, wikipediaData, browserLanguage);
             setWikiData(wikipediaData);
           } else {
             await fallbackToWikipediaSearch(language);
@@ -1141,6 +1154,9 @@ function SearchPageContent() {
               language: language,
             };
 
+            // Cache the fallback result as well
+            const browserLanguage = navigator.language?.slice(0, 2);
+            SearchCache.setWikipedia(query, wikipediaData, browserLanguage);
             setWikiData(wikipediaData);
           } else {
             setWikiData(null);
@@ -1155,7 +1171,12 @@ function SearchPageContent() {
     };
 
     if (!hasBang) {
-      fetchWikipediaData();
+      // Check if Wikipedia is enabled in settings before fetching
+      if (settings.wikipediaEnabled !== false) {
+        fetchWikipediaData();
+      } else {
+        setWikiData(null);
+      }
     } else {
       setWikiData(null);
     }
@@ -1166,7 +1187,7 @@ function SearchPageContent() {
         wikipediaAbortRef.current = null;
       }
     };
-  }, [query, hasBang]);
+  }, [query, hasBang, settings.wikipediaEnabled]);
 
   useEffect(() => {
     const storedSearchType = localStorage.getItem("searchType");
@@ -1228,8 +1249,6 @@ function SearchPageContent() {
   const [isNewsBottomOpen, setIsNewsBottomOpen] = useState(true);
   const [isVideosInlineOpen, setIsVideosInlineOpen] = useState(true);
   const [isVideosBottomOpen, setIsVideosBottomOpen] = useState(true);
-
-  const { settings } = useSettings();
 
   // Easter egg: show flying cats when query contains "cat" in common languages
   const catEasterEgg = (() => {

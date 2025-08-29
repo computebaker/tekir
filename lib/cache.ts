@@ -6,6 +6,19 @@ interface CacheEntry<T = any> {
   searchParams?: Record<string, string>;
 }
 
+interface WikipediaData {
+  title: string;
+  extract: string;
+  thumbnail?: {
+    source: string;
+    width: number;
+    height: number;
+  };
+  pageUrl: string;
+  description?: string;
+  language?: string;
+}
+
 interface CacheMetadata {
   provider: string;
   query: string;
@@ -20,7 +33,7 @@ export class SearchCache {
    * Generate a cache key based on search type, provider, query, and optional parameters
    */
   private static generateCacheKey(
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos',
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia',
     provider: string,
     query: string,
     searchParams?: Record<string, string>
@@ -42,7 +55,7 @@ export class SearchCache {
   /**
    * Clean up expired cache entries and maintain cache size limits
    */
-  private static cleanupCache(searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos'): void {
+  private static cleanupCache(searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia'): void {
     if (typeof window === 'undefined') return;
 
     try {
@@ -87,7 +100,7 @@ export class SearchCache {
    * Get cached data for a search request
    */
   static get<T = any>(
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos',
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia',
     provider: string,
     query: string,
     searchParams?: Record<string, string>
@@ -121,7 +134,7 @@ export class SearchCache {
    * Set cached data for a search request
    */
   static set<T = any>(
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos',
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia',
     provider: string,
     query: string,
     data: T,
@@ -167,7 +180,7 @@ export class SearchCache {
   /**
    * Clear all cached data for a specific search type
    */
-  static clearType(searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos'): void {
+  static clearType(searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia'): void {
     if (typeof window === 'undefined') return;
 
     try {
@@ -199,6 +212,7 @@ export class SearchCache {
         key.startsWith('ai-') ||
         key.startsWith('dive-') ||
         key.startsWith('videos-') ||
+        key.startsWith('wikipedia-') ||
         key.startsWith('autocomplete-')
       );
       
@@ -222,11 +236,12 @@ export class SearchCache {
     ai: number;
     dive: number;
     videos: number;
+    wikipedia: number;
     total: number;
     totalSize: number;
   } {
     if (typeof window === 'undefined') {
-      return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, total: 0, totalSize: 0 };
+      return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, wikipedia: 0, total: 0, totalSize: 0 };
     }
 
     try {
@@ -237,10 +252,11 @@ export class SearchCache {
   const aiKeys = allKeys.filter(key => key.startsWith('ai-'));
   const diveKeys = allKeys.filter(key => key.startsWith('dive-'));
   const videoKeys = allKeys.filter(key => key.startsWith('videos-'));
+  const wikipediaKeys = allKeys.filter(key => key.startsWith('wikipedia-'));
       
       // Calculate approximate storage size
       let totalSize = 0;
-  [...searchKeys, ...imageKeys, ...newsKeys, ...aiKeys, ...diveKeys, ...videoKeys].forEach(key => {
+  [...searchKeys, ...imageKeys, ...newsKeys, ...aiKeys, ...diveKeys, ...videoKeys, ...wikipediaKeys].forEach(key => {
         const item = sessionStorage.getItem(key);
         if (item) {
           totalSize += item.length * 2; // Rough estimate: 2 bytes per character in UTF-16
@@ -254,12 +270,13 @@ export class SearchCache {
   ai: aiKeys.length,
   dive: diveKeys.length,
   videos: videoKeys.length,
-  total: searchKeys.length + imageKeys.length + newsKeys.length + aiKeys.length + diveKeys.length + videoKeys.length,
+  wikipedia: wikipediaKeys.length,
+  total: searchKeys.length + imageKeys.length + newsKeys.length + aiKeys.length + diveKeys.length + videoKeys.length + wikipediaKeys.length,
     totalSize
   };
     } catch (error) {
       console.warn('Error getting cache stats:', error);
-    return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, total: 0, totalSize: 0 };
+    return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, wikipedia: 0, total: 0, totalSize: 0 };
     }
   }
 
@@ -267,7 +284,7 @@ export class SearchCache {
    * Check if a specific cache entry exists and is valid
    */
   static has(
-    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos',
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia',
     provider: string,
     query: string,
     searchParams?: Record<string, string>
@@ -310,6 +327,20 @@ export class SearchCache {
     this.clearType('ai');
     this.clearType('dive');
   }
+
+  /**
+   * Get cached Wikipedia data
+   */
+  static getWikipedia(query: string, language?: string): WikipediaData | null {
+    return this.get('wikipedia', 'wikipedia', query, language ? { language } : undefined);
+  }
+
+  /**
+   * Set cached Wikipedia data
+   */
+  static setWikipedia(query: string, data: WikipediaData, language?: string): void {
+    this.set('wikipedia', 'wikipedia', query, data, language ? { language } : undefined);
+  }
 }
 
 /**
@@ -319,7 +350,7 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
   url: RequestInfo | URL,
   options?: RequestInit,
   cacheConfig?: {
-  searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos';
+  searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia';
     provider: string;
     query: string;
     searchParams?: Record<string, string>;
