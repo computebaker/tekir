@@ -18,32 +18,67 @@ type Props = {
 
 export function WebResultItem({ result }: Props) {
   const [faviconError, setFaviconError] = useState(false);
+  
+  // Helper function to clean display URL by removing trailing slashes when appropriate
+  const cleanDisplayUrl = (url: string): string => {
+    // Remove trailing slash only if it's just a domain/root path
+    // Keep trailing slash if there's an actual path after the domain
+    if (url.endsWith('/')) {
+      // Find the domain part (after protocol)
+      const protocolEnd = url.indexOf('//') + 2;
+      const domainAndPath = url.substring(protocolEnd);
+      
+      // Count slashes in the domain+path part
+      const slashCount = (domainAndPath.match(/\//g) || []).length;
+      
+      // If there's only one slash (the trailing one), remove it
+      if (slashCount === 1) {
+        return url.slice(0, -1);
+      }
+    }
+    return url;
+  };
+  
+  const cleanedDisplayUrl = cleanDisplayUrl(result.displayUrl);
   return (
-    <div className="space-y-2">
+    <div className="space-y-0.8">
+      <div className="flex items-center gap-2 mb-1">
+        <a
+          href={result.url}
+          target="_self"
+          rel="noopener noreferrer"
+          className="w-5 h-5 flex-shrink-0 rounded-sm overflow-hidden bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+          title={`Visit ${cleanedDisplayUrl}`}
+        >
+          {result.favicon && !faviconError ? (
+            // Use a regular img tag for favicon to allow onError handling reliably
+            // and avoid Next/Image optimization for external small icons
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={result.favicon} alt="" className="w-5 h-5 object-contain" onError={() => setFaviconError(true)} />
+          ) : (
+            <Globe className="w-4 h-4 text-muted-foreground" />
+          )}
+        </a>
+        <a
+          href={result.url}
+          target="_self"
+          rel="noopener noreferrer"
+          className="text-sm text-muted-foreground hover:text-primary focus:text-primary focus:underline hover:underline transition-colors truncate"
+        >
+          {cleanedDisplayUrl}
+        </a>
+      </div>
       <a
         href={result.url}
         target="_self"
         rel="noopener noreferrer"
         className="block group"
       >
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 flex-shrink-0 rounded-sm overflow-hidden bg-muted flex items-center justify-center">
-            {result.favicon && !faviconError ? (
-              // Use a regular img tag for favicon to allow onError handling reliably
-              // and avoid Next/Image optimization for external small icons
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={result.favicon} alt="" className="w-5 h-5 object-contain" onError={() => setFaviconError(true)} />
-            ) : (
-              <Globe className="w-4 h-4 text-muted-foreground" />
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground truncate">{result.displayUrl}</p>
-        </div>
-        <h2 className="text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2">
+        <h2 className="text-xl font-semibold group-hover:text-primary group-focus:text-primary group-hover:underline group-focus:underline transition-colors line-clamp-2">
           {result.title}
         </h2>
-        <p className="text-muted-foreground line-clamp-3 break-words">{result.description}</p>
       </a>
+      <p className="text-muted-foreground line-clamp-3 break-words">{result.description}</p>
     </div>
   );
 }
