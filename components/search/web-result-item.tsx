@@ -41,7 +41,7 @@ export function WebResultItem({ result }: Props) {
   
   const cleanedDisplayUrl = cleanDisplayUrl(result.displayUrl);
   return (
-    <div className="space-y-0.8">
+    <div className="space-y-0.8 group">
       <div className="flex items-center gap-2 mb-1">
         <a
           href={result.url}
@@ -72,13 +72,20 @@ export function WebResultItem({ result }: Props) {
         href={result.url}
         target="_self"
         rel="noopener noreferrer"
-        className="block group"
+        className="block group/title"
       >
-        <h2 className="text-xl font-semibold group-hover:text-primary group-focus:text-primary group-hover:underline group-focus:underline transition-colors line-clamp-2">
+        <h2 className="text-xl font-semibold group/title-hover:text-primary group/title-focus:text-primary group/title-hover:underline group/title-focus:underline group-hover:underline transition-colors line-clamp-2">
           {result.title}
         </h2>
       </a>
-      <p className="text-muted-foreground line-clamp-3 break-words">{result.description}</p>
+      <a
+        href={result.url}
+        target="_self"
+        rel="noopener noreferrer"
+        className="block text-muted-foreground line-clamp-3 break-words transition-colors"
+      >
+        {result.description}
+      </a>
     </div>
   );
 }
