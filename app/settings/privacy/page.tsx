@@ -24,13 +24,17 @@ type ExportPayload = {
     | "searchCountry"
     | "safesearch"
     | "autocompleteSource"
+    | "showRecommendations"
     | "aiModel"
     | "karakulakEnabled"
     | "clim8Enabled"
     | "weatherUnits"
     | "customWeatherLocation"
+    | "weatherPlacement"
     | "theme"
     | "searchType"
+    | "enchantedResults"
+    | "wikipediaEnabled"
     | "karakulakEnabled_llama"
     | "karakulakEnabled_gemini"
     | "karakulakEnabled_chatgpt"
@@ -74,13 +78,17 @@ export default function PrivacySettingsPage() {
       searchCountry: settings.searchCountry,
       safesearch: settings.safesearch,
       autocompleteSource: settings.autocompleteSource,
+      showRecommendations: settings.showRecommendations,
       aiModel: settings.aiModel,
       karakulakEnabled: settings.karakulakEnabled,
       clim8Enabled: settings.clim8Enabled,
       weatherUnits: settings.weatherUnits,
       customWeatherLocation: settings.customWeatherLocation,
+      weatherPlacement: settings.weatherPlacement,
       theme: settings.theme,
       searchType: settings.searchType,
+      enchantedResults: settings.enchantedResults,
+      wikipediaEnabled: settings.wikipediaEnabled,
       karakulakEnabled_llama: settings.karakulakEnabled_llama,
       karakulakEnabled_gemini: settings.karakulakEnabled_gemini,
       karakulakEnabled_chatgpt: settings.karakulakEnabled_chatgpt,
