@@ -13,7 +13,7 @@ export default function NotFound() {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-3">
             <Image 
-              src="/tekir-head.png" 
+              src="/tekir-outlined.png" 
               alt="Tekir Logo" 
               width={40} 
               height={40} 

@@ -495,6 +495,7 @@ export default function Home() {
           pointerEvents: (scrollProgress > 0.4 || keyboardAware) ? "none" : "auto",
         }}
         aria-hidden={scrollProgress > 0.9}
+        tabIndex={scrollProgress > 0.9 ? -1 : undefined}
       >
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-end gap-1">
@@ -524,10 +525,11 @@ export default function Home() {
           pointerEvents: scrollProgress > 0.1 ? "auto" : "none",
         }}
         aria-hidden={scrollProgress < 0.05}
+        tabIndex={scrollProgress < 0.05 ? -1 : undefined}
       >
           <div className="container mx-auto flex items-center gap-4 h-14 px-4 sm:px-6 lg:px-8">
             <Link href="/" className="flex items-center gap-2 shrink-0">
-              <Image src="/tekir-head.png" alt="Tekir" width={36} height={12} priority style={{ transform: `scale(${0.95 + 0.05 * scrollProgress})`, transition: "transform 150ms ease-out" }} />
+              <Image src="/tekir-outlined.png" alt="Tekir" width={36} height={12} priority style={{ transform: `scale(${0.95 + 0.05 * scrollProgress})`, transition: "transform 150ms ease-out" }} />
               <span className="sr-only">Tekir</span>
             </Link>
             <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
@@ -592,7 +594,7 @@ export default function Home() {
               className="cursor-pointer"
             >
               <Image 
-                src={isLogoHovered ? "/head-animated.gif" : "/tekir-head.png"} 
+                src={isLogoHovered ? "/head-animated.gif" : "/tekir-outlined.png"} 
                 alt="Tekir logo" 
                 width={200} 
                 height={66} 

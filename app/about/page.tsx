@@ -13,7 +13,6 @@ import { ModelLogoItem } from "@/components/shared/model-logo-item";
 export default function AboutPage() {
   const [demoQuery, setDemoQuery] = useState("What is Tekir?");
   const [demoWikiQuery, setDemoWikiQuery] = useState("Turkish Van Cat");
-  const [followUpQuestion, setFollowUpQuestion] = useState("");
 
   useEffect(() => {
     document.title = "About Us | Tekir";
@@ -128,28 +127,9 @@ export default function AboutPage() {
               Tekir is developed in Turkey and is completely free to use.
             </p>
             
-            <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
-              Auto-generated based on online sources. May contain inaccuracies.
-            </p>
-            
-            <form className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={followUpQuestion}
-                  onChange={(e) => setFollowUpQuestion(e.target.value)}
-                  placeholder="Ask a follow-up question..."
-                  className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <button
-                  type="button"
-                  className="p-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center"
-                  aria-label="Ask follow-up question"
-                >
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </form>
+                        <div className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
+              Generated from web sources. May contain inaccuracies.
+            </div>
           </motion.div>
         </section>
 

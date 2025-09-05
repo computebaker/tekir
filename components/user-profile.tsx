@@ -58,6 +58,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
       <div
         className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-muted animate-pulse flex-shrink-0`}
         style={{ width: avatarPx, height: avatarPx }}
+        aria-label="Loading user profile"
+        title="Loading user profile"
       />
     );
   }
@@ -74,7 +76,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
             className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0`}
             style={{ width: avatarPx, height: avatarPx }}
           >
-            <User className={`${showOnlyAvatar ? 'w-5 h-5' : 'w-4 h-4'} text-muted-foreground`} />
+            <User className={`${showOnlyAvatar ? 'w-5 h-5' : 'w-4 h-4'} text-muted-foreground`} aria-label="Guest user profile" />
           </div>
           {!showOnlyAvatar && (
             <span className="hidden sm:block">Guest</span>
@@ -93,7 +95,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 }}
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-muted-foreground" />
+                  <User className="w-5 h-5 text-muted-foreground" aria-label="Guest user profile" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">Guest</p>
@@ -131,6 +133,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         <div
           className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-border flex-shrink-0`}
           style={{ width: avatarPx, height: avatarPx }}
+          aria-label={`${user.name || user.email || "User"} profile`}
+          title={`${user.name || user.email || "User"} profile`}
         >
           {(() => {
             const avatarUrl = getUserAvatarUrl({
@@ -199,7 +203,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 setIsOpen(false);
               }}
             >
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border flex-shrink-0" aria-label={`${user.name || user.email || "User"} profile`} title={`${user.name || user.email || "User"} profile`}>
                 {(() => {
                   const dropdownAvatarUrl = getUserAvatarUrl({
                     id: user.id,

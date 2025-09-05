@@ -21,7 +21,7 @@ type TopNavSimpleProps = {
 export function TopNavSimple({
   backHref,
   backLabel = "Back",
-  centerLogoSrc = "/tekir-head.png",
+  centerLogoSrc = "/tekir-outlined.png",
   centerLogoAlt = "Tekir",
   centerLogoHeight = 40,
   showThemeToggle = false,

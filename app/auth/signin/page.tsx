@@ -61,7 +61,7 @@ export default function SignInPage() {
         <div className="text-center">
           <Link href="/" className="inline-block">
             <Image
-              src="/tekir-head.png"
+              src="/tekir-outlined.png"
               alt="Tekir Logo"
               width={80}
               height={80}

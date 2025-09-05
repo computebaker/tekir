@@ -619,10 +619,15 @@ function SearchPageContent() {
       setDiveLoading(false);
       return;
     }
-    // Show loading for the active mode only, the request effects will manage completion
-    setAiLoading(!aiDiveEnabled);
-    setDiveLoading(aiDiveEnabled);
-  }, [query, aiEnabled, aiDiveEnabled]);
+    // Only set loading if we don't have any response data (cached or otherwise)
+    if (aiDiveEnabled) {
+      setDiveLoading(!diveResponse && !aiResponse);
+      setAiLoading(false);
+    } else {
+      setAiLoading(!aiResponse && !diveResponse);
+      setDiveLoading(false);
+    }
+  }, [query, aiEnabled, aiDiveEnabled, aiResponse, diveResponse]);
 
   // Regular AI (Karakulak) — fire immediately in parallel when Dive mode is OFF
   useEffect(() => {
@@ -857,11 +862,37 @@ function SearchPageContent() {
       const next = !prevAiDiveEnabled;
       if (aiEnabled) {
         if (next) {
-          setDiveLoading(true);
-          setAiLoading(false);
+          // Switching to Dive mode - check for cached data first
+          const cachedDiveResponse = SearchCache.getDive(query);
+          if (cachedDiveResponse) {
+            // If cached data exists, set it immediately without clearing current text
+            setDiveResponse(cachedDiveResponse.response);
+            setDiveSources(cachedDiveResponse.sources || []);
+            setAiResponse(null);
+            setDiveLoading(false);
+            setAiLoading(false);
+          } else {
+            // No cached data - clear and show loading
+            setAiResponse(null);
+            setDiveResponse(null);
+            setDiveSources([]);
+          }
         } else {
-          setAiLoading(true);
-          setDiveLoading(false);
+          // Switching to AI mode - check for cached data first
+          const cachedAIResponse = SearchCache.getAI(aiModel || "gemini", query);
+          if (cachedAIResponse) {
+            // If cached data exists, set it immediately without clearing current text
+            setAiResponse(cachedAIResponse);
+            setDiveResponse(null);
+            setDiveSources([]);
+            setAiLoading(false);
+            setDiveLoading(false);
+          } else {
+            // No cached data - clear and show loading
+            setAiResponse(null);
+            setDiveResponse(null);
+            setDiveSources([]);
+          }
         }
       }
       return next;
@@ -1244,7 +1275,6 @@ function SearchPageContent() {
     // render immediately when the user switches tabs.
   };
 
-  const [followUpQuestion, setFollowUpQuestion] = useState("");
   const [isNewsInlineOpen, setIsNewsInlineOpen] = useState(true);
   const [isNewsBottomOpen, setIsNewsBottomOpen] = useState(true);
   const [isVideosInlineOpen, setIsVideosInlineOpen] = useState(true);
@@ -1258,19 +1288,6 @@ function SearchPageContent() {
     const words = new Set(["cat", "cats", "kedi", "katze", "gatto"]);
     return tokens.some((t) => words.has(t));
   })();
-
-  const handleFollowUpSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!followUpQuestion.trim()) return;
-
-    const chatParams = new URLSearchParams({
-      originalQuery: query,
-      aiResponse: aiResponse || "",
-      followUp: followUpQuestion,
-    });
-
-    router.push(`https://chat.tekir.co/?${chatParams.toString()}`);
-  };
 
   // Helper to normalize thumbnail values which may be a string or an object
   const resolveImageSrc = (t: any): string | null => {
@@ -1699,7 +1716,7 @@ function SearchPageContent() {
       >
         <div className="container mx-auto flex items-center gap-4 h-14 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/tekir-head.png" alt="Tekir" width={36} height={12} priority style={{ transform: `scale(1)`, transition: "transform 150ms ease-out" }} />
+            <Image src="/tekir-outlined.png" alt="Tekir" width={36} height={12} priority style={{ transform: `scale(1)`, transition: "transform 150ms ease-out" }} />
             <span className="sr-only">Tekir</span>
           </Link>
 
@@ -1759,7 +1776,7 @@ function SearchPageContent() {
         <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 md:mr-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full space-x-2 md:space-x-4">
             <Link href="/">
-              <Image src="/tekir-head.png" alt="Tekir Logo" width={40} height={40} />
+              <Image src="/tekir-outlined.png" alt="Tekir Logo" width={40} height={40} />
             </Link>
             <div className="relative flex-1 min-w-0">
               <div className="flex items-center w-full relative">
@@ -1865,15 +1882,17 @@ function SearchPageContent() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleToggleAiDive}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                        className={`relative p-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center justify-center overflow-hidden ${
                           aiDiveEnabled 
-                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50 ring-2 ring-blue-400 ring-offset-2 ring-offset-background' 
+                            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md'
                         }`}
                         title={aiDiveEnabled ? "Disable Dive mode" : "Enable Dive mode"}
                       >
-                        <Sparkles className="w-4 h-4 hidden sm:block" />
-                        <span>Dive</span>
+                        <Sparkles className={`w-5 h-5 transition-all duration-300 relative z-10 ${aiDiveEnabled ? 'drop-shadow-lg' : 'hover:scale-110'}`} />
+                        {aiDiveEnabled && (
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/20 via-blue-300/30 to-blue-400/20 animate-pulse"></div>
+                        )}
                       </button>
 
                       <button
@@ -1940,26 +1959,6 @@ function SearchPageContent() {
                           </p>
                         ) : null}
 
-                        <form onSubmit={handleFollowUpSubmit} className="mt-4 border-t border-blue-200 dark:border-blue-800 pt-4">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={followUpQuestion}
-                              onChange={(e) => setFollowUpQuestion(e.target.value)}
-                              placeholder="Ask a follow-up question..."
-                              maxLength={400}
-                              className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
-                            <button
-                              type="submit"
-                              disabled={!followUpQuestion.trim()}
-                              className="p-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                              aria-label="Ask follow-up question"
-                            >
-                              <ArrowRight className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </form>
                       </div>
                     </>
                   )}
