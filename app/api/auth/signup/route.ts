@@ -7,7 +7,7 @@ import { z } from "zod";
 import { api } from "@/convex/_generated/api";
 
 const signupSchema = z.object({
-  username: z.string().min(3).max(20),
+  username: z.string().min(3).max(12).regex(/^[a-zA-Z0-9]+$/, "Username must contain only letters and numbers"),
   email: z.string().email(),
   password: z.string().min(6),
 });
@@ -16,6 +16,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { username, email, password } = signupSchema.parse(body);
+
+    // Convert username to lowercase
+    const lowercaseUsername = username.toLowerCase();
 
     const convex = getConvexClient();
 
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists by username
-    const existingUserByUsername = await convex.query(api.users.getUserByUsername, { username });
+    const existingUserByUsername = await convex.query(api.users.getUserByUsername, { username: lowercaseUsername });
     if (existingUserByUsername) {
       return NextResponse.json(
         { error: "User with this username already exists" },
@@ -42,10 +45,10 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const userId = await convex.mutation(api.users.createUser, {
-      username,
+      username: lowercaseUsername,
       email,
       password: hashedPassword,
-      name: username, // Use username as display name initially
+      name: lowercaseUsername, // Use username as display name initially
     });
 
     // Generate avatar URL after user creation

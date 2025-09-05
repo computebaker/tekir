@@ -7,7 +7,7 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { storeRedirectUrl, getRedirectUrlWithFallback } from "@/lib/utils";
+import { getRedirectUrlWithFallback } from "@/lib/utils";
 
 export default function SignUpPage() {
   const [username, setUsername] = useState("");
@@ -39,6 +39,13 @@ export default function SignUpPage() {
 
     if (username.length < 3) {
       setError("Username must be at least 3 characters long");
+      setLoading(false);
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
       setLoading(false);
       return;
     }
@@ -124,7 +131,7 @@ export default function SignUpPage() {
                 autoComplete="username"
                 required
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
                 className="relative block w-full px-3 py-3"
                 placeholder="Username"
               />
@@ -166,6 +173,7 @@ export default function SignUpPage() {
                 type="button"
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5 text-muted-foreground" />
@@ -194,6 +202,7 @@ export default function SignUpPage() {
                 type="button"
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-5 w-5 text-muted-foreground" />

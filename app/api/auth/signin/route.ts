@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       });
     } else {
       user = await convex.query(api.users.getUserByUsername, {
-        username: emailOrUsername
+        username: emailOrUsername.toLowerCase()
       });
     }
 
