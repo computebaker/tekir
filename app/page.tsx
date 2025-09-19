@@ -466,9 +466,18 @@ export default function Home() {
         // If user starts typing while scrolled, jump to top to expose the main search UI
         const isTypingKey = ev.key === "Backspace" || (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey);
         if ((window.scrollY || 0) > 0 && isTypingKey) {
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          const ua = navigator.userAgent || "";
+          const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
+          if (!isApple) {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
         }
-        searchInputRef.current?.focus();
+        try {
+          // Prevent browsers (notably Safari) from auto-scrolling too far when focusing
+          (searchInputRef.current as any)?.focus({ preventScroll: true });
+        } catch {
+          searchInputRef.current?.focus();
+        }
         if (ev.key === "Backspace") {
           setSearchQuery(prev => prev.slice(0, -1));
         } else if (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
@@ -576,14 +585,24 @@ export default function Home() {
               try { history.pushState({ focusLock: true }, "", location.href); pushedStateRef.current = true; } catch {}
             }
             window.setTimeout(() => {
-              try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+              try {
+                const ua = navigator.userAgent || "";
+                const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
+                if (!isApple) {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              } catch {}
             }, 50);
           }
         }}
     onBlur={() => { 
           if (isSubmitting) return; 
           if (isMobile && isFocusLocked && !unlockingRef.current) {
-            window.setTimeout(() => searchInputRef.current?.focus(), 0);
+            const ua = navigator.userAgent || "";
+            const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
+            if (!isApple) {
+              window.setTimeout(() => searchInputRef.current?.focus(), 0);
+            }
             return;
           }
           setIsHeroInputFocused(false);
