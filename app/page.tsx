@@ -8,11 +8,11 @@ import { Search, Lock, MessageCircleMore, Github, Heart, RefreshCw } from "lucid
 import UserProfile from "@/components/user-profile";
 import { useAuth } from "@/components/auth-provider";
 import { useSettings } from "@/lib/settings";
-import Footer from "@/components/footer";
 import { fetchWithSessionRefreshAndCache } from "@/lib/cache";
 import WeatherWidget from "@/components/weather-widget";
 import { Input, SearchInput } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
+import MainFooter from "@/components/main-footer";
 import { BadgeChip } from "@/components/shared/badge-chip";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { cn } from "@/lib/utils";
@@ -484,7 +484,7 @@ export default function Home() {
   const keyboardAware = isMobile && (isHeroInputFocused || kbVisible || isSubmitting);
 
   return (
-    <main className="min-h-[100vh] relative overflow-x-hidden">
+    <main className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
       {/* Top Right Welcome + Profile (only when not scrolled) */}
   <div
         className="fixed top-4 right-4 z-50"
@@ -515,63 +515,13 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Blurred Navbar on Scroll */}
-      <header
-        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/70"
-        style={{
-          opacity: scrollProgress,
-          transform: `translateY(${(-8) * (1 - scrollProgress)}px)`,
-          transition: "opacity 150ms ease-out, transform 150ms ease-out",
-          pointerEvents: scrollProgress > 0.1 ? "auto" : "none",
-        }}
-        aria-hidden={scrollProgress < 0.05}
-        tabIndex={scrollProgress < 0.05 ? -1 : undefined}
-      >
-          <div className="container mx-auto flex items-center gap-4 h-14 px-4 sm:px-6 lg:px-8">
-            <Link href="/" className="flex items-center gap-2 shrink-0">
-              <Image src="/tekir-outlined.png" alt="Tekir" width={36} height={12} priority style={{ transform: `scale(${0.95 + 0.05 * scrollProgress})`, transition: "transform 150ms ease-out" }} />
-              <span className="sr-only">Tekir</span>
-            </Link>
-            <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
-              <div className="relative">
-                <SearchInput
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setShowSuggestions(false);
-                  }}
-                  onKeyDown={handleKeyDown}
-                  onFocus={() => setShowSuggestions(false)}
-                  placeholder="Search..."
-                  className="w-full pr-12 h-10"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                  <Button type="submit" variant="ghost" size="icon" shape="pill" title="Search">
-                    <Search className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </form>
-            <div className="flex items-center gap-3 ml-auto">
-              {user && (
-                <div className="hidden sm:block text-sm text-muted-foreground">
-                  Welcome, <span className="font-semibold text-foreground">{user.name || "User"}!</span>
-                </div>
-              )}
-              <div style={{ transform: `scale(${0.92 + 0.08 * scrollProgress})`, transition: "transform 150ms ease-out" }}>
-                <UserProfile showOnlyAvatar={true} avatarSize={40} />
-              </div>
-            </div>
-          </div>
-      </header>
+
 
       {/* Hero Section */}
   <section
         className={cn(
           "flex flex-col items-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10 transition-[height,padding] duration-200 ease-out",
-          keyboardAware ? "justify-start pt-3" : "justify-center h-screen",
+          keyboardAware ? "justify-start pt-3" : "justify-center h-[calc(100dvh-64px)]",
         )}
         style={{
           height: keyboardAware && vvHeight ? `${Math.max(320, vvHeight - 140)}px` : undefined
@@ -797,13 +747,10 @@ export default function Home() {
                 ))}
               </div>
             )}
-          </form>
-          
-            {/* Removed the old link row under the search bar and replaced with recommendations above */}
-          
+          </form>          
           </div>
       </section>
-
-            <Footer variant="full" />
+      {/* Fixed on-screen footer */}
+      <MainFooter hidden={keyboardAware} />
     </main>
   )};
