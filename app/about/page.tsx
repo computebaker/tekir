@@ -4,248 +4,222 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Cat, Search, ExternalLink, ArrowRight, Instagram, Github } from "lucide-react";
+import { Lock, Search, MessageCircleMore, Github, Heart } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Footer from "@/components/footer";
-import { FeatureCard } from "@/components/shared/feature-card";
-import { ModelLogoItem } from "@/components/shared/model-logo-item";
+import { BadgeChip } from "@/components/shared/badge-chip";
+import { SectionHeading } from "@/components/shared/section-heading";
+import { buttonVariants } from "@/components/ui/button";
+import { storeRedirectUrl } from "@/lib/utils";
 
 export default function AboutPage() {
-  const [demoQuery, setDemoQuery] = useState("What is Tekir?");
-  const [demoWikiQuery, setDemoWikiQuery] = useState("Turkish Van Cat");
-
   useEffect(() => {
     document.title = "About Us | Tekir";
   }, []);
 
-  // Demo Wikipedia data
-  const wikiData = {
-    title: "Turkish Van Cat",
-  extract: "The Turkish Van is a rare and ancient cat breed that developed in the Lake Van region of Turkey. They are distinguished by their unusual pattern of colored markings, which appear primarily on the head and tail with the rest of the cat being white. The breed is notable for its unusual love of water and swimming, leading to the nickname \u2018swimming cats\u2019.",
-    thumbnail: {
-      source: "/turkish-van.png",
-    },
-    pageUrl: "https://en.wikipedia.org/wiki/Turkish_Van"
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
-      <main className="flex-grow p-4 pt-8 md:p-8 md:pt-16">
-        {/* Hero Section */}
-        <div className="max-w-6xl mx-auto mb-16 text-center pt-8 md:pt-12">
-          <div className="flex justify-center mb-6">
-            <Image src="/tekir.png" alt="Tekir Logo" width={96} height={96} priority />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Meet Tekir</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            The open-source, AI-powered search engine that respects your privacy and delivers better results.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/" 
-              className="px-6 py-3 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Try Tekir Now
-            </Link>
-            <a href="https://github.com/computebaker/tekir" 
-              className="px-6 py-3 rounded-full bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity font-medium flex items-center gap-2"
-              target="_blank" rel="noopener noreferrer">
-              <Github className="w-5 h-5" />
-              View on GitHub
-            </a>
-          </div>
-        </div>
-
-        {/* Features Section */}
-        <section className="max-w-6xl mx-auto mb-16">
-          <h2 className="text-3xl font-semibold mb-8 text-center">Why Choose Tekir?</h2>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard
-              icon={Search}
-              iconClassName="text-primary"
-              title="Private Search"
-              description={"Tekir doesn\u2019t track your searches or build user profiles to sell to advertisers."}
-              wrapperClassName="bg-card"
+      <main className="flex-grow">
+        {/* Features Section with Bento Grid */}
+        <section className="py-20 px-4 bg-gradient-to-br from-gray-50/30 via-slate-50/25 to-neutral-50/30 dark:from-gray-950/10 dark:via-slate-950/8 dark:to-neutral-950/10">
+          <div className="max-w-7xl mx-auto">
+            <SectionHeading
+              title="The Search Engine That Respects You"
+              subtitle={<>
+                Discover why others choose Tekir for their daily searches. <br className="hidden sm:block" />
+                Privacy-focused, lightning-fast, and packed with intelligent features.
+              </>}
             />
-            <FeatureCard
-              icon={Cat}
-              iconClassName="text-blue-600 dark:text-blue-400"
-              title="AI-Powered"
-              description="Instant answers to your questions with our AI assistant, Karakulak."
-              wrapperClassName="bg-card"
-            />
-            <FeatureCard
-              iconNode={<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 dark:text-green-400"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>}
-              title="Open Source"
-              description="Fully transparent code that anyone can inspect, modify, and contribute to."
-              wrapperClassName="bg-card"
-            />
-          </div>
-        </section>
 
-        {/* AI Assistant Demo */}
-        <section className="max-w-6xl mx-auto mb-16">
-          <h2 className="text-3xl font-semibold mb-2 text-center">AI-Assisted Search</h2>
-          <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Tekir&rsquo;s Karakulak AI provides instant, helpful answers to your questions directly on the search page.
-          </p>
-
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 max-w-3xl mx-auto"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                  Karakulak AI
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
-                    BETA
-                  </span>
-                  <Link href="https://chat.tekir.co" className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
-                    Try Tekir Chat →
-                  </Link>
-                </span>
-              </div>
-              
-              <div className="relative">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{backgroundColor: '#0f0f0f'}}>
-                    <Image src="/google.png" alt="Google Logo" width={16} height={16} className="rounded" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Privacy First - Large Card */}
+              <Link href="/privacy" className="lg:col-span-2 block group">
+                <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/20 via-slate-400/15 to-transparent rounded-full blur-3xl"></div>
+                  <div className="relative z-10">
+                    <div className="w-16 h-16 bg-gray-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-gray-500/30 transition-colors">
+                      <Lock className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Privacy by Design</h3>
+                    <p className="text-muted-foreground text-lg leading-relaxed">
+                      No tracking, no data collection, no profile building. Your searches remain completely private
+                      and are never stored or shared with third parties.
+                    </p>
                   </div>
-                  <span>Gemini 2.5 Flash</span>
                 </div>
-              </div>
-            </div>
-            
-            <p className="text-left text-blue-800 dark:text-blue-100 mb-3">
-              Tekir is an open-source search engine that combines traditional web search with AI-powered answers. 
-              Unlike other search engines, Tekir doesn\u2019t track users or collect personal data. 
-              It features Karakulak AI, which can answer questions directly, and also shows relevant Wikipedia information alongside search results. 
-              Tekir is developed in Turkey and is completely free to use.
-            </p>
-            
-                        <div className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
-              Generated from web sources. May contain inaccuracies.
-            </div>
-          </motion.div>
-        </section>
-
-        {/* Wikipedia Demo */}
-        <section className="max-w-6xl mx-auto mb-16">
-          <h2 className="text-3xl font-semibold mb-2 text-center">Wikipedia Integration</h2>
-          <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Quickly access relevant Wikipedia content alongside your search results.
-          </p>
-
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md max-w-md mx-auto"
-          >
-            <h3 className="text-xl font-semibold mb-4">{wikiData.title}</h3>
-            
-            <div className="mb-4 w-full">
-              <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg">
-                <Image 
-                  src="/turkish-van.png" 
-                  alt="Turkish Van Cat"
-                  className="object-cover"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                {wikiData.extract}
-              </p>
-            </div>
-            
-            <div className="text-sm text-muted-foreground">
-              <span>Source: </span>
-              <a 
-                href={wikiData.pageUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
-              >
-                Wikipedia
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-          </motion.div>
-        </section>
-
-        {/* Chat Feature */}
-        <section className="max-w-6xl mx-auto mb-16">
-          <h2 className="text-3xl font-semibold mb-2 text-center">Tekir Chat</h2>
-          <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Have longer conversations with multiple AI models to get more detailed answers.
-          </p>
-
-          <div className="bg-card rounded-lg border border-border p-6 md:p-8 max-w-3xl mx-auto shadow-sm">
-            <div className="bg-muted p-4 rounded-lg mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Search className="w-4 h-4 text-primary" />
-                </div>
-                <span className="font-medium">Ask stuff, without your data being stolen.</span>
-              </div>
-              <Image 
-                src="/chat-demo.png" 
-                alt="Tekir Chat Demo" 
-                width={800} 
-                height={400} 
-                className="rounded-lg border border-border shadow-sm"
-              />
-            </div>
-            
-            <div className="text-center">
-              <Link 
-                href="https://chat.tekir.co"
-                className="inline-flex items-center px-5 py-2.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium"
-              >
-                Try Tekir Chat <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
+
+              {/* Lightning Fast */}
+              <div className="bg-gradient-to-br from-slate-500/10 to-gray-600/10 p-8 rounded-2xl border border-slate-500/30 relative overflow-hidden hover:shadow-xl hover:shadow-slate-500/20 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-400/20 via-gray-400/15 to-transparent rounded-full blur-2xl"></div>
+                <div className="relative z-10">
+                  <div className="w-12 h-12 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4">
+                    <div className="w-6 h-6 bg-muted-foreground rounded-full animate-pulse"></div>
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground mb-3">Lightning Fast</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Get results in milliseconds with our optimized search infrastructure. Never stay waiting for answers.
+                  </p>
+                </div>
+              </div>
+
+              {/* AI-Powered Chat */}
+              <Link href="https://chat.tekir.co" className="block group" target="_blank" rel="noopener noreferrer">
+                <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-400/20 via-slate-400/15 to-transparent rounded-full blur-2xl"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
+                      <MessageCircleMore className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">AI-Powered Chat</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Get instant answers with our integrated AI chat powered by advanced language models.
+                    </p>
+                    <br />
+                    <p className="text-muted-foreground leading-relaxed">
+                      Experience seamless conversations and get the information you need, when you need it. Use our AI chat to dive deeper into topics and ask follow-up questions.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Bang Commands - Large Card */}
+              <Link href="/bangs" className="lg:col-span-2 block group">
+                <div className="bg-gradient-to-br from-slate-500/10 to-gray-600/10 p-8 rounded-2xl border border-slate-500/30 relative overflow-hidden hover:border-slate-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-slate-500/20">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-slate-400/20 to-transparent rounded-full blur-3xl"></div>
+                  <div className="relative z-10">
+                    <div className="w-16 h-16 bg-slate-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-500/30 transition-colors">
+                      <div className="text-2xl font-bold text-muted-foreground">!</div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Bang Commands</h3>
+                    <p className="text-muted-foreground text-lg leading-relaxed mb-4">
+                      Search directly on your favorite sites with bang commands. Type <code className="bg-muted px-2 py-1 rounded">!g</code> for Google,
+                      <code className="bg-muted px-2 py-1 rounded ml-2">!w</code> for Wikipedia, and hundreds more.
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <BadgeChip color="slate">!g Google</BadgeChip>
+                      <BadgeChip color="slate">!w Wikipedia</BadgeChip>
+                      <BadgeChip color="slate">!gh GitHub</BadgeChip>
+                      <BadgeChip color="slate">!yt YouTube</BadgeChip>
+                    </div>
+                    <div className="inline-flex items-center text-muted-foreground group-hover:text-foreground font-medium transition-colors">
+                      More bangs →
+                    </div>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Smart Autocomplete */}
+              <Link href="/settings/search" className="block group" onClick={() => storeRedirectUrl(window.location.href)}>
+                <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-400/20 to-transparent rounded-full blur-2xl"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
+                      <Search className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Smart Autocomplete</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Intelligent suggestions that learn from global search patterns while keeping your data private.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Weather Widget */}
+              <Link href="https://clim8.tekir.co" className="block group" target="_blank" rel="noopener noreferrer">
+                <div className="bg-gradient-to-br from-slate-500/10 to-gray-600/10 p-8 rounded-2xl border border-slate-500/30 relative overflow-hidden hover:border-slate-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-slate-500/20">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-400/20 to-transparent rounded-full blur-2xl"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-slate-500/30 transition-colors">
+                      <div className="w-6 h-6 bg-muted-foreground rounded-full relative">
+                        <div className="absolute inset-1 bg-yellow-400 rounded-full"></div>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Weather at a Glance</h3>
+                    <p className="text-muted-foreground leading-relaxed mb-4">
+                      Get current weather conditions right on your search homepage.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Open Source */}
+              <Link href="https://github.com/computebaker/tekir" className="block group" target="_blank" rel="noopener noreferrer">
+                <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-400/20 to-transparent rounded-full blur-2xl"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
+                      <Github className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Open Source</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Transparent, auditable code that you can inspect and contribute to.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Multiple Providers */}
+              <Link href="/settings/search" className="lg:col-span-2 block group" onClick={() => storeRedirectUrl(window.location.href)}>
+                <div className="bg-gradient-to-br from-gray-500/10 to-slate-600/10 p-8 rounded-2xl border border-gray-500/30 relative overflow-hidden hover:border-gray-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-500/20">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/20 to-transparent rounded-full blur-3xl"></div>
+                  <div className="relative z-10">
+                    <div className="w-16 h-16 bg-gray-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-gray-500/30 transition-colors">
+                      <div className="grid grid-cols-2 gap-1">
+                        <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                        <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                        <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                        <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Multiple Search Providers</h3>
+                    <p className="text-muted-foreground text-lg leading-relaxed mb-4">
+                      Choose from multiple search engines and sources to get the most comprehensive results.
+                      Switch between providers to find exactly what you&apos;re looking for.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <BadgeChip color="gray">Google</BadgeChip>
+                      <BadgeChip color="gray">Bing</BadgeChip>
+                      <BadgeChip color="gray">DuckDuckGo</BadgeChip>
+                      <BadgeChip color="gray">Brave</BadgeChip>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Made for Everyone */}
+              <div className="bg-gradient-to-br from-slate-500/10 to-gray-600/10 p-8 rounded-2xl border border-slate-500/30 relative overflow-hidden hover:border-slate-500/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-slate-500/20">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-400/20 to-transparent rounded-full blur-2xl"></div>
+                <div className="relative z-10">
+                  <div className="w-12 h-12 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-slate-500/30 transition-colors">
+                    <Heart className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Made for Everyone</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Accessible, inclusive, and designed to work for all users regardless of their background or abilities. Does not discriminate based on location, language, or device. Made for all, by all.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA Section */}
+            <div className="text-center mt-16">
+              <h3 className="text-2xl font-bold text-foreground mb-4">
+                Ready to experience better search?
+              </h3>
+              <p className="text-muted-foreground mb-8">
+                Start searching with Tekir today and discover the difference privacy makes.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/" className={buttonVariants({ variant: "default", size: "lg" }) + " rounded-full px-8"}>
+                  Try Tekir Now
+                </Link>
+                <Link href="/settings/search" className={buttonVariants({ variant: "secondary", size: "lg" }) + " rounded-full px-8"} onClick={() => storeRedirectUrl(window.location.href)}>
+                  Settings
+                </Link>
+              </div>
             </div>
           </div>
-        </section>
-
-        {/* Models Section */}
-        <section className="max-w-6xl mx-auto mb-16">
-          <h2 className="text-3xl font-semibold mb-2 text-center">Models that you love</h2>
-          <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Tekir leverages multiple state-of-the-art AI models to provide the best possible answers for all your needs.
-          </p>
-
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
-            <ModelLogoItem src="/google.png" alt="Google Gemini" label="Gemini" />
-            <ModelLogoItem src="/meta.png" alt="Meta Llama" label="Llama" delay={0.1} />
-            <ModelLogoItem src="/mistral.png" alt="Mistral AI" label="Mistral" delay={0.2} />
-            <ModelLogoItem src="/openai.png" alt="OpenAI" label="ChatGPT" delay={0.2} />
-          </div>
-        </section>
-
-        {/* Open Source Section */}
-        <section className="max-w-6xl mx-auto mb-16 text-center">
-          <h2 className="text-3xl font-semibold mb-4">Join the team</h2>
-          <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Tekir is built to be open. Join our community to help build a better search experience for everyone.
-          </p>
-          <a 
-            href="https://github.com/computebaker/tekir" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center px-6 py-3 rounded-full bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity font-medium"
-          >
-            <Github className="mr-2 w-5 h-5" />
-            Contribute on GitHub
-          </a>
         </section>
       </main>
 
