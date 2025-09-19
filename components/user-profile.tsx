@@ -24,6 +24,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
   const { user, status, signOut, updateUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarKey, setAvatarKey] = useState(Date.now()); // For forcing avatar refresh
+  const [limitInfo, setLimitInfo] = useState<{ limit: number; remaining: number } | null>(null);
+  const [limitLoading, setLimitLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const avatarPx = showOnlyAvatar ? (avatarSize ?? 40) : 32;
 
@@ -46,6 +48,29 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
       setAvatarKey(Date.now());
     }
   }, [user]);
+
+  // Fetch session rate limit status when menu opens
+  useEffect(() => {
+    let aborted = false;
+    if (isOpen) {
+      setLimitLoading(true);
+      (async () => {
+        try {
+          const res = await fetch('/api/session/status', { method: 'GET', credentials: 'include' });
+          if (res.ok) {
+            const j = await res.json();
+            if (!aborted && typeof j.limit === 'number' && typeof j.remaining === 'number') {
+              setLimitInfo({ limit: j.limit, remaining: j.remaining });
+            }
+          }
+        } catch {}
+        if (!aborted) setLimitLoading(false);
+      })();
+    } else {
+      setLimitLoading(false);
+    }
+    return () => { aborted = true; };
+  }, [isOpen]);
 
   // Helper function to determine if we should use Next.js Image or regular img
   const shouldUseNextImage = (src: string) => {
@@ -258,6 +283,28 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 <p className="text-xs text-muted-foreground truncate">
                   @{(user as any).username || user.email?.split('@')[0] || "user"}
                 </p>
+                {limitLoading && (
+                  <div className="mt-1 flex items-center gap-2 text-xs animate-pulse">
+                    <span className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30" aria-hidden="true" />
+                    <span className="inline-block h-3 w-16 rounded bg-muted/50" aria-hidden="true" />
+                  </div>
+                )}
+                {!limitLoading && limitInfo && (
+                  <div className="mt-1 flex items-center gap-2 text-xs">
+                    {(() => {
+                      const pct = limitInfo.limit > 0 ? limitInfo.remaining / limitInfo.limit : 0;
+                      const color = pct <= 0.1 ? 'bg-red-500' : pct <= 0.3 ? 'bg-yellow-500' : 'bg-green-500';
+                      return (
+                        <span className={`inline-block w-2 h-2 rounded-full ${color}`} aria-hidden="true" />
+                      );
+                    })()}
+                    <span className="tabular-nums">
+                      <span>{limitInfo.remaining}</span>
+                      <span className="text-muted-foreground">/</span>
+                      <span className="text-muted-foreground">{limitInfo.limit}</span>
+                    </span>
+                  </div>
+                )}
               </div>
             </Link>
           </div>
@@ -284,23 +331,6 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               <Settings className="w-4 h-4" />
               Settings
             </Link>
-            
-            {mobileNavItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left sm:hidden"
-                onClick={() => {
-                  if (item.href === '/settings/search') {
-                    storeRedirectUrl(window.location.href);
-                  }
-                  setIsOpen(false);
-                }}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            ))}
             
             <div className="border-t border-border mt-1 pt-1">
               <button

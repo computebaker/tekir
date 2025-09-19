@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import OpenAI from 'openai';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex-client';
@@ -113,13 +114,19 @@ Today's date is: ${todayLabel}`;
   return items;
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const headers = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
   } as const;
+
+  // Rate limit via shared middleware
+  const rateLimitResult = await checkRateLimit(req, '/api/recommend');
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response!;
+  }
 
   const convex = getConvexClient();
   const dateKey = getIsoDateKey();

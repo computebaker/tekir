@@ -2,8 +2,8 @@
 
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { generateText, streamText } from 'ai';
-import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
 
@@ -113,26 +113,7 @@ async function chatgpt(message: string): Promise<string> {
   return answer ?? "";
 }
 
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_MINUTE = 10;
-
-function checkRateLimit(identifier: string): boolean {
-  const now = Date.now();
-  const current = rateLimitMap.get(identifier);
-  
-  if (!current || now > current.resetTime) {
-    rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-    return true;
-  }
-  
-  if (current.count >= MAX_REQUESTS_PER_MINUTE) {
-    return false;
-  }
-  
-  current.count++;
-  return true;
-}
+// Using shared Convex-backed rate limiter via middleware
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
     // Add security headers
@@ -151,25 +132,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
       return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 400, headers });
     }
     
-    // Session token validation and rate limiting
-    const sessionToken = req.cookies.get('session-token')?.value;
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Missing session token.' }, { status: 401, headers });
-    }
-    
-    const isValid = await isValidSessionToken(sessionToken);
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403, headers });
-    }
-    
-    const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
-    if (!allowed) {
-      console.warn(`Session token ${sessionToken} exceeded request limit for /api/karakulak. Count: ${currentCount}`);
-      return NextResponse.json({ 
-        error: 'Request limit exceeded for this session.',
-        currentCount,
-        resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-      }, { status: 429, headers });
+    const rateLimitResult = await checkRateLimit(req, '/api/karakulak');
+    if (!rateLimitResult.success) {
+      return rateLimitResult.response!;
     }
 
   const { message } = await req.json();

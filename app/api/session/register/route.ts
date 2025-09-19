@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerSessionToken, isConvexConfigured, hashIp } from '@/lib/convex-session';
+import { registerSessionToken, isConvexConfigured, hashIp, getRateLimitStatus } from '@/lib/convex-session';
 import { getJWTUser } from '@/lib/jwt-auth';
 import { RATE_LIMITS, getUserRateLimit, getSessionExpiration } from '@/lib/rate-limits';
 
@@ -41,18 +41,41 @@ export async function POST(req: NextRequest) {
     const expirationInSeconds = getSessionExpiration();
     
     // Pass userId to link session to authenticated user
-    const token = await registerSessionToken(hashedIpValue, expirationInSeconds, userId);
+  const token = await registerSessionToken(hashedIpValue, expirationInSeconds, userId);
 
     if (!token) {
       return NextResponse.json({ success: false, error: 'Failed to register session token.' }, { status: 500 });
     }
     
+    // Fetch current rate limit status so client can show accurate remaining uses
+    let status: { currentCount: number; limit: number; remaining: number; isAuthenticated: boolean } | null = null;
+    try {
+      const s = await getRateLimitStatus(token);
+      status = {
+        currentCount: s.currentCount ?? 0,
+        limit: s.limit ?? getUserRateLimit(!!userId),
+        remaining: s.remaining ?? getUserRateLimit(!!userId),
+        isAuthenticated: !!(s.isAuthenticated ?? userId)
+      };
+    } catch (e) {
+      // Fall back to static values if Convex status fails
+      status = {
+        currentCount: 0,
+        limit: getUserRateLimit(!!userId),
+        remaining: getUserRateLimit(!!userId),
+        isAuthenticated: !!userId
+      };
+    }
+
     const response = NextResponse.json({ 
       success: true, 
       token, 
       message: 'Session token processed.',
       userLinked: !!userId,
-      requestLimit: getUserRateLimit(!!userId)
+      requestLimit: status.limit,
+      currentCount: status.currentCount,
+      remaining: status.remaining,
+      isAuthenticated: status.isAuthenticated
     });
     response.cookies.set('session-token', token, {
       httpOnly: true,

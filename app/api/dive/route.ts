@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
+import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { load } from 'cheerio';
 import OpenAI from 'openai';
 
@@ -156,25 +156,9 @@ async function fetchPagesWithFallback(pages: PageContent[]): Promise<PageContent
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   
-  // Session token validation and rate limiting
-  const sessionToken = req.cookies.get('session-token')?.value;
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
-  }
-  
-  const isValid = await isValidSessionToken(sessionToken);
-  if (!isValid) {
-    return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
-  }
-  
-  const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
-  if (!allowed) {
-    console.warn(`Session token ${sessionToken} exceeded request limit for /api/dive. Count: ${currentCount}`);
-    return NextResponse.json({ 
-      error: 'Request limit exceeded for this session.',
-      currentCount,
-      resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    }, { status: 429 });
+  const rateLimitResult = await checkRateLimit(req, '/api/dive');
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response!;
   }
 
   try {

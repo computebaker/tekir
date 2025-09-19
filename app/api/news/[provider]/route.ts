@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
+import { checkRateLimit } from '@/lib/rate-limit-middleware';
 
 interface NewsResult {
   title: string;
@@ -118,25 +118,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const country = req.nextUrl.searchParams.get('country') || 'ALL';
   const safesearch = req.nextUrl.searchParams.get('safesearch') || 'moderate';
 
-  // Check session token with Convex
-  const sessionToken = req.cookies.get('session-token')?.value;
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
-  }
-
-  try {
-    const isValid = await isValidSessionToken(sessionToken);
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
-    }
-
-    const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
-    if (!allowed) {
-      console.warn(`Session token ${sessionToken} exceeded request limit for /api/news. Count: ${currentCount}`);
-      return NextResponse.json({ error: 'Request limit exceeded for this session.' }, { status: 429 });
-    }
-  } catch (convexError) {
-    console.warn("Convex is not configured. Skipping session token validation and request counting for /api/news. This should be addressed in production.");
+  const rateLimitResult = await checkRateLimit(req, '/api/news');
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response!;
   }
 
   if (!query) {

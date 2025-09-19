@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rate-limit-middleware';
 
 const USER_AGENT = 'Tekir/1.0 (https://tekir.co/)';
 
@@ -92,8 +93,13 @@ async function resolveLabelsForQids(qids: string[] = [], lang = 'en') {
   return out;
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
+    const rateLimitResult = await checkRateLimit(req, '/api/wikidata');
+    if (!rateLimitResult.success) {
+      return rateLimitResult.response!;
+    }
+
     const url = new URL(req.url);
     const title = String(url.searchParams.get('title') || url.searchParams.get('q') || '');
     const lang = String(url.searchParams.get('lang') || 'en');

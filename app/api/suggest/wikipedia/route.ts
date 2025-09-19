@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
+import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import OpenAI from 'openai';
 
 // Country code to language code mapping for Wikipedia
@@ -144,25 +144,9 @@ async function suggestWikipediaArticle(
 }
 
 export async function GET(req: NextRequest) {
-  // Session token validation and rate limiting
-  const sessionToken = req.cookies.get('session-token')?.value;
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Missing session token.' }, { status: 401 });
-  }
-  
-  const isValid = await isValidSessionToken(sessionToken);
-  if (!isValid) {
-    return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403 });
-  }
-  
-  const { allowed, currentCount } = await incrementAndCheckRequestCount(sessionToken);
-  if (!allowed) {
-    console.warn(`Session token ${sessionToken} exceeded request limit for /api/suggest/wikipedia. Count: ${currentCount}`);
-    return NextResponse.json({ 
-      error: 'Request limit exceeded for this session.',
-      currentCount,
-      resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    }, { status: 429 });
+  const rateLimitResult = await checkRateLimit(req, '/api/suggest/wikipedia');
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response!;
   }
 
   const query = req.nextUrl.searchParams.get('q');

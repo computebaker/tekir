@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
-import { isValidSessionToken, incrementAndCheckRequestCount } from '@/lib/convex-session';
+import { checkRateLimit } from '@/lib/rate-limit-middleware';
 
 export async function POST(req: NextRequest) {
   const headers = {
@@ -10,25 +10,9 @@ export async function POST(req: NextRequest) {
     'X-XSS-Protection': '1; mode=block',
   };
 
-  const sessionToken = req.cookies.get('session-token')?.value;
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Missing session token.' }, { status: 401, headers });
-  }
-
-  const valid = await isValidSessionToken(sessionToken);
-  if (!valid) {
-    return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 403, headers });
-  }
-
-  // Optional rate limiting: increment request count
-  try {
-    const { allowed } = await incrementAndCheckRequestCount(sessionToken);
-    if (!allowed) {
-      return NextResponse.json({ error: 'Request limit exceeded.' }, { status: 429, headers });
-    }
-  } catch (e) {
-    // ignore rate-limit errors and proceed
-    console.warn('Rate limit check failed for feedback endpoint', e);
+  const rateLimitResult = await checkRateLimit(req, '/api/feedback');
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response!;
   }
 
   let body: any;
@@ -47,7 +31,7 @@ export async function POST(req: NextRequest) {
   try {
   await convex.mutation((api as any).feedbacks.createFeedback, {
       userId: body.userId || undefined,
-      sessionToken,
+  sessionToken: req.cookies.get('session-token')?.value,
       query: queryStr,
       searchEngine: body.searchEngine,
       searchType: body.searchType,
