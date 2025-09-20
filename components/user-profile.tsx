@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/auth-provider";
 import Link from "next/link";
 import Image from "next/image";
-import { User, LogOut, LogIn, Settings, LucideIcon, LayoutDashboard } from "lucide-react";
+import { User, LogOut, LogIn, Settings, LucideIcon, LayoutDashboard, Coins } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
 import { storeRedirectUrl } from "@/lib/utils";
@@ -130,6 +130,35 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
             </div>
             
             <div className="p-1">
+              {/* Usage indicator as a menu item for guests */}
+              {limitLoading && (
+                <div className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-default select-none">
+                  <Coins className="w-4 h-4 text-muted-foreground/40 animate-pulse" />
+                  <span className="inline-block h-3 w-16 rounded bg-muted/50 animate-pulse" aria-hidden="true" />
+                </div>
+              )}
+              {!limitLoading && limitInfo && (
+                <div className="relative group">
+                  <div className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-default select-none">
+                    {(() => {
+                      const pct = limitInfo.limit > 0 ? limitInfo.remaining / limitInfo.limit : 0;
+                      const iconColor = pct <= 0.1 ? 'text-red-500' : pct <= 0.3 ? 'text-yellow-500' : 'text-green-500';
+                      return <Coins className={`w-4 h-4 ${iconColor}`} />;
+                    })()}
+                    <span className="tabular-nums">
+                      <span>{limitInfo.remaining}</span>
+                      <span className="text-muted-foreground">/</span>
+                      <span className="text-muted-foreground">{limitInfo.limit}</span>
+                    </span>
+                  </div>
+                  <div
+                    role="tooltip"
+                    className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 w-64 whitespace-normal rounded-md border border-border bg-card text-card-foreground shadow-lg p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-50"
+                  >
+                    This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.
+                  </div>
+                </div>
+              )}
               <Link
                 href="/auth/signin"
                 className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left"
@@ -283,28 +312,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 <p className="text-xs text-muted-foreground truncate">
                   @{(user as any).username || user.email?.split('@')[0] || "user"}
                 </p>
-                {limitLoading && (
-                  <div className="mt-1 flex items-center gap-2 text-xs animate-pulse">
-                    <span className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30" aria-hidden="true" />
-                    <span className="inline-block h-3 w-16 rounded bg-muted/50" aria-hidden="true" />
-                  </div>
-                )}
-                {!limitLoading && limitInfo && (
-                  <div className="mt-1 flex items-center gap-2 text-xs">
-                    {(() => {
-                      const pct = limitInfo.limit > 0 ? limitInfo.remaining / limitInfo.limit : 0;
-                      const color = pct <= 0.1 ? 'bg-red-500' : pct <= 0.3 ? 'bg-yellow-500' : 'bg-green-500';
-                      return (
-                        <span className={`inline-block w-2 h-2 rounded-full ${color}`} aria-hidden="true" />
-                      );
-                    })()}
-                    <span className="tabular-nums">
-                      <span>{limitInfo.remaining}</span>
-                      <span className="text-muted-foreground">/</span>
-                      <span className="text-muted-foreground">{limitInfo.limit}</span>
-                    </span>
-                  </div>
-                )}
+                {/* Removed header usage indicator per request */}
               </div>
             </Link>
           </div>
@@ -331,6 +339,36 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               <Settings className="w-4 h-4" />
               Settings
             </Link>
+
+            {/* Usage indicator as a menu item */}
+            {limitLoading && (
+              <div className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-default select-none">
+                <Coins className="w-4 h-4 text-muted-foreground/40 animate-pulse" />
+                <span className="inline-block h-3 w-16 rounded bg-muted/50 animate-pulse" aria-hidden="true" />
+              </div>
+            )}
+            {!limitLoading && limitInfo && (
+              <div className="relative group">
+                <div className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-default select-none">
+                  {(() => {
+                    const pct = limitInfo.limit > 0 ? limitInfo.remaining / limitInfo.limit : 0;
+                    const iconColor = pct <= 0.1 ? 'text-red-500' : pct <= 0.3 ? 'text-yellow-500' : 'text-green-500';
+                    return <Coins className={`w-4 h-4 ${iconColor}`} />;
+                  })()}
+                  <span className="tabular-nums">
+                    <span>{limitInfo.remaining}</span>
+                    <span className="text-muted-foreground">/</span>
+                    <span className="text-muted-foreground">{limitInfo.limit}</span>
+                  </span>
+                </div>
+                <div
+                  role="tooltip"
+                  className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 w-64 whitespace-normal rounded-md border border-border bg-card text-card-foreground shadow-lg p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-50"
+                >
+                  This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.
+                </div>
+              </div>
+            )}
             
             <div className="border-t border-border mt-1 pt-1">
               <button
