@@ -4,8 +4,8 @@ import { yyyymmdd } from "./usage";
 
 // Rate limiting constants
 const RATE_LIMITS = {
-  ANONYMOUS_DAILY_LIMIT: 600,
-  AUTHENTICATED_DAILY_LIMIT: 1200,
+  ANONYMOUS_DAILY_LIMIT: 150,
+  AUTHENTICATED_DAILY_LIMIT: 300,
   SESSION_EXPIRATION_SECONDS: 24 * 60 * 60, // 24 hours
   RESET_INTERVAL_MS: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 } as const;

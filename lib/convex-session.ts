@@ -38,7 +38,7 @@ export async function getRateLimitStatus(token: string) {
     return { 
       isValid: false, 
       currentCount: 0, 
-      limit: 600,
+      limit: 150,
       remaining: 0,
       isAuthenticated: false 
     };

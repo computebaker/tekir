@@ -1,8 +1,8 @@
 // Rate limiting configuration for API routes
 export const RATE_LIMITS = {
   // Daily request limits
-  ANONYMOUS_DAILY_LIMIT: 600,
-  AUTHENTICATED_DAILY_LIMIT: 1200,
+  ANONYMOUS_DAILY_LIMIT: 150,
+  AUTHENTICATED_DAILY_LIMIT: 300,
   
   // Session configuration
   SESSION_EXPIRATION_HOURS: 24,
