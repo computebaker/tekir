@@ -108,8 +108,7 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7 // 7 days
     });
 
-    console.log('VerifyEmail: Setting JWT cookie:', token.substring(0, 20) + '...');
-    console.log('VerifyEmail: Response ready with cookies set');
+  console.log('VerifyEmail: Email verified and cookies set');
 
     return response;
   } catch (error) {

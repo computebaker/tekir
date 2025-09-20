@@ -101,16 +101,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           setStatus("authenticated");
         } else {
           console.log('AuthProvider: JWT auth failed - not authenticated');
-          removeCookie('auth-token');
-          removeCookie('session-token');
           setUser(null);
           setStatus("unauthenticated");
         }
       } else {
         console.log('AuthProvider: No valid JWT token found');
-        // Invalid token, remove cookies
-        removeCookie('auth-token');
-        removeCookie('session-token');
         setUser(null);
         setStatus("unauthenticated");
       }
@@ -136,9 +131,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleAuthLogout = () => {
       console.log('AuthProvider: Logout event received');
-      // No need to check status, just clear everything
-      removeCookie('auth-token');
-      removeCookie('session-token');
+      // Clear local state; server clears cookies
       setUser(null);
       setStatus("unauthenticated");
     };
@@ -162,12 +155,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Signout error:', error);
     } finally {
-      // Always clear local state and both cookies
-      removeCookie('auth-token');
-      removeCookie('session-token');
+      // Always clear local state; server cleared cookies
       setUser(null);
       setStatus("unauthenticated");
-      
       window.location.href = '/';
     }
   };
@@ -251,13 +241,4 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Helper functions for cookie manipulation
-const getCookie = (name: string): string | undefined => {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-};
-
-const removeCookie = (name: string) => {
-  document.cookie = name + '=; Max-Age=-99999999; path=/';
-};
+// No client-side manipulation of httpOnly cookies; rely on server endpoints

@@ -25,7 +25,7 @@ export async function checkRateLimit(
       success: false,
       response: NextResponse.json(
         { error: 'Session token required' },
-        { status: 401 }
+        { status: 401, headers: getRateLimitHeaders(RATE_LIMITS.ANONYMOUS_DAILY_LIMIT, false) }
       ),
     };
   }
@@ -37,7 +37,7 @@ export async function checkRateLimit(
       success: false,
       response: NextResponse.json(
         { error: 'Invalid or expired session token' },
-        { status: 401 }
+        { status: 401, headers: getRateLimitHeaders(RATE_LIMITS.ANONYMOUS_DAILY_LIMIT, false) }
       ),
     };
   }

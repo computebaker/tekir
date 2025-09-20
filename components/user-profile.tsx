@@ -138,8 +138,12 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 </div>
               )}
               {!limitLoading && limitInfo && (
-                <div className="relative group">
-                  <div className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-default select-none">
+                <div className="relative group" role="group" aria-label="Usage indicator">
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md select-none focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    tabIndex={0}
+                    aria-describedby="guest-usage-tooltip"
+                  >
                     {(() => {
                       const pct = limitInfo.limit > 0 ? limitInfo.remaining / limitInfo.limit : 0;
                       const iconColor = pct <= 0.1 ? 'text-red-500' : pct <= 0.3 ? 'text-yellow-500' : 'text-green-500';
@@ -153,7 +157,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   </div>
                   <div
                     role="tooltip"
-                    className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 w-64 whitespace-normal rounded-md border border-border bg-card text-card-foreground shadow-lg p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-50"
+                    id="guest-usage-tooltip"
+                    className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 w-64 whitespace-normal rounded-md border border-border bg-card text-card-foreground shadow-lg p-2 text-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50"
                   >
                     This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.
                   </div>
@@ -348,8 +353,12 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               </div>
             )}
             {!limitLoading && limitInfo && (
-              <div className="relative group">
-                <div className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-default select-none">
+              <div className="relative group" role="group" aria-label="Usage indicator">
+                <div
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-md select-none focus:outline-none focus:ring-2 focus:ring-ring/50"
+                  tabIndex={0}
+                  aria-describedby="auth-usage-tooltip"
+                >
                   {(() => {
                     const pct = limitInfo.limit > 0 ? limitInfo.remaining / limitInfo.limit : 0;
                     const iconColor = pct <= 0.1 ? 'text-red-500' : pct <= 0.3 ? 'text-yellow-500' : 'text-green-500';
@@ -363,7 +372,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 </div>
                 <div
                   role="tooltip"
-                  className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 w-64 whitespace-normal rounded-md border border-border bg-card text-card-foreground shadow-lg p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-50"
+                  id="auth-usage-tooltip"
+                  className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 w-64 whitespace-normal rounded-md border border-border bg-card text-card-foreground shadow-lg p-2 text-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50"
                 >
                   This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.
                 </div>

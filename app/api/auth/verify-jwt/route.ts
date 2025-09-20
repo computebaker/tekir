@@ -5,7 +5,8 @@ import { api } from '@/convex/_generated/api';
 
 export async function GET(request: NextRequest) {
   try {
-    const authToken = request.cookies.get('auth-token')?.value;
+  const authToken = request.cookies.get('auth-token')?.value;
+  const sessionToken = request.cookies.get('session-token')?.value;
     
     if (!authToken) {
       return NextResponse.json({ authenticated: false });
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
     
     try {
-      const decoded = jwt.verify(authToken, jwtSecret) as any;
+  const decoded = jwt.verify(authToken, jwtSecret, { algorithms: ['HS256'] }) as any;
       
       // Fetch the latest user data from Convex database
       const convex = getConvexClient();
@@ -25,6 +26,18 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ authenticated: false });
       }
       
+      // If a session token exists, verify it's valid and linked to this user
+      if (sessionToken) {
+        try {
+          const session = await convex.query(api.sessions.getSessionByToken, { token: sessionToken });
+          if (!session || !session.isActive || session.expiresAt <= Date.now() || String(session.userId) !== String(user._id)) {
+            return NextResponse.json({ authenticated: false });
+          }
+        } catch (e) {
+          return NextResponse.json({ authenticated: false });
+        }
+      }
+
       return NextResponse.json({
         authenticated: true,
         user: {

@@ -118,8 +118,7 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 7 // 7 days
     });
 
-    console.log('Signin: Setting JWT cookie:', token.substring(0, 20) + '...');
-    console.log('Signin: Response ready with cookies set');
+  console.log('Signin: Authenticated user, setting cookies');
 
     return response;
   } catch (error) {
