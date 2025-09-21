@@ -1623,7 +1623,8 @@ function SearchPageContent() {
                   </div>
                   <div className="p-4 flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-2">
-                      {article.favicon && (
+                      {settings.showFavicons && article.favicon && (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={article.favicon} alt="" className="w-4 h-4 rounded-sm flex-shrink-0" />
                       )}
                       <span className="text-xs text-muted-foreground truncate">

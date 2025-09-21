@@ -206,6 +206,10 @@ export default function SearchSettingsPage() {
     await updateSetting("wikipediaEnabled", newValue);
   };
 
+  const handleShowFaviconsToggle = async () => {
+    await updateSetting("showFavicons", !(settings.showFavicons ?? false));
+  };
+
   // Weather location handlers
   const searchWeatherLocations = async (query: string) => {
     if (query.length < 2) {
@@ -735,6 +739,21 @@ export default function SearchSettingsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Switch checked={settings.wikipediaEnabled ?? true} onChange={() => { void handleWikipediaToggle(); }} aria-label="Wikipedia Results" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Favicons in Results */}
+              <div className="rounded-lg border border-border bg-card p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h4 className="text-lg font-medium">Favicons in Results</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Show site icons next to result links
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch checked={settings.showFavicons ?? false} onChange={() => { void handleShowFaviconsToggle(); }} aria-label="Show favicons in results" />
                   </div>
                 </div>
               </div>

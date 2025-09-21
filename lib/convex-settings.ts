@@ -37,6 +37,9 @@ export interface UserSettings {
   // Wikipedia preferences
   wikipediaEnabled?: boolean;
 
+  // UI: show favicons near results
+  showFavicons?: boolean;
+
   // AI model-specific settings
   karakulakEnabled_llama?: boolean;
   karakulakEnabled_gemini?: boolean;
@@ -60,6 +63,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   searchType: "web",
   enchantedResults: true,
   wikipediaEnabled: true,
+  showFavicons: false,
   karakulakEnabled_llama: true,
   karakulakEnabled_gemini: true,
   karakulakEnabled_chatgpt: true,

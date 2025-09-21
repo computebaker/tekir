@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Globe } from "lucide-react";
+import { useSettings } from "@/lib/settings";
 
 export type WebResult = {
   title: string;
@@ -18,6 +19,7 @@ type Props = {
 
 export function WebResultItem({ result }: Props) {
   const [faviconError, setFaviconError] = useState(false);
+  const { settings } = useSettings();
   
   // Helper function to clean display URL by removing trailing slashes when appropriate
   const cleanDisplayUrl = (url: string): string => {
@@ -50,7 +52,7 @@ export function WebResultItem({ result }: Props) {
           className="w-5 h-5 flex-shrink-0 rounded-sm overflow-hidden bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
           title={`Visit ${cleanedDisplayUrl}`}
         >
-          {result.favicon && !faviconError ? (
+          {settings.showFavicons && result.favicon && !faviconError ? (
             // Use a regular img tag for favicon to allow onError handling reliably
             // and avoid Next/Image optimization for external small icons
             // eslint-disable-next-line @next/next/no-img-element
