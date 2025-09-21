@@ -47,13 +47,15 @@ export async function getRateLimitStatus(token: string) {
 
 // Session registration with improved fingerprinting
 export async function registerSessionToken(
-  hashedIp: string | null, 
+  hashedIp: string | null,
   expirationInSeconds: number = getSessionExpiration(),
-  userId: string | null = null
+  userId: string | null = null,
+  deviceId: string | null = null
 ): Promise<string | null> {
   try {
     const result = await convex.mutation(api.sessions.getOrCreateSessionToken, {
       hashedIp: hashedIp || undefined,
+      deviceId: deviceId || undefined,
       userId: userId as any || undefined, // Cast to Convex ID type
       expirationInSeconds,
     });

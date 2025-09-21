@@ -187,34 +187,6 @@ export const rangeAiUsage = query({
 });
 
 // Site visits — aggregated daily
-export const logSiteVisit = mutation({
-  args: { timestamp: v.optional(v.number()) },
-  handler: async (ctx, args) => {
-    const now = args.timestamp ?? Date.now();
-    const day = yyyymmdd(now);
-    const existing = await ctx.db
-      .query('siteVisitsDaily')
-      .withIndex('by_day', q => q.eq('day', day))
-      .first();
-    if (existing) {
-      await ctx.db.patch(existing._id, { count: existing.count + 1 });
-    } else {
-      await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
-    }
-    return { ok: true };
-  },
-});
-
-export const rangeSiteVisits = query({
-  args: { fromDay: v.number(), toDay: v.number() },
-  handler: async (ctx, args) => {
-    const rows = await ctx.db
-      .query('siteVisitsDaily')
-      .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
-      .collect();
-    return rows;
-  },
-});
 
 // API hits — aggregated daily
 export const logApiHit = mutation({
@@ -248,7 +220,7 @@ export const purgeAnalytics = mutation({
   args: {},
   handler: async (ctx) => {
     // Helper to delete all rows from a table by scanning a cheap index
-  async function deleteAll(table: 'searchUsageDaily' | 'aiUsageDaily' | 'siteVisitsDaily' | 'apiHitsDaily' | 'searchQueryDaily' | 'searchTokenDaily') {
+    async function deleteAll(table: 'searchUsageDaily' | 'aiUsageDaily' | 'apiHitsDaily' | 'searchQueryDaily' | 'searchTokenDaily') {
       // Use by_day index where available for chunked deletes
       const batch = await ctx.db.query(table).collect();
       for (const row of batch) {
@@ -258,7 +230,6 @@ export const purgeAnalytics = mutation({
 
   await deleteAll('searchUsageDaily');
     await deleteAll('aiUsageDaily');
-    await deleteAll('siteVisitsDaily');
     await deleteAll('apiHitsDaily');
     await deleteAll('searchQueryDaily');
   // Legacy token frequency table (kept for backward compatibility)

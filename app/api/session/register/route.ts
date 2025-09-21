@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { registerSessionToken, isConvexConfigured, hashIp, getRateLimitStatus } from '@/lib/convex-session';
 import { getJWTUser } from '@/lib/jwt-auth';
 import { RATE_LIMITS, getUserRateLimit, getSessionExpiration } from '@/lib/rate-limits';
@@ -39,9 +40,16 @@ export async function POST(req: NextRequest) {
     }
 
     const expirationInSeconds = getSessionExpiration();
-    
-    // Pass userId to link session to authenticated user
-  const token = await registerSessionToken(hashedIpValue, expirationInSeconds, userId);
+
+    // Derive or create a stable device identifier (opaque random ID)
+    let deviceId = req.cookies.get('device-id')?.value || null;
+    if (!deviceId) {
+      // 16-byte random hex ID
+      deviceId = randomBytes(16).toString('hex');
+    }
+
+    // Pass userId to link session to authenticated user and include deviceId
+    const token = await registerSessionToken(hashedIpValue, expirationInSeconds, userId, deviceId);
 
     if (!token) {
       return NextResponse.json({ success: false, error: 'Failed to register session token.' }, { status: 500 });
@@ -82,6 +90,14 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: expirationInSeconds,
+      path: '/',
+    });
+    // Set/update non-HTTP-only device-id cookie (pseudonymous; used only for anti-abuse)
+    response.cookies.set('device-id', deviceId!, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365, // 1 year
       path: '/',
     });
     return response;

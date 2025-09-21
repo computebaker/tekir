@@ -44,7 +44,6 @@ export default function AdminAnalyticsPage() {
   // Broad usage ranges
   const searchRange = useQuery(api.usage.rangeSearchUsage as any, { fromDay, toDay }) as any[] | undefined;
   const aiRange = useQuery(api.usage.rangeAiUsage as any, { fromDay, toDay }) as any[] | undefined;
-  const siteVisits = useQuery(api.usage.rangeSiteVisits as any, { fromDay, toDay }) as any[] | undefined;
   const apiHits = useQuery(api.usage.rangeApiHits as any, { fromDay, toDay }) as any[] | undefined;
   // Top queries for end day of range (kept simple)
   const topQueries = useQuery(api.usage.topSearchQueriesByDay as any, { day: toDay, limit: 20 }) as any[] | undefined;
@@ -62,7 +61,6 @@ export default function AdminAnalyticsPage() {
   useEffect(() => { if (typeof feedbacks === 'number') setFeedbacksCache(feedbacks); }, [feedbacks]);
   useEffect(() => { if (searchRange) setSearchRangeCache(searchRange); }, [searchRange]);
   useEffect(() => { if (aiRange) setAiRangeCache(aiRange); }, [aiRange]);
-  useEffect(() => { if (siteVisits) setSiteVisitsCache(siteVisits); }, [siteVisits]);
   useEffect(() => { if (apiHits) setApiHitsCache(apiHits); }, [apiHits]);
   useEffect(() => { if (topQueries) setTopQueriesCache(topQueries); }, [topQueries]);
 
@@ -70,7 +68,6 @@ export default function AdminAnalyticsPage() {
   const displayFeedbacks = feedbacks ?? feedbacksCache;
   const displaySearchRange = React.useMemo(() => (searchRange ?? searchRangeCache ?? EMPTY), [searchRange, searchRangeCache]);
   const displayAiRange = React.useMemo(() => (aiRange ?? aiRangeCache ?? EMPTY), [aiRange, aiRangeCache]);
-  const displaySiteVisits = React.useMemo(() => (siteVisits ?? siteVisitsCache ?? EMPTY), [siteVisits, siteVisitsCache]);
   const displayApiHits = React.useMemo(() => (apiHits ?? apiHitsCache ?? EMPTY), [apiHits, apiHitsCache]);
   const displayTopQueries = React.useMemo(() => (topQueries ?? topQueriesCache ?? EMPTY), [topQueries, topQueriesCache]);
 
@@ -79,7 +76,6 @@ export default function AdminAnalyticsPage() {
     (feedbacks ?? feedbacksCache) === undefined &&
     (searchRange ?? searchRangeCache) === undefined &&
     (aiRange ?? aiRangeCache) === undefined &&
-    (siteVisits ?? siteVisitsCache) === undefined &&
   (apiHits ?? apiHitsCache) === undefined &&
   (topQueries ?? topQueriesCache) === undefined;
 
@@ -115,7 +111,7 @@ export default function AdminAnalyticsPage() {
     return { totalCount, avgLatency, totalChars };
   }, [displayAiRange]);
 
-  const loading = [users, feedbacks, searchRange, aiRange, siteVisits, apiHits, topQueries].some(v => v === undefined);
+  const loading = [users, feedbacks, searchRange, aiRange, apiHits, topQueries].some(v => v === undefined);
 
   // Prepare daily series for charts (by day key)
   const dayKeys = useMemo(() => {
@@ -148,7 +144,6 @@ export default function AdminAnalyticsPage() {
   };
   const searchSeries = mkSeries(displaySearchRange, r => r.count || 0);
   const aiSeries = mkSeries(displayAiRange, r => r.count || 0);
-  const visitSeries = mkSeries(displaySiteVisits, r => r.count || 0);
   const apiSeries = mkSeries(displayApiHits, r => r.count || 0);
   const dayLabels = useMemo(() => dayKeys.map(formatDayNum), [dayKeys]);
 
@@ -185,12 +180,11 @@ export default function AdminAnalyticsPage() {
       const day = formatDayNum(dayNum);
       const searches = searchSeries[i]?.y ?? 0;
       const ai = aiSeries[i]?.y ?? 0;
-      const visits = visitSeries[i]?.y ?? 0;
       const hits = apiSeries[i]?.y ?? 0;
-      return `${day},${searches},${ai},${visits},${hits}`;
+      return `${day},${searches},${ai},${hits}`;
     });
     const csv = [
-      'day,searches,ai_requests,site_visits,api_hits',
+      'day,searches,ai_requests,api_hits',
       ...rows,
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -437,11 +431,6 @@ export default function AdminAnalyticsPage() {
                 <div className="rounded-lg border border-border bg-card p-4 animate-pulse h-[100px]" />
               ) : (
                 <BarChart series={aiSeries} title="AI requests per day" labels={dayLabels} />
-              )}
-              {(displaySiteVisits.length === 0 && (siteVisits ?? siteVisitsCache) === undefined) ? (
-                <div className="rounded-lg border border-border bg-card p-4 animate-pulse h-[100px]" />
-              ) : (
-                <BarChart series={visitSeries} title="Site visits per day" labels={dayLabels} />
               )}
               {(displayApiHits.length === 0 && (apiHits ?? apiHitsCache) === undefined) ? (
                 <div className="rounded-lg border border-border bg-card p-4 animate-pulse h-[100px]" />

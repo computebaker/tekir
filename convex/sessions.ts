@@ -29,6 +29,7 @@ export const registerSessionToken = mutation({
   args: {
     sessionToken: v.string(),
     hashedIp: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
     userId: v.optional(v.id("users")),
     expirationInSeconds: v.optional(v.number()),
   },
@@ -49,17 +50,8 @@ export const registerSessionToken = mutation({
         // Return existing session token for this user (fingerprinting behavior)
         await ctx.db.patch(existingUserSession._id, {
           expiresAt, // Extend expiration
+          deviceId: existingUserSession.deviceId || args.deviceId, // attach device if missing
         });
-        // Count site visit once per day per user on first reuse within day
-        try {
-          const day = yyyymmdd(Date.now());
-          const existingDay = await ctx.db
-            .query('siteVisitsDaily')
-            .withIndex('by_day', q => q.eq('day', day))
-            .first();
-          if (existingDay) await ctx.db.patch(existingDay._id, { count: existingDay.count + 1 });
-          else await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
-        } catch {}
         return existingUserSession.sessionToken;
       }
 
@@ -67,22 +59,13 @@ export const registerSessionToken = mutation({
       await ctx.db.insert("sessionTracking", {
         sessionToken: args.sessionToken,
         hashedIp: args.hashedIp,
+        deviceId: args.deviceId,
         userId: args.userId,
         requestCount: 0,
         expiresAt,
         isActive: true,
       });
 
-      // Count site visit for new authenticated session
-      try {
-        const day = yyyymmdd(Date.now());
-        const existingDay = await ctx.db
-          .query('siteVisitsDaily')
-          .withIndex('by_day', q => q.eq('day', day))
-          .first();
-        if (existingDay) await ctx.db.patch(existingDay._id, { count: existingDay.count + 1 });
-        else await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
-      } catch {}
 
       return args.sessionToken;
     }
@@ -104,17 +87,8 @@ export const registerSessionToken = mutation({
         // Return existing session token for this IP (fingerprinting behavior)
         await ctx.db.patch(existingIpSession._id, {
           expiresAt, // Extend expiration
+          deviceId: existingIpSession.deviceId || args.deviceId, // attach if missing
         });
-        // Count site visit on reuse within day
-        try {
-          const day = yyyymmdd(Date.now());
-          const existingDay = await ctx.db
-            .query('siteVisitsDaily')
-            .withIndex('by_day', q => q.eq('day', day))
-            .first();
-          if (existingDay) await ctx.db.patch(existingDay._id, { count: existingDay.count + 1 });
-          else await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
-        } catch {}
         return existingIpSession.sessionToken;
       }
     }
@@ -123,22 +97,13 @@ export const registerSessionToken = mutation({
     await ctx.db.insert("sessionTracking", {
       sessionToken: args.sessionToken,
       hashedIp: args.hashedIp,
+      deviceId: args.deviceId,
       userId: args.userId,
       requestCount: 0,
       expiresAt,
       isActive: true,
     });
 
-    // Count site visit for new anonymous session
-    try {
-      const day = yyyymmdd(Date.now());
-      const existingDay = await ctx.db
-        .query('siteVisitsDaily')
-        .withIndex('by_day', q => q.eq('day', day))
-        .first();
-      if (existingDay) await ctx.db.patch(existingDay._id, { count: existingDay.count + 1 });
-      else await ctx.db.insert('siteVisitsDaily', { day, count: 1 });
-    } catch {}
 
     return args.sessionToken;
   },
@@ -194,12 +159,29 @@ export const getRateLimitStatus = query({
     }
 
     const limit = session.userId ? RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT : RATE_LIMITS.ANONYMOUS_DAILY_LIMIT;
-    const remaining = Math.max(0, limit - session.requestCount);
+    const sessionRemaining = Math.max(0, limit - session.requestCount);
+
+    // Enforce per-device daily cap across auth/anon
+    let deviceRemainingNum = Number(RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT); // device cap equals auth daily limit
+    const deviceKey = session.deviceId || session.hashedIp;
+    if (deviceKey) {
+      try {
+        const day = yyyymmdd(Date.now());
+        const du = await ctx.db
+          .query('deviceDailyUsage')
+          .withIndex('by_day_deviceId', q => q.eq('day', day).eq('deviceId', deviceKey))
+          .first();
+        const deviceCount = du?.count ?? 0;
+        deviceRemainingNum = Math.max(0, Number(RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT) - deviceCount);
+      } catch {}
+    }
+
+    const remaining = Math.min(sessionRemaining, deviceRemainingNum);
 
     return {
       isValid: true,
       currentCount: session.requestCount,
-      limit,
+      limit, // session-level limit (UI displays limit per state)
       remaining,
       isAuthenticated: !!session.userId,
       resetTime: new Date(Date.now() + RATE_LIMITS.RESET_INTERVAL_MS).toISOString()
@@ -225,16 +207,39 @@ export const incrementAndCheckRequestCount = mutation({
     }
 
     const maxRequests = session.userId ? RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT : RATE_LIMITS.ANONYMOUS_DAILY_LIMIT;
+  const deviceCap: number = RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT; // hard cap per device per day
+
+    // Load device usage if we have a device key
+    const deviceKey = session.deviceId || session.hashedIp;
+    let deviceCount = 0;
+    let deviceDailyDocId: string | null = null as any;
+    const today = yyyymmdd(Date.now());
+    if (deviceKey) {
+      const du = await ctx.db
+        .query('deviceDailyUsage')
+        .withIndex('by_day_deviceId', q => q.eq('day', today).eq('deviceId', deviceKey))
+        .first();
+      if (du) {
+        deviceCount = du.count;
+        deviceDailyDocId = du._id as any;
+      }
+    }
 
     // Pre-calculate if request would be allowed
     const newCount = session.requestCount + 1;
-    const wouldBeAllowed = newCount <= maxRequests;
+    const wouldBeAllowed = newCount <= maxRequests && (!deviceKey || (deviceCount + 1) <= deviceCap);
 
     if (wouldBeAllowed) {
       try {
-        await ctx.db.patch(session._id, {
-          requestCount: newCount,
-        });
+        await ctx.db.patch(session._id, { requestCount: newCount });
+        // Increment device usage atomically
+        if (deviceKey) {
+          if (deviceDailyDocId) {
+            await ctx.db.patch(deviceDailyDocId as any, { count: deviceCount + 1 });
+          } else {
+            await ctx.db.insert('deviceDailyUsage', { day: today, deviceId: deviceKey, count: 1 });
+          }
+        }
         // Count API hit on allowed request
         try {
           const day = yyyymmdd(Date.now());
@@ -301,6 +306,12 @@ export const linkSessionToUser = mutation({
       await ctx.db.patch(session._id, {
         isActive: false,
       });
+      // Ensure existing user session is associated with the same device when possible
+      if (!existingUserSession.deviceId && session.deviceId) {
+        try {
+          await ctx.db.patch(existingUserSession._id, { deviceId: session.deviceId });
+        } catch {}
+      }
       
       // Return the existing user session token for fingerprinting
       return existingUserSession.sessionToken;
@@ -318,6 +329,7 @@ export const linkSessionToUser = mutation({
 export const getOrCreateSessionToken = mutation({
   args: {
     hashedIp: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
     userId: v.optional(v.id("users")),
     expirationInSeconds: v.optional(v.number()),
   },
@@ -340,7 +352,7 @@ export const getOrCreateSessionToken = mutation({
         
         if (timeUntilExpiry < halfRequestedTime) {
           try {
-            await ctx.db.patch(existingUserSession._id, { expiresAt });
+            await ctx.db.patch(existingUserSession._id, { expiresAt, deviceId: existingUserSession.deviceId || args.deviceId });
           } catch (error) {
             // If patch fails, still return the existing token
             console.warn("Failed to extend session expiration, but returning existing token");
@@ -360,6 +372,7 @@ export const getOrCreateSessionToken = mutation({
         await ctx.db.insert("sessionTracking", {
           sessionToken,
           hashedIp: args.hashedIp,
+          deviceId: args.deviceId,
           userId: args.userId,
           requestCount: 0,
           expiresAt,
@@ -412,7 +425,7 @@ export const getOrCreateSessionToken = mutation({
         
         if (timeUntilExpiry < halfRequestedTime) {
           try {
-            await ctx.db.patch(existingIpSession._id, { expiresAt });
+            await ctx.db.patch(existingIpSession._id, { expiresAt, deviceId: existingIpSession.deviceId || args.deviceId });
           } catch (error) {
             // If patch fails, still return the existing token
             console.warn("Failed to extend session expiration, but returning existing token");
@@ -432,6 +445,7 @@ export const getOrCreateSessionToken = mutation({
     await ctx.db.insert("sessionTracking", {
       sessionToken,
       hashedIp: args.hashedIp,
+      deviceId: args.deviceId,
       userId: args.userId,
       requestCount: 0,
       expiresAt,

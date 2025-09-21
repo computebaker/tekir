@@ -116,23 +116,6 @@ export const deleteUser = mutation({
   args: { id: v.id("users") },
   handler: async (ctx, args) => {
     // Delete related data first
-    const accounts = await ctx.db
-      .query("accounts")
-      .withIndex("by_userId", (q) => q.eq("userId", args.id))
-      .collect();
-    
-    for (const account of accounts) {
-      await ctx.db.delete(account._id);
-    }
-
-    const sessions = await ctx.db
-      .query("sessions")
-      .withIndex("by_userId", (q) => q.eq("userId", args.id))
-      .collect();
-    
-    for (const session of sessions) {
-      await ctx.db.delete(session._id);
-    }
 
     const sessionTracking = await ctx.db
       .query("sessionTracking")
