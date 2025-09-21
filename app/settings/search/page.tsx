@@ -285,13 +285,13 @@ export default function SearchSettingsPage() {
   const getModelDisplay = (model: string) => {
     switch (model) {
       case 'llama':
-        return { name: 'Llama 4', icon: '/meta.png', description: 'A powerful and open-source model by Meta' };
+        return { name: 'Llama 4', icon: '/logos/meta.svg', description: 'A powerful and open-source model by Meta' };
       case 'mistral':
-        return { name: 'Mistral Mini', icon: '/mistral.png', description: 'A lightweight model by Mistral AI' };
+        return { name: 'Mistral Mini', icon: '/logos/mistral.svg', description: 'A lightweight model by Mistral AI' };
       case 'chatgpt':
-        return { name: 'GPT 5 Mini', icon: '/openai.png', description: 'Powerful, efficient model by OpenAI' };
+        return { name: 'GPT 5 Mini', icon: '/logos/openai.svg', description: 'Powerful, efficient model by OpenAI', className: 'invert dark:invert-0' };
       default:
-        return { name: 'Gemini 2.5 Flash', icon: '/google.png', description: 'A fast and intelligent model by Google' };
+        return { name: 'Gemini 2.5 Flash', icon: '/logos/gemini.svg', description: 'A fast and intelligent model by Google' };
     }
   };
 
@@ -380,12 +380,12 @@ export default function SearchSettingsPage() {
               aria-controls="ai-model-menu"
                         >
                           <div className="flex items-center gap-2">
-                            <Image 
-                              src={currentModel.icon} 
-                              alt={`${currentModel.name} Logo`} 
-                              width={20} 
-                              height={20} 
-                              className="rounded" 
+                            <Image
+                              src={currentModel.icon}
+                              alt={`${currentModel.name} Logo`}
+                              width={20}
+                              height={20}
+                              className={`rounded ${'className' in currentModel && (currentModel as any).className ? (currentModel as any).className : ''}`}
                             />
                             <span className="text-sm font-medium">{currentModel.name}</span>
                           </div>
@@ -403,7 +403,7 @@ export default function SearchSettingsPage() {
                                   settings.aiModel === 'llama' ? 'bg-muted' : ''
                                 }`}
                               >
-                                <Image src="/meta.png" alt="Meta Logo" width={24} height={24} className="rounded" />
+                                <Image src="/logos/meta.svg" alt="Meta Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
                                   <span className="font-medium text-sm">Llama 4 Maverick</span>
                                   <span className="text-xs text-muted-foreground text-left">A powerful and open-source model by Meta</span>
@@ -421,7 +421,7 @@ export default function SearchSettingsPage() {
                                   settings.aiModel === 'gemini' ? 'bg-muted' : ''
                                 }`}
                               >
-                                <Image src="/google.png" alt="Google Logo" width={24} height={24} className="rounded" />
+                                <Image src="/logos/gemini.svg" alt="Google Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
                                   <span className="font-medium text-sm">Gemini 2.5 Flash</span>
                                   <span className="text-xs text-muted-foreground text-left">A fast and intelligent model by Google</span>
@@ -439,7 +439,7 @@ export default function SearchSettingsPage() {
                                   settings.aiModel === 'chatgpt' ? 'bg-muted' : ''
                                 }`}
                               >
-                                <Image src="/openai.png" alt="OpenAI Logo" width={24} height={24} className="rounded" />
+                                <Image src="/logos/openai.svg" alt="OpenAI Logo" width={24} height={24} className="rounded invert dark:invert-0" />
                                 <div className="flex flex-col items-start flex-1">
                                   <span className="font-medium text-sm">GPT 5 Mini</span>
                                   <span className="text-xs text-muted-foreground text-left">Powerful, efficient model by OpenAI</span>
@@ -457,7 +457,7 @@ export default function SearchSettingsPage() {
                                   settings.aiModel === 'mistral' ? 'bg-muted' : ''
                                 }`}
                               >
-                                <Image src="/mistral.png" alt="Mistral Logo" width={24} height={24} className="rounded" />
+                                <Image src="/logos/mistral.svg" alt="Mistral Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
                                   <span className="font-medium text-sm">Mistral Mini</span>
                                   <span className="text-xs text-muted-foreground text-left">A lightweight model by Mistral AI</span>
