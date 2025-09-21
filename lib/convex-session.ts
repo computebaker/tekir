@@ -53,14 +53,26 @@ export async function registerSessionToken(
   deviceId: string | null = null
 ): Promise<string | null> {
   try {
-    const result = await convex.mutation(api.sessions.getOrCreateSessionToken, {
-      hashedIp: hashedIp || undefined,
-      deviceId: deviceId || undefined,
-      userId: userId as any || undefined, // Cast to Convex ID type
-      expirationInSeconds,
-    });
-
-    return result.sessionToken;
+    try {
+      const result = await convex.mutation(api.sessions.getOrCreateSessionToken, {
+        hashedIp: hashedIp || undefined,
+        deviceId: deviceId || undefined,
+        userId: userId as any || undefined, // Cast to Convex ID type
+        expirationInSeconds,
+      });
+      return result.sessionToken;
+    } catch (e: any) {
+      const msg = typeof e?.message === 'string' ? e.message : '';
+      const isValidatorReject = msg.includes('extra field `deviceId`') || msg.includes('Object contains extra field');
+      if (!isValidatorReject) throw e;
+      // Retry without deviceId for older deployments
+      const result = await convex.mutation(api.sessions.getOrCreateSessionToken, {
+        hashedIp: hashedIp || undefined,
+        userId: userId as any || undefined,
+        expirationInSeconds,
+      });
+      return result.sessionToken;
+    }
   } catch (error) {
     console.error("Error registering session token:", error);
     return null;

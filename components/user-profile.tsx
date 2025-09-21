@@ -224,9 +224,9 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   }}
                 />
               );
-            } else {
-              return (
-                <img
+                  } else {
+                    return (
+                      <Image
                   key={`avatar-${user.id}-${avatarKey}`}
                   src={avatarUrl}
                   alt={user.name || "Profile"}
@@ -294,7 +294,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                     );
                   } else {
                     return (
-                      <img
+                      <Image
                         key={`dropdown-avatar-${user.id}-${avatarKey}`}
                         src={dropdownAvatarUrl}
                         alt={user.name || "Profile"}

@@ -53,10 +53,7 @@ export function WebResultItem({ result }: Props) {
           title={`Visit ${cleanedDisplayUrl}`}
         >
           {settings.showFavicons && result.favicon && !faviconError ? (
-            // Use a regular img tag for favicon to allow onError handling reliably
-            // and avoid Next/Image optimization for external small icons
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={result.favicon} alt="" className="w-5 h-5 object-contain" onError={() => setFaviconError(true)} />
+            <Image src={result.favicon} alt="" className="w-5 h-5 object-contain" onError={() => setFaviconError(true)} />
           ) : (
             <Globe className="w-4 h-4 text-muted-foreground" />
           )}

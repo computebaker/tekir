@@ -143,7 +143,7 @@ export default function ImageUpload({
               );
             } else {
               return (
-                <img
+                <Image
                   src={currentImage}
                   alt="Profile"
                   className="w-full h-full object-cover"
