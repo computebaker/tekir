@@ -193,18 +193,18 @@ export async function POST(req: NextRequest) {
 
     const aiStartTime = Date.now();
     const llmResponse = await openai.chat.completions.create({
-      model: 'mistralai/ministral-3b', 
+      model: 'openai/gpt-5-mini', 
       messages: [
         {
           role: 'system',
-          content: 'You are an AI assistant for Tekir Dive mode. Provide concise, accurate answers based on web sources. Be direct and helpful. Maximum 80 words.',
+          content: 'You are an AI assistant for Tekir Dive mode. Provide concise, accurate answers based on web sources. Be direct and helpful. Do not use markdown, do not offer to answer a second question. Keep the answer short and understandable.',
         },
         {
           role: 'user',
           content: llmPrompt,
         },
       ],
-      max_tokens: 80,
+      max_tokens: 400,
       temperature: 0.3,
     });
     
