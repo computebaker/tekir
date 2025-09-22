@@ -290,8 +290,10 @@ export default function SearchSettingsPage() {
         return { name: 'Mistral Mini', icon: '/logos/mistral.svg', description: 'A lightweight model by Mistral AI' };
       case 'chatgpt':
         return { name: 'ChatGPT 5', icon: '/logos/openai.svg', description: 'Powerful, efficient model by OpenAI', className: 'invert dark:invert-0' };
+      case 'grok':
+        return { name: 'Grok 4', icon: '/logos/grok.svg', description: 'Fast model by xAI (OpenRouter)', className: 'invert dark:invert-0' };
       default:
-        return { name: 'Gemini 2.5 Flash', icon: '/logos/gemini.svg', description: 'A fast and intelligent model by Google' };
+        return { name: 'Gemini 2.5', icon: '/logos/gemini.svg', description: 'A fast and intelligent model by Google' };
     }
   };
 
@@ -405,7 +407,7 @@ export default function SearchSettingsPage() {
                               >
                                 <Image src="/logos/meta.svg" alt="Meta Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Llama 4 Maverick</span>
+                                  <span className="font-medium text-sm">Llama 4</span>
                                   <span className="text-xs text-muted-foreground text-left">A powerful and open-source model by Meta</span>
                                 </div>
                                 {settings.aiModel === 'llama' && (
@@ -423,7 +425,7 @@ export default function SearchSettingsPage() {
                               >
                                 <Image src="/logos/gemini.svg" alt="Google Logo" width={24} height={24} className="rounded" />
                                 <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Gemini 2.5 Flash</span>
+                                  <span className="font-medium text-sm">Gemini 2.5</span>
                                   <span className="text-xs text-muted-foreground text-left">A fast and intelligent model by Google</span>
                                 </div>
                                 {settings.aiModel === 'gemini' && (
@@ -463,6 +465,24 @@ export default function SearchSettingsPage() {
                                   <span className="text-xs text-muted-foreground text-left">A lightweight model by Mistral AI</span>
                                 </div>
                                 {settings.aiModel === 'mistral' && (
+                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => handleModelChange('grok')}
+                                role="menuitemradio"
+                                aria-checked={settings.aiModel === 'grok'}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
+                                  settings.aiModel === 'grok' ? 'bg-muted' : ''
+                                }`}
+                              >
+                                <Image src="/logos/grok.svg" alt="Grok Logo" width={24} height={24} className="rounded invert dark:invert-0" />
+                                <div className="flex flex-col items-start flex-1">
+                                  <span className="font-medium text-sm">Grok 4</span>
+                                  <span className="text-xs text-muted-foreground text-left">An intelligent model from xAI</span>
+                                </div>
+                                {settings.aiModel === 'grok' && (
                                   <div className="w-2 h-2 bg-primary rounded-full"></div>
                                 )}
                               </button>

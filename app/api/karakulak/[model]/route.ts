@@ -113,6 +113,28 @@ async function chatgpt(message: string): Promise<string> {
   return answer ?? "";
 }
 
+async function grok(message: string): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: 'x-ai/grok-4-fast:free',
+    ...generationConfig,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response.',
+      },
+      {
+        role: 'user',
+        content: message,
+      },
+    ],
+    stream: false,
+  });
+
+  const answer = response.choices[0].message.content;
+  return answer ?? "";
+}
+
 // Using shared Convex-backed rate limiter via middleware
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
@@ -127,7 +149,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     const { model } = await params;
     
     // Validate model parameter
-    const validModels = ['gemini', 'llama', 'mistral', 'chatgpt'];
+  const validModels = ['gemini', 'llama', 'mistral', 'chatgpt', 'grok'];
     if (!validModels.includes(model.toLowerCase())) {
       return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 400, headers });
     }
@@ -171,6 +193,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
         break;
       case 'chatgpt':
         answer = await chatgpt(sanitizedMessage);
+        break;
+      case 'grok':
+        answer = await grok(sanitizedMessage);
         break;
       default:
         return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 404 });

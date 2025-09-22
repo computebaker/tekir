@@ -45,6 +45,7 @@ export interface UserSettings {
   karakulakEnabled_gemini?: boolean;
   karakulakEnabled_chatgpt?: boolean;
   karakulakEnabled_mistral?: boolean;
+  karakulakEnabled_grok?: boolean;
 }
 
 // Default settings values
@@ -68,6 +69,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   karakulakEnabled_gemini: true,
   karakulakEnabled_chatgpt: true,
   karakulakEnabled_mistral: true,
+  karakulakEnabled_grok: true,
 };
 
 class ConvexSettingsManager {
