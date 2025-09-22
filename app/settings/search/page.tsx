@@ -289,7 +289,7 @@ export default function SearchSettingsPage() {
       case 'mistral':
         return { name: 'Mistral Mini', icon: '/logos/mistral.svg', description: 'A lightweight model by Mistral AI' };
       case 'chatgpt':
-        return { name: 'GPT 5 Mini', icon: '/logos/openai.svg', description: 'Powerful, efficient model by OpenAI', className: 'invert dark:invert-0' };
+        return { name: 'ChatGPT 5', icon: '/logos/openai.svg', description: 'Powerful, efficient model by OpenAI', className: 'invert dark:invert-0' };
       default:
         return { name: 'Gemini 2.5 Flash', icon: '/logos/gemini.svg', description: 'A fast and intelligent model by Google' };
     }
@@ -441,7 +441,7 @@ export default function SearchSettingsPage() {
                               >
                                 <Image src="/logos/openai.svg" alt="OpenAI Logo" width={24} height={24} className="rounded invert dark:invert-0" />
                                 <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">GPT 5 Mini</span>
+                                  <span className="font-medium text-sm">ChatGPT 5</span>
                                   <span className="text-xs text-muted-foreground text-left">Powerful, efficient model by OpenAI</span>
                                 </div>
                                 {settings.aiModel === 'chatgpt' && (
