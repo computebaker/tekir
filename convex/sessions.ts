@@ -507,36 +507,45 @@ export const resetDailyRequestCounts = mutation({
   args: {},
   handler: async (ctx) => {
     const currentTime = Date.now();
-    const yesterday = currentTime - (24 * 60 * 60 * 1000);
-    
-    // Find active sessions that haven't been reset today
-    const sessionsToReset = await ctx.db
-      .query("sessionTracking")
-      .filter((q) => 
-        q.and(
-          q.gt(q.field("expiresAt"), currentTime), // Still valid
-          q.eq(q.field("isActive"), true), // Still active
-          q.gt(q.field("requestCount"), 0) // Has requests to reset
-        )
-      )
-      .take(50); // Process in smaller batches
-
+    // Process in batches until there are no more sessions to reset.
+    // The previous implementation only processed a single batch of 50,
+    // which meant many sessions were never reset. Looping here ensures
+    // the cron run clears all matching sessions (within mutation limits).
+    const batchSize = 200;
     let resetCount = 0;
-    
-    for (const session of sessionsToReset) {
-      try {
-        await ctx.db.patch(session._id, {
-          requestCount: 0,
-        });
-        resetCount++;
-      } catch (error) {
-        console.warn(`Failed to reset request count for session ${session._id}:`, error);
+
+    while (true) {
+      const sessionsToReset = await ctx.db
+        .query("sessionTracking")
+        .filter((q) =>
+          q.and(
+            q.gt(q.field("expiresAt"), currentTime), // Still valid
+            q.eq(q.field("isActive"), true), // Still active
+            q.gt(q.field("requestCount"), 0) // Has requests to reset
+          )
+        )
+        .take(batchSize);
+
+      if (!sessionsToReset || sessionsToReset.length === 0) {
+        break;
       }
+
+      for (const session of sessionsToReset) {
+        try {
+          await ctx.db.patch(session._id, { requestCount: 0 });
+          resetCount++;
+        } catch (error) {
+          console.warn(`Failed to reset request count for session ${session._id}:`, error);
+        }
+      }
+
+      // If fewer than a full batch were returned, we've cleared all matches.
+      if (sessionsToReset.length < batchSize) break;
     }
 
-    return { 
+    return {
       resetCount,
-      hasMore: sessionsToReset.length === 50
+      hasMore: false,
     };
   },
 });
