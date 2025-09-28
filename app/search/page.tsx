@@ -146,6 +146,9 @@ function SearchPageContent() {
   const [autocompleteSource, setAutocompleteSource] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
+  const checkForBang = (input: string): boolean => {
+    return /(?:^|\s)![a-z]+/.test((input || "").toLowerCase());
+  };
   const hasBang = useMemo(() => checkForBang(searchInput), [searchInput]);
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
@@ -995,11 +998,6 @@ function SearchPageContent() {
         break;
     }
   };
-
-  const checkForBang = (input: string): boolean => {
-    return /(?:^|\s)![a-z]+/.test(input.toLowerCase());
-  };
-
 
   useEffect(() => {
     if (query) {
