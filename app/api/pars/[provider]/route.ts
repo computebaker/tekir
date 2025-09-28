@@ -63,6 +63,105 @@ function sanitizeText(value: any): string {
   return decodeHTMLEntities(stripTags(s)).trim();
 }
 
+function mapSafeSearchToGoogle(value: string | null | undefined): 'active' | undefined {
+  if (!value) return 'active';
+  const normalized = value.toLowerCase();
+  if (normalized === 'off') return undefined;
+  return 'active';
+}
+
+function normalizeGoogleCountry(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (trimmed.toUpperCase() === 'ALL') return undefined;
+  const code = trimmed.slice(0, 2).toLowerCase();
+  return /^[a-z]{2}$/.test(code) ? code : undefined;
+}
+
+function normalizeGoogleLang(value: string | null | undefined): { hl?: string; lr?: string } {
+  if (!value) return {};
+  const normalized = value.toLowerCase();
+  return {
+    hl: normalized,
+    lr: `lang_${normalized}`,
+  };
+}
+
+async function getGoogle(q: string, country?: string, safesearch?: string, lang?: string) {
+  const results: Results[] = [];
+  let totalResults = 0;
+  const apiKey = process.env.GOOGLE_API_KEY;
+  const cx = process.env.GOOGLE_CX;
+
+  if (!apiKey || !cx) {
+    console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    return { results, totalResults };
+  }
+
+  try {
+    const params = new URLSearchParams({
+      key: apiKey,
+      cx,
+      q,
+      num: '10',
+    });
+
+    const safeSearchParam = mapSafeSearchToGoogle(safesearch);
+    if (safeSearchParam) {
+      params.set('safe', safeSearchParam);
+    }
+
+    const normalizedCountry = normalizeGoogleCountry(country);
+    if (normalizedCountry) {
+      params.set('gl', normalizedCountry);
+    }
+
+    const langParams = normalizeGoogleLang(lang);
+    if (langParams.hl) params.set('hl', langParams.hl);
+    if (langParams.lr) params.set('lr', langParams.lr);
+
+    const response = await fetch(`https://www.googleapis.com/customsearch/v1?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorPayload = await response.text().catch(() => '');
+      throw new Error(`Google Custom Search error: ${response.status} ${response.statusText} ${errorPayload}`.trim());
+    }
+
+    const data = await response.json();
+    totalResults = Number(data?.searchInformation?.totalResults ?? 0) || 0;
+
+    (data?.items || []).forEach((item: any) => {
+      const link = item?.link || '';
+      if (!link) return;
+
+      let favicon = '';
+      try {
+        favicon = `/api/favicon/${new URL(link).hostname}`;
+      } catch {
+        favicon = '';
+      }
+
+      results.push({
+        title: sanitizeText(item?.title || ''),
+        description: sanitizeText(item?.snippet || ''),
+        displayUrl: sanitizeText(item?.displayLink || link.replace(/^https?:\/\//, '')),
+        url: link,
+        source: 'Google',
+        favicon,
+      });
+    });
+  } catch (error) {
+    console.error('Error fetching Google results:', error);
+  }
+
+  return { results, totalResults };
+}
+
 async function getBrave(q: string, country: string = 'ALL', safesearch: string = 'moderate') {
   const results: Results[] = [];
   let videos: any[] = [];
@@ -176,6 +275,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const query = req.nextUrl.searchParams.get('q');
   const country = req.nextUrl.searchParams.get('country') || 'ALL';
   const safesearch = req.nextUrl.searchParams.get('safesearch') || 'moderate';
+  const lang = req.nextUrl.searchParams.get('lang') || req.nextUrl.searchParams.get('language') || undefined;
 
   const rateLimitResult = await checkRateLimit(req, '/api/pars');
   if (!rateLimitResult.success) {
@@ -191,15 +291,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
 
   let videos: any[] = [];
   let news: any[] = [];
+  let totalResultsCount = 0;
   switch (provider.toLowerCase()) {
     case 'duck':
       results = await getDuck(query);
+      totalResultsCount = results.length;
       break;
     case 'brave': {
       const braveRes = await getBrave(query, country, safesearch);
       results = braveRes.results;
       videos = braveRes.videos || [];
       news = braveRes.news || [];
+      totalResultsCount = results.length;
+      break;
+    }
+    case 'google': {
+      const googleRes = await getGoogle(query, country, safesearch, lang);
+      results = googleRes.results;
+      totalResultsCount = googleRes.totalResults || results.length;
       break;
     }
     default:
@@ -208,13 +317,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
 
   // Generate favicon URLs for returned results using our favicon proxy
   try {
-    const toFetch = results.slice(0, 20).map(r => ({ url: r.url, favicon: r.favicon }));
-    await fetchFaviconsForResults(toFetch as any);
-    for (let i = 0; i < toFetch.length; i++) {
-      if (toFetch[i].favicon) {
-        results[i].favicon = toFetch[i].favicon;
-      }
-    }
+    await fetchFaviconsForResults(results);
   } catch (e) {
     console.warn('Favicon processing failed:', e);
   }
@@ -228,22 +331,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       provider: provider.toLowerCase(),
       type,
       responseTimeMs: responseTime,
-      totalResults: results.length,
+      totalResults: totalResultsCount || results.length,
       queryText: query || undefined,
     });
   } catch (e) {
     console.warn('Failed to log search usage:', e);
   }
   
-  return NextResponse.json({ 
-    results, 
-  videos,
-  news,
-    metadata: { 
-      provider: provider.toLowerCase(), 
-      query, 
+  return NextResponse.json({
+    results,
+    videos,
+    news,
+    metadata: {
+      provider: provider.toLowerCase(),
+      query,
       responseTime: `${responseTime}ms`,
-      totalResults: results.length 
-    } 
+      totalResults: totalResultsCount || results.length,
+    },
   });
 }

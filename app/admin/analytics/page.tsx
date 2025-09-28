@@ -7,6 +7,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 // Stable empty array to avoid new reference on every render when data is missing
 const EMPTY: any[] = [] as any[];
+const KNOWN_SEARCH_PROVIDERS = ['brave', 'google', 'duck'];
 function yyyymmdd(ts: number) {
   const d = new Date(ts);
   const y = d.getUTCFullYear();
@@ -82,7 +83,13 @@ export default function AdminAnalyticsPage() {
   const [providerFilter, setProviderFilter] = useState<string[] | null>(null);
   const [typeFilter, setTypeFilter] = useState<string[] | null>(null);
 
-  const providers = useMemo(() => Array.from(new Set((displaySearchRange || []).map(r => r.provider))).sort(), [displaySearchRange]);
+  const providers = useMemo(() => {
+    const set = new Set<string>(KNOWN_SEARCH_PROVIDERS);
+    for (const row of displaySearchRange || []) {
+      if (row?.provider) set.add(row.provider);
+    }
+    return Array.from(set).sort();
+  }, [displaySearchRange]);
   const types = useMemo(() => Array.from(new Set((displaySearchRange || []).map(r => r.type))).sort(), [displaySearchRange]);
 
   const filteredSearch = useMemo(() => {

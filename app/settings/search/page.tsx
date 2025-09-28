@@ -86,7 +86,6 @@ export default function SearchSettingsPage() {
   const [weatherLocationQuery, setWeatherLocationQuery] = useState("");
   const [weatherLocationSuggestions, setWeatherLocationSuggestions] = useState<LocationData[]>([]);
   const [showWeatherLocationSuggestions, setShowWeatherLocationSuggestions] = useState(false);
-  const [searchEngine] = useState("brave"); // Unchangeable
 
   // Dropdown states
   const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
@@ -95,6 +94,7 @@ export default function SearchSettingsPage() {
   const [safesearchDropdownOpen, setSafesearchDropdownOpen] = useState(false);
   const [weatherUnitsDropdownOpen, setWeatherUnitsDropdownOpen] = useState(false);
   const [weatherPlacementDropdownOpen, setWeatherPlacementDropdownOpen] = useState(false);
+  const [searchProviderDropdownOpen, setSearchProviderDropdownOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   const [cacheClearedAt, setCacheClearedAt] = useState<number | null>(null);
   const [cacheCleared, setCacheCleared] = useState(false);
@@ -107,6 +107,7 @@ export default function SearchSettingsPage() {
   const weatherLocationRef = useRef<HTMLDivElement>(null);
   const weatherUnitsDropdownRef = useRef<HTMLDivElement>(null);
   const weatherPlacementDropdownRef = useRef<HTMLDivElement>(null);
+  const searchProviderDropdownRef = useRef<HTMLDivElement>(null);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
   // Reset cache cleared state after 3 seconds
@@ -169,6 +170,12 @@ export default function SearchSettingsPage() {
         setWeatherPlacementDropdownOpen(false);
       }
 
+      if (searchProviderDropdownRef.current &&
+          !searchProviderDropdownRef.current.contains(event.target as Node) &&
+          searchProviderDropdownOpen) {
+        setSearchProviderDropdownOpen(false);
+      }
+
       if (mobileSettingsRef.current && !mobileSettingsRef.current.contains(event.target as Node)) {
         setIsMobileSettingsOpen(false);
       }
@@ -178,7 +185,7 @@ export default function SearchSettingsPage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions, weatherUnitsDropdownOpen, weatherPlacementDropdownOpen]);
+  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions, weatherUnitsDropdownOpen, weatherPlacementDropdownOpen, searchProviderDropdownOpen]);
 
   // Handlers for settings changes
   const handleKarakulakToggle = async () => {
@@ -275,6 +282,11 @@ export default function SearchSettingsPage() {
   const handleSafesearchChange = (safesearchValue: string) => {
     updateSetting("safesearch", safesearchValue);
     setSafesearchDropdownOpen(false);
+  };
+
+  const handleSearchProviderChange = (engine: string) => {
+    void updateSetting("searchEngine", engine);
+    setSearchProviderDropdownOpen(false);
   };
 
   const handleWeatherUnitsChange = (units: string) => {
@@ -803,11 +815,67 @@ export default function SearchSettingsPage() {
                 <div>
                   <h4 className="text-lg font-medium">Search Provider</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Your search engine provider (unchangeable)
+                    Choose your search engine for web results
                   </p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted w-full sm:w-auto justify-center sm:justify-start">
-                  <span className="text-sm font-medium">Brave Search</span>
+                <div className="relative w-full sm:w-auto" ref={searchProviderDropdownRef}>
+                  <button
+                    onClick={() => setSearchProviderDropdownOpen(!searchProviderDropdownOpen)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors w-full sm:w-auto sm:min-w-[200px] justify-between"
+                    aria-haspopup="menu"
+                    aria-expanded={searchProviderDropdownOpen}
+                    aria-controls="search-provider-menu"
+                  >
+                    <span className="text-sm font-medium capitalize">
+                      {(settings.searchEngine ?? 'brave') === 'google' ? 'Google Search' : 'Brave Search'}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${searchProviderDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {searchProviderDropdownOpen && (
+                    <div
+                      id="search-provider-menu"
+                      role="menu"
+                      aria-label="Search providers"
+                      className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-72 rounded-lg bg-background border border-border shadow-lg z-10"
+                    >
+                      <div className="p-1">
+                        <button
+                          onClick={() => handleSearchProviderChange('brave')}
+                          role="menuitemradio"
+                          aria-checked={(settings.searchEngine ?? 'brave') === 'brave'}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                            (settings.searchEngine ?? 'brave') === 'brave' ? 'bg-muted' : ''
+                          }`}
+                        >
+                          <div className="flex flex-col items-start flex-1">
+                            <span className="font-medium text-sm">Brave Search</span>
+                            <span className="text-xs text-muted-foreground">Privacy-focused results with video and news clusters</span>
+                          </div>
+                          {(settings.searchEngine ?? 'brave') === 'brave' && (
+                            <div className="w-2 h-2 bg-primary rounded-full" />
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => handleSearchProviderChange('google')}
+                          role="menuitemradio"
+                          aria-checked={(settings.searchEngine ?? 'brave') === 'google'}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                            (settings.searchEngine ?? 'brave') === 'google' ? 'bg-muted' : ''
+                          }`}
+                        >
+                          <div className="flex flex-col items-start flex-1">
+                            <span className="font-medium text-sm">Google Search</span>
+                            <span className="text-xs text-muted-foreground">Broader coverage via Custom Search API</span>
+                          </div>
+                          {(settings.searchEngine ?? 'brave') === 'google' && (
+                            <div className="w-2 h-2 bg-primary rounded-full" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
