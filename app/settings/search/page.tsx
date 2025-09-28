@@ -89,18 +89,18 @@ type SearchProviderOption = {
 const SEARCH_PROVIDER_OPTIONS: SearchProviderOption[] = [
   {
     value: 'brave',
-    label: 'Brave Search',
-    description: 'Privacy-focused results with video and news clusters',
+    label: 'Brave',
+    description: 'Privacy-focused results with video and news options',
   },
   {
     value: 'you',
-    label: 'You.com Search',
-    description: 'AI-assisted results with fast summaries and source highlights',
+    label: 'You.com',
+    description: 'Search engine optimized for AI-assisted results',
   },
   {
     value: 'google',
-    label: 'Google Search',
-    description: 'Broader coverage via Custom Search API',
+    label: 'Google',
+    description: 'The most popular and accurate search engine worldwide',
     requiresAuth: true,
   },
 ];
