@@ -79,6 +79,32 @@ const COUNTRIES = [
   { code: "US", name: "United States" }
 ];
 
+type SearchProviderOption = {
+  value: 'brave' | 'you' | 'google';
+  label: string;
+  description: string;
+  requiresAuth?: boolean;
+};
+
+const SEARCH_PROVIDER_OPTIONS: SearchProviderOption[] = [
+  {
+    value: 'brave',
+    label: 'Brave Search',
+    description: 'Privacy-focused results with video and news clusters',
+  },
+  {
+    value: 'you',
+    label: 'You.com Search',
+    description: 'AI-assisted results with fast summaries and source highlights',
+  },
+  {
+    value: 'google',
+    label: 'Google Search',
+    description: 'Broader coverage via Custom Search API',
+    requiresAuth: true,
+  },
+];
+
 export default function SearchSettingsPage() {
   // Use the settings hook for centralized state management
   const { settings, updateSetting, isInitialized, isSyncing, syncEnabled } = useSettings();
@@ -288,12 +314,18 @@ export default function SearchSettingsPage() {
   };
 
   const handleSearchProviderChange = (engine: string) => {
-    if (engine === 'google' && !isAuthenticated) {
-      // Prevent guests from selecting Google
+    const option = SEARCH_PROVIDER_OPTIONS.find((opt) => opt.value === engine);
+    if (!option) {
       setSearchProviderDropdownOpen(false);
       return;
     }
-    void updateSetting("searchEngine", engine);
+    if (option.requiresAuth && !isAuthenticated) {
+      // Prevent guests from selecting providers that require authentication
+      setSearchProviderDropdownOpen(false);
+      return;
+    }
+
+    void updateSetting("searchEngine", option.value);
     setSearchProviderDropdownOpen(false);
   };
 
@@ -325,6 +357,12 @@ export default function SearchSettingsPage() {
 
   const currentModel = getModelDisplay(settings.aiModel || 'gemini');
   const currentCountry = COUNTRIES.find(country => country.code === settings.searchCountry) || COUNTRIES[0];
+
+  const selectedSearchEngine = settings.searchEngine ?? 'brave';
+  const selectedProviderOption = SEARCH_PROVIDER_OPTIONS.find((option) => option.value === selectedSearchEngine);
+  const selectedProviderLabel = selectedProviderOption && (!selectedProviderOption.requiresAuth || isAuthenticated)
+    ? selectedProviderOption.label
+    : 'Brave Search';
 
   const getSafesearchDisplay = (value: string) => {
     switch (value) {
@@ -840,8 +878,8 @@ export default function SearchSettingsPage() {
                     aria-expanded={searchProviderDropdownOpen}
                     aria-controls="search-provider-menu"
                   >
-                    <span className="text-sm font-medium capitalize">
-                      {(settings.searchEngine ?? 'brave') === 'google' && isAuthenticated ? 'Google Search' : 'Brave Search'}
+                    <span className="text-sm font-medium">
+                      {selectedProviderLabel}
                     </span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${searchProviderDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -853,50 +891,45 @@ export default function SearchSettingsPage() {
                       aria-label="Search providers"
                       className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-72 rounded-lg bg-background border border-border shadow-lg z-10"
                     >
-                      <div className="p-1">
-                        <button
-                          onClick={() => handleSearchProviderChange('brave')}
-                          role="menuitemradio"
-                          aria-checked={(settings.searchEngine ?? 'brave') === 'brave'}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                            (settings.searchEngine ?? 'brave') === 'brave' ? 'bg-muted' : ''
-                          }`}
-                        >
-                          <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">Brave Search</span>
-                            <span className="text-xs text-muted-foreground">Privacy-focused results with video and news clusters</span>
-                          </div>
-                          {(settings.searchEngine ?? 'brave') === 'brave' && (
-                            <div className="w-2 h-2 bg-primary rounded-full" />
-                          )}
-                        </button>
+                      <div className="p-1 space-y-1">
+                        {SEARCH_PROVIDER_OPTIONS.map((option) => {
+                          const isSelected = selectedSearchEngine === option.value;
+                          if (option.requiresAuth && !isAuthenticated) {
+                            const providerName = option.label.replace(/\s+Search$/, '');
+                            return (
+                              <div
+                                key={option.value}
+                                className="w-full flex items-start gap-3 px-3 py-2 rounded-md bg-muted/60 text-muted-foreground text-xs"
+                              >
+                                <div className="mt-1 w-2 h-2 rounded-full bg-border" />
+                                <div className="flex-1">
+                                  <span className="font-medium text-sm block">{option.label}</span>
+                                  <span>Sign in to unlock {providerName} results.</span>
+                                </div>
+                              </div>
+                            );
+                          }
 
-                        {isAuthenticated ? (
-                          <button
-                            onClick={() => handleSearchProviderChange('google')}
-                            role="menuitemradio"
-                            aria-checked={(settings.searchEngine ?? 'brave') === 'google'}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                              (settings.searchEngine ?? 'brave') === 'google' ? 'bg-muted' : ''
-                            }`}
-                          >
-                            <div className="flex flex-col items-start flex-1">
-                              <span className="font-medium text-sm">Google Search</span>
-                              <span className="text-xs text-muted-foreground">Broader coverage via Custom Search API</span>
-                            </div>
-                            {(settings.searchEngine ?? 'brave') === 'google' && (
-                              <div className="w-2 h-2 bg-primary rounded-full" />
-                            )}
-                          </button>
-                        ) : (
-                          <div className="w-full flex items-start gap-3 px-3 py-2 rounded-md bg-muted/60 text-muted-foreground text-xs">
-                            <div className="mt-1 w-2 h-2 rounded-full bg-border" />
-                            <div className="flex-1">
-                              <span className="font-medium text-sm block">Google Search</span>
-                              <span>Sign in to unlock Google results.</span>
-                            </div>
-                          </div>
-                        )}
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() => handleSearchProviderChange(option.value)}
+                              role="menuitemradio"
+                              aria-checked={isSelected}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                                isSelected ? 'bg-muted' : ''
+                              }`}
+                            >
+                              <div className="flex flex-col items-start flex-1">
+                                <span className="font-medium text-sm">{option.label}</span>
+                                <span className="text-xs text-muted-foreground">{option.description}</span>
+                              </div>
+                              {isSelected && (
+                                <div className="w-2 h-2 bg-primary rounded-full" />
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

@@ -64,6 +64,28 @@ function sanitizeText(value: any): string {
   return decodeHTMLEntities(stripTags(s)).trim();
 }
 
+function truncateText(value: string, maxLength: number): string {
+  if (!value) return '';
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function mapSafeSearchToYou(value: string | null | undefined): 'off' | 'moderate' | 'strict' {
+  if (!value) return 'moderate';
+  const normalized = value.toLowerCase();
+  if (normalized === 'off') return 'off';
+  if (normalized === 'strict') return 'strict';
+  return 'moderate';
+}
+
+function normalizeYouCountry(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim().toUpperCase();
+  if (trimmed === 'ALL') return undefined;
+  const code = trimmed.slice(0, 2);
+  return /^[A-Z]{2}$/.test(code) ? code : undefined;
+}
+
 function mapSafeSearchToGoogle(value: string | null | undefined): 'active' | undefined {
   if (!value) return 'active';
   const normalized = value.toLowerCase();
@@ -220,6 +242,88 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
   return { results, videos, news };
 }
 
+async function getYou(q: string, country?: string | null, safesearch?: string | null) {
+  const results: Results[] = [];
+  let totalResults = 0;
+  const apiKey = process.env.YOU_SEARCH_KEY;
+
+  if (!apiKey) {
+    console.error('You.com Search API key is missing. Set YOU_SEARCH_KEY.');
+    return { results, totalResults };
+  }
+
+  try {
+    const params = new URLSearchParams({
+      query: q,
+      num_web_results: '10',
+    });
+
+    const mappedSafeSearch = mapSafeSearchToYou(safesearch);
+    if (mappedSafeSearch) {
+      params.set('safesearch', mappedSafeSearch);
+    }
+
+    const normalizedCountry = normalizeYouCountry(country);
+    if (normalizedCountry) {
+      params.set('country', normalizedCountry);
+    }
+
+    const response = await fetch(`https://api.ydc-index.io/search?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'X-API-Key': apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      const payload = await response.text().catch(() => '');
+      throw new Error(`You.com Search error: ${response.status} ${response.statusText} ${payload}`.trim());
+    }
+
+    const data = await response.json();
+    const hits = Array.isArray(data?.hits) ? data.hits : [];
+    totalResults = Number(data?.total || hits.length) || hits.length;
+
+    hits.forEach((hit: any) => {
+      const link = hit?.url || '';
+      if (!link) return;
+
+      const description = (() => {
+        if (Array.isArray(hit?.snippets) && hit.snippets.length > 0) {
+          return hit.snippets.map((snippet: any) => sanitizeText(snippet)).join(' ');
+        }
+        return sanitizeText(hit?.description || '');
+      })();
+
+      const limitedDescription = truncateText(description, 300);
+
+      let displayUrl = '';
+      try {
+        const parsed = new URL(link);
+        displayUrl = sanitizeText(parsed.host + parsed.pathname).replace(/\/+$/, '');
+      } catch {
+        displayUrl = sanitizeText(link.replace(/^https?:\/\//, ''));
+      }
+
+      const favicon = sanitizeText(hit?.favicon_url || '');
+
+      results.push({
+        title: sanitizeText(hit?.title || ''),
+        description: limitedDescription,
+        displayUrl,
+        url: link,
+        source: 'You.com',
+        favicon: favicon || undefined,
+      });
+    });
+  } catch (error) {
+    console.error('Error fetching You.com results:', error);
+  }
+
+  return { results, totalResults };
+}
+
 async function getDuck(q: string): Promise<Results[]> {
   const results: Results[] = [];
   try {
@@ -314,6 +418,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       const googleRes = await getGoogle(query, country, safesearch, lang);
       results = googleRes.results;
       totalResultsCount = googleRes.totalResults || results.length;
+      break;
+    }
+    case 'you': {
+      const youRes = await getYou(query, country, safesearch);
+      results = youRes.results;
+      totalResultsCount = youRes.totalResults || results.length;
       break;
     }
     default:

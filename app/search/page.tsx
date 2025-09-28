@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from 'react'; 
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Cat, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Settings, Newspaper, Video, AlertTriangle, X } from "lucide-react";
@@ -143,6 +143,11 @@ function SearchPageContent() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const stored = localStorage.getItem('searchEngine');
+    if (stored && !['brave', 'google', 'you'].includes(stored)) {
+      localStorage.setItem('searchEngine', 'brave');
+      setSearchEngine('brave');
+      return;
+    }
     if (!isAuthenticated && stored === 'google') {
       localStorage.setItem('searchEngine', 'brave');
       setSearchEngine('brave');
@@ -161,6 +166,22 @@ function SearchPageContent() {
     return /(?:^|\s)![a-z]+/.test((input || "").toLowerCase());
   };
   const hasBang = useMemo(() => checkForBang(searchInput), [searchInput]);
+
+  const getEngineForMode = useCallback(
+    (engine: string, mode: 'web' | 'images' | 'news' | 'videos'): 'brave' | 'google' | 'you' => {
+      if (!isAuthenticated && engine === 'google') {
+        return 'brave';
+      }
+      if (engine === 'you' && mode !== 'web') {
+        return 'brave';
+      }
+      if (engine !== 'brave' && engine !== 'google' && engine !== 'you') {
+        return 'brave';
+      }
+      return engine as 'brave' | 'google' | 'you';
+    },
+    [isAuthenticated]
+  );
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiExpanded, setWikiExpanded] = useState(false);
@@ -230,9 +251,12 @@ function SearchPageContent() {
     
     // Always fetch regular search results for display, regardless of Dive mode
     const storedEngine = localStorage.getItem("searchEngine") || "brave";
-    const engineToUse = storedEngine === 'google' && !isAuthenticated ? 'brave' : storedEngine;
-    if (!isAuthenticated && storedEngine === 'google') {
-      localStorage.setItem('searchEngine', 'brave');
+    const engineToUse = getEngineForMode(storedEngine, 'web');
+    if (engineToUse !== storedEngine) {
+      localStorage.setItem('searchEngine', engineToUse);
+    }
+    if (searchEngine !== engineToUse) {
+      setSearchEngine(engineToUse);
     }
 
     const fetchRegularSearch = async () => {
@@ -333,7 +357,7 @@ function SearchPageContent() {
         webSearchAbortRef.current = null;
       }
     };
-  }, [searchParams, router, isAuthenticated]);
+  }, [searchParams, router, isAuthenticated, searchEngine, getEngineForMode]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
@@ -345,13 +369,14 @@ function SearchPageContent() {
     imagesAbortRef.current = new AbortController();
     const imgSignal = imagesAbortRef.current.signal;
     const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
-    const imagesUrl = `/api/images/${searchEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
+    const imageEngine = getEngineForMode(searchEngine, 'images');
+    const imagesUrl = `/api/images/${imageEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
       imagesUrl,
       { signal: imgSignal },
       {
         searchType: 'images',
-        provider: searchEngine,
+        provider: imageEngine,
         query: query,
         searchParams: storedLang ? { lang: storedLang } : undefined
       }
@@ -379,7 +404,7 @@ function SearchPageContent() {
                 { signal: retrySignal },
                 {
                   searchType: 'images',
-                  provider: searchEngine,
+                  provider: imageEngine,
                   query: query,
                   searchParams: { cacheBust: '1', ...(storedLang ? { lang: storedLang } : {}) }
                 }
@@ -411,7 +436,7 @@ function SearchPageContent() {
         imagesAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType]);
+  }, [query, searchEngine, searchType, getEngineForMode]);
 
   useEffect(() => {
     if (!query || searchType !== 'videos') return;
@@ -424,13 +449,14 @@ function SearchPageContent() {
     videosAbortRef.current = new AbortController();
     const vidSignal = videosAbortRef.current.signal;
     const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
-    const videosUrl = `/api/videos/${searchEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
+    const videoEngine = getEngineForMode(searchEngine, 'videos');
+    const videosUrl = `/api/videos/${videoEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
       videosUrl,
       { signal: vidSignal },
       {
         searchType: 'videos',
-        provider: searchEngine,
+        provider: videoEngine,
         query: query,
         searchParams: storedLang ? { lang: storedLang } : undefined
       }
@@ -456,7 +482,7 @@ function SearchPageContent() {
                 { signal: retrySignal },
                 {
                   searchType: 'videos',
-                  provider: searchEngine,
+                  provider: videoEngine,
                   query: query,
                   searchParams: { cacheBust: '1', ...(storedLang ? { lang: storedLang } : {}) }
                 }
@@ -487,7 +513,7 @@ function SearchPageContent() {
         videosAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType]);
+  }, [query, searchEngine, searchType, getEngineForMode]);
 
   useEffect(() => {
     if (!query || searchType !== 'news') return;
@@ -510,13 +536,14 @@ function SearchPageContent() {
     newsAbortRef.current = new AbortController();
     const newsSignal = newsAbortRef.current.signal;
     const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
-    const newsUrl = `/api/news/${searchEngine}?${searchParams}`;
+    const newsEngine = getEngineForMode(searchEngine, 'news');
+    const newsUrl = `/api/news/${newsEngine}?${searchParams}`;
     fetchWithSessionRefreshAndCache(
       newsUrl,
       { signal: newsSignal },
       {
         searchType: 'news',
-        provider: searchEngine,
+        provider: newsEngine,
         query: query,
         searchParams: {
           country: storedCountry,
@@ -547,7 +574,7 @@ function SearchPageContent() {
                 { signal: retrySignal },
                 {
                   searchType: 'news',
-                  provider: searchEngine,
+                  provider: newsEngine,
                   query: query,
                   searchParams: { country: storedCountry, safesearch: storedSafesearch, cacheBust: '1', ...(storedLang ? { lang: storedLang } : {}) }
                 }
@@ -577,7 +604,7 @@ function SearchPageContent() {
         newsAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType]);
+  }, [query, searchEngine, searchType, getEngineForMode]);
 
   // Reset retry flags when query or engine changes so new queries can retry again
   useEffect(() => {
@@ -595,12 +622,13 @@ function SearchPageContent() {
       }
       imagesAbortRef.current = new AbortController();
       const imgSignal = imagesAbortRef.current.signal;
+      const imageEngine = getEngineForMode(searchEngine, 'images');
       fetchWithSessionRefreshAndCache(
-        `/api/images/${searchEngine}?q=${encodeURIComponent(query)}`,
+        `/api/images/${imageEngine}?q=${encodeURIComponent(query)}`,
         { signal: imgSignal },
         {
           searchType: 'images',
-          provider: searchEngine,
+          provider: imageEngine,
           query: query
         }
       )
@@ -622,7 +650,7 @@ function SearchPageContent() {
         }
       };
     }
-  }, [searchType, query, searchEngine, imageResults.length, imageLoading]);
+  }, [searchType, query, searchEngine, imageResults.length, imageLoading, getEngineForMode]);
 
 
 
