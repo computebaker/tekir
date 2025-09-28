@@ -84,6 +84,7 @@ type SearchProviderOption = {
   label: string;
   description: string;
   requiresAuth?: boolean;
+  capabilities: string[];
 };
 
 const SEARCH_PROVIDER_OPTIONS: SearchProviderOption[] = [
@@ -91,17 +92,20 @@ const SEARCH_PROVIDER_OPTIONS: SearchProviderOption[] = [
     value: 'brave',
     label: 'Brave',
     description: 'Privacy-focused results with video and news options',
+    capabilities: ['Search', 'Images', 'News', 'Videos'],
   },
   {
     value: 'you',
     label: 'You.com',
     description: 'Search engine optimized for AI-assisted results',
+    capabilities: ['Search'],
   },
   {
     value: 'google',
     label: 'Google',
     description: 'The most popular and accurate search engine worldwide',
     requiresAuth: true,
+    capabilities: ['Search', 'Images'],
   },
 ];
 
@@ -363,6 +367,12 @@ export default function SearchSettingsPage() {
   const selectedProviderLabel = selectedProviderOption && (!selectedProviderOption.requiresAuth || isAuthenticated)
     ? selectedProviderOption.label
     : 'Brave Search';
+  const resolvedProviderCapabilities = selectedProviderOption && (!selectedProviderOption.requiresAuth || isAuthenticated)
+    ? selectedProviderOption.capabilities
+    : (SEARCH_PROVIDER_OPTIONS.find((option) => option.value === 'brave')?.capabilities ?? []);
+  const selectedProviderCapabilitiesLabel = resolvedProviderCapabilities.length > 0
+    ? resolvedProviderCapabilities.join(' • ')
+    : '';
 
   const getSafesearchDisplay = (value: string) => {
     switch (value) {
@@ -878,9 +888,11 @@ export default function SearchSettingsPage() {
                     aria-expanded={searchProviderDropdownOpen}
                     aria-controls="search-provider-menu"
                   >
-                    <span className="text-sm font-medium">
-                      {selectedProviderLabel}
-                    </span>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium">
+                        {selectedProviderLabel}
+                      </span>
+                    </div>
                     <ChevronDown className={`w-4 h-4 transition-transform ${searchProviderDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
@@ -905,6 +917,18 @@ export default function SearchSettingsPage() {
                                 <div className="flex-1">
                                   <span className="font-medium text-sm block">{option.label}</span>
                                   <span>Sign in to unlock {providerName} results.</span>
+                                  {option.capabilities.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1">
+                                      {option.capabilities.map((capability) => (
+                                        <span
+                                          key={capability}
+                                          className="rounded-full bg-muted/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                                        >
+                                          {capability}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -923,6 +947,18 @@ export default function SearchSettingsPage() {
                               <div className="flex flex-col items-start flex-1">
                                 <span className="font-medium text-sm">{option.label}</span>
                                 <span className="text-xs text-muted-foreground">{option.description}</span>
+                                {option.capabilities.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {option.capabilities.map((capability) => (
+                                      <span
+                                        key={capability}
+                                        className="rounded-full bg-muted/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                                      >
+                                        {capability}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                               {isSelected && (
                                 <div className="w-2 h-2 bg-primary rounded-full" />
