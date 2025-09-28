@@ -16,6 +16,7 @@
     "postinstall": "convex codegen"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.3.24",
     "@babel/runtime": "^7.27.1",
     "@hookform/resolvers": "^3.9.0",
     "@next/swc-wasm-nodejs": "13.5.1",
@@ -36,8 +37,7 @@
     "@types/node": "20.6.2",
     "@types/react": "18.2.22",
     "@types/react-dom": "18.2.7",
-  "ai": "^4.1.74",
-  "@ai-sdk/openai": "^1.3.24",
+    "ai": "^4.1.74",
     "babel-loader": "^10.0.0",
     "bcryptjs": "^3.0.2",
     "cheerio": "^1.0.0",

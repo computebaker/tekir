@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, ExternalLink, Zap, Clock, Globe } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,7 +21,8 @@ type BangsData = Record<string, Bang>;
 export default function BangsPage() {
   const [bangs, setBangs] = useState<BangsData>({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredBangs, setFilteredBangs] = useState<[string, Bang][]>([]);
+  // We'll keep a simple memo since filtering could be moderately expensive on very large lists.
+  const [filteredBangsInternal, setFilteredBangsInternal] = useState<[string, Bang][]>([]); // temporary for initial load population
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function BangsPage() {
           try {
             const bangsData = JSON.parse(cachedBangs);
             setBangs(bangsData);
-            setFilteredBangs(Object.entries(bangsData));
+            setFilteredBangsInternal(Object.entries(bangsData));
             setIsLoading(false);
             return;
           } catch (e) {
@@ -59,7 +60,7 @@ export default function BangsPage() {
         if (response.ok) {
           const bangsData = await response.json();
           setBangs(bangsData);
-          setFilteredBangs(Object.entries(bangsData));
+          setFilteredBangsInternal(Object.entries(bangsData));
           
           // Cache the data
           localStorage.setItem('tekir_bangs_cache', JSON.stringify(bangsData));
@@ -75,18 +76,13 @@ export default function BangsPage() {
     loadBangs();
   }, []);
 
-  useEffect(() => {
-    // Filter bangs based on search query
-    if (!searchQuery.trim()) {
-      setFilteredBangs(Object.entries(bangs));
-    } else {
-      const filtered = Object.entries(bangs).filter(([command, bang]) =>
-        command.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bang.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredBangs(filtered);
-    }
-  }, [searchQuery, bangs]);
+  const filteredBangs = useMemo(() => {
+    if (isLoading) return filteredBangsInternal; // during initial load, show whatever we populated
+    const entries = Object.entries(bangs);
+    if (!searchQuery.trim()) return entries;
+    const q = searchQuery.toLowerCase();
+    return entries.filter(([command, bang]) => command.toLowerCase().includes(q) || bang.name.toLowerCase().includes(q));
+  }, [bangs, searchQuery, isLoading, filteredBangsInternal]);
 
   const bangsCount = Object.keys(bangs).length;
 

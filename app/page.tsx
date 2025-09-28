@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useTransition } from "react";
+import { useEffect, useState, useRef, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,13 +10,10 @@ import { useAuth } from "@/components/auth-provider";
 import { useSettings } from "@/lib/settings";
 import { fetchWithSessionRefreshAndCache } from "@/lib/cache";
 import WeatherWidget from "@/components/weather-widget";
-import { Input, SearchInput } from "@/components/ui/input";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import MainFooter from "@/components/main-footer";
-import { BadgeChip } from "@/components/shared/badge-chip";
-import { SectionHeading } from "@/components/shared/section-heading";
 import { cn } from "@/lib/utils";
-import { storeRedirectUrl } from "@/lib/utils";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const originalResponse = await fetch(url, options);
@@ -67,7 +64,7 @@ export default function Home() {
   const [autocompleteSource] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
-  const [hasBang, setHasBang] = useState(false);
+  const hasBang = useMemo(() => /(?:^|\s)![a-z]+/.test(searchQuery.toLowerCase()), [searchQuery]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const heroFormRef = useRef<HTMLFormElement>(null);
@@ -117,11 +114,6 @@ export default function Home() {
     return /(?:^|\s)![a-z]+/.test(input.toLowerCase());
   };
   
-  // Update bang detection when search input changes
-  useEffect(() => {
-    setHasBang(checkForBang(searchQuery));
-  }, [searchQuery]);
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("karakulakEnabled");

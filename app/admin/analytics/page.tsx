@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import AdminShell from "@/components/admin/admin-shell";
 import AdminGuard from "@/components/admin/admin-guard";
 import { useQuery } from "convex/react";
@@ -29,6 +29,15 @@ function formatDayNum(num: number) {
 
 type Analytics = { users: number; feedbacks: number };
 
+// Hook to retain last non-undefined value across renders
+function useLastNonUndefined<T>(value: T | undefined): T | undefined {
+  const ref = useRef<T | undefined>(value);
+  if (value !== undefined) {
+    ref.current = value;
+  }
+  return value !== undefined ? value : ref.current;
+}
+
 export default function AdminAnalyticsPage() {
   const users = useQuery(api.users.countUsers, {});
   const feedbacks = useQuery(api.feedbacks.countFeedbacks, {});
@@ -48,36 +57,26 @@ export default function AdminAnalyticsPage() {
   // Top queries for end day of range (kept simple)
   const topQueries = useQuery(api.usage.topSearchQueriesByDay as any, { day: toDay, limit: 20 }) as any[] | undefined;
 
-  // Cache last known data so we don't blank the UI on filter changes
-  const [usersCache, setUsersCache] = useState<number | undefined>(undefined);
-  const [feedbacksCache, setFeedbacksCache] = useState<number | undefined>(undefined);
-  const [searchRangeCache, setSearchRangeCache] = useState<any[] | undefined>(undefined);
-  const [aiRangeCache, setAiRangeCache] = useState<any[] | undefined>(undefined);
-  const [siteVisitsCache, setSiteVisitsCache] = useState<any[] | undefined>(undefined);
-  const [apiHitsCache, setApiHitsCache] = useState<any[] | undefined>(undefined);
-  const [topQueriesCache, setTopQueriesCache] = useState<any[] | undefined>(undefined);
+  // Replace effect+state caches with render-time ref retention.
+  const displayUsers = useLastNonUndefined<number | undefined>(users);
+  const displayFeedbacks = useLastNonUndefined<number | undefined>(feedbacks);
+  const stableSearchRange = useLastNonUndefined<any[] | undefined>(searchRange);
+  const stableAiRange = useLastNonUndefined<any[] | undefined>(aiRange);
+  const stableApiHits = useLastNonUndefined<any[] | undefined>(apiHits);
+  const stableTopQueries = useLastNonUndefined<any[] | undefined>(topQueries);
 
-  useEffect(() => { if (typeof users === 'number') setUsersCache(users); }, [users]);
-  useEffect(() => { if (typeof feedbacks === 'number') setFeedbacksCache(feedbacks); }, [feedbacks]);
-  useEffect(() => { if (searchRange) setSearchRangeCache(searchRange); }, [searchRange]);
-  useEffect(() => { if (aiRange) setAiRangeCache(aiRange); }, [aiRange]);
-  useEffect(() => { if (apiHits) setApiHitsCache(apiHits); }, [apiHits]);
-  useEffect(() => { if (topQueries) setTopQueriesCache(topQueries); }, [topQueries]);
-
-  const displayUsers = users ?? usersCache;
-  const displayFeedbacks = feedbacks ?? feedbacksCache;
-  const displaySearchRange = React.useMemo(() => (searchRange ?? searchRangeCache ?? EMPTY), [searchRange, searchRangeCache]);
-  const displayAiRange = React.useMemo(() => (aiRange ?? aiRangeCache ?? EMPTY), [aiRange, aiRangeCache]);
-  const displayApiHits = React.useMemo(() => (apiHits ?? apiHitsCache ?? EMPTY), [apiHits, apiHitsCache]);
-  const displayTopQueries = React.useMemo(() => (topQueries ?? topQueriesCache ?? EMPTY), [topQueries, topQueriesCache]);
+  const displaySearchRange = React.useMemo(() => (stableSearchRange ?? EMPTY), [stableSearchRange]);
+  const displayAiRange = React.useMemo(() => (stableAiRange ?? EMPTY), [stableAiRange]);
+  const displayApiHits = React.useMemo(() => (stableApiHits ?? EMPTY), [stableApiHits]);
+  const displayTopQueries = React.useMemo(() => (stableTopQueries ?? EMPTY), [stableTopQueries]);
 
   const initialPageLoading =
-    (users ?? usersCache) === undefined &&
-    (feedbacks ?? feedbacksCache) === undefined &&
-    (searchRange ?? searchRangeCache) === undefined &&
-    (aiRange ?? aiRangeCache) === undefined &&
-  (apiHits ?? apiHitsCache) === undefined &&
-  (topQueries ?? topQueriesCache) === undefined;
+    displayUsers === undefined &&
+    displayFeedbacks === undefined &&
+    stableSearchRange === undefined &&
+    stableAiRange === undefined &&
+    stableApiHits === undefined &&
+    stableTopQueries === undefined;
 
   // Provider/type filters (null = include all)
   const [providerFilter, setProviderFilter] = useState<string[] | null>(null);
@@ -347,7 +346,7 @@ export default function AdminAnalyticsPage() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="rounded-lg border border-border bg-background p-4">
                   <div className="text-xs text-muted-foreground mb-1">Searches</div>
-                  {displaySearchRange.length === 0 && (searchRange ?? searchRangeCache) === undefined ? (
+                  {displaySearchRange.length === 0 && stableSearchRange === undefined ? (
                     <div className="h-6 bg-muted rounded animate-pulse w-20" />
                   ) : (
                     <div className="text-2xl font-bold">{searchSummary.totalCount}</div>
@@ -355,7 +354,7 @@ export default function AdminAnalyticsPage() {
                 </div>
                 <div className="rounded-lg border border-border bg-background p-4">
                   <div className="text-xs text-muted-foreground mb-1">Avg Search Latency</div>
-                  {displaySearchRange.length === 0 && (searchRange ?? searchRangeCache) === undefined ? (
+                  {displaySearchRange.length === 0 && stableSearchRange === undefined ? (
                     <div className="h-6 bg-muted rounded animate-pulse w-24" />
                   ) : (
                     <div className="text-2xl font-bold">{searchSummary.avgLatency} ms</div>
@@ -363,7 +362,7 @@ export default function AdminAnalyticsPage() {
                 </div>
                 <div className="rounded-lg border border-border bg-background p-4">
                   <div className="text-xs text-muted-foreground mb-1">Total Results Returned</div>
-                  {displaySearchRange.length === 0 && (searchRange ?? searchRangeCache) === undefined ? (
+                  {displaySearchRange.length === 0 && stableSearchRange === undefined ? (
                     <div className="h-6 bg-muted rounded animate-pulse w-28" />
                   ) : (
                     <div className="text-2xl font-bold">{searchSummary.totalResults}</div>
@@ -372,7 +371,7 @@ export default function AdminAnalyticsPage() {
 
                 <div className="rounded-lg border border-border bg-background p-4">
                   <div className="text-xs text-muted-foreground mb-1">AI Requests</div>
-                  {displayAiRange.length === 0 && (aiRange ?? aiRangeCache) === undefined ? (
+                  {displayAiRange.length === 0 && stableAiRange === undefined ? (
                     <div className="h-6 bg-muted rounded animate-pulse w-20" />
                   ) : (
                     <div className="text-2xl font-bold">{aiSummary.totalCount}</div>
@@ -380,7 +379,7 @@ export default function AdminAnalyticsPage() {
                 </div>
                 <div className="rounded-lg border border-border bg-background p-4">
                   <div className="text-xs text-muted-foreground mb-1">Avg AI Latency</div>
-                  {displayAiRange.length === 0 && (aiRange ?? aiRangeCache) === undefined ? (
+                  {displayAiRange.length === 0 && stableAiRange === undefined ? (
                     <div className="h-6 bg-muted rounded animate-pulse w-24" />
                   ) : (
                     <div className="text-2xl font-bold">{aiSummary.avgLatency} ms</div>
@@ -388,7 +387,7 @@ export default function AdminAnalyticsPage() {
                 </div>
                 <div className="rounded-lg border border-border bg-background p-4">
                   <div className="text-xs text-muted-foreground mb-1">Total AI Answer Chars</div>
-                  {displayAiRange.length === 0 && (aiRange ?? aiRangeCache) === undefined ? (
+                  {displayAiRange.length === 0 && stableAiRange === undefined ? (
                     <div className="h-6 bg-muted rounded animate-pulse w-24" />
                   ) : (
                     <div className="text-2xl font-bold">{aiSummary.totalChars}</div>
@@ -405,7 +404,7 @@ export default function AdminAnalyticsPage() {
                     <span className="font-semibold">{t.count}</span>
                   </div>
                 ))}
-                {((topQueries ?? topQueriesCache) === undefined) && (
+                {(stableTopQueries === undefined) && (
                   <div className="space-y-1">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <div key={i} className="flex items-center justify-between">
@@ -415,24 +414,24 @@ export default function AdminAnalyticsPage() {
                     ))}
                   </div>
                 )}
-                {(displayTopQueries.length === 0 && (topQueries ?? topQueriesCache) !== undefined) && (
+                {(displayTopQueries.length === 0 && stableTopQueries !== undefined) && (
                   <div className="text-muted-foreground">No data yet</div>
                 )}
               </div>
             </div>
             {/* Charts */}
             <div className="sm:col-span-2 grid md:grid-cols-4 gap-4">
-              {(displaySearchRange.length === 0 && (searchRange ?? searchRangeCache) === undefined) ? (
+              {(displaySearchRange.length === 0 && stableSearchRange === undefined) ? (
                 <div className="rounded-lg border border-border bg-card p-4 animate-pulse h-[100px]" />
               ) : (
                 <BarChart series={searchSeries} title="Searches per day" labels={dayLabels} />
               )}
-              {(displayAiRange.length === 0 && (aiRange ?? aiRangeCache) === undefined) ? (
+              {(displayAiRange.length === 0 && stableAiRange === undefined) ? (
                 <div className="rounded-lg border border-border bg-card p-4 animate-pulse h-[100px]" />
               ) : (
                 <BarChart series={aiSeries} title="AI requests per day" labels={dayLabels} />
               )}
-              {(displayApiHits.length === 0 && (apiHits ?? apiHitsCache) === undefined) ? (
+              {(displayApiHits.length === 0 && stableApiHits === undefined) ? (
                 <div className="rounded-lg border border-border bg-card p-4 animate-pulse h-[100px]" />
               ) : (
                 <BarChart series={apiSeries} title="API hits per day" labels={dayLabels} />

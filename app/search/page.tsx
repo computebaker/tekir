@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from 'react'; 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Cat, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Settings, Newspaper, Video, AlertTriangle, X } from "lucide-react";
@@ -146,7 +146,7 @@ function SearchPageContent() {
   const [autocompleteSource, setAutocompleteSource] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
-  const [hasBang, setHasBang] = useState(false);
+  const hasBang = useMemo(() => checkForBang(searchInput), [searchInput]);
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiExpanded, setWikiExpanded] = useState(false);
@@ -607,27 +607,7 @@ function SearchPageContent() {
     }
   }, [searchType, query, searchEngine, imageResults.length, imageLoading]);
 
-  // Keep loading indicators in sync immediately with AI/Dive mode for the current query
-  useEffect(() => {
-    if (!query) {
-      setAiLoading(false);
-      setDiveLoading(false);
-      return;
-    }
-    if (!aiEnabled) {
-      setAiLoading(false);
-      setDiveLoading(false);
-      return;
-    }
-    // Only set loading if we don't have any response data (cached or otherwise)
-    if (aiDiveEnabled) {
-      setDiveLoading(!diveResponse && !aiResponse);
-      setAiLoading(false);
-    } else {
-      setAiLoading(!aiResponse && !diveResponse);
-      setDiveLoading(false);
-    }
-  }, [query, aiEnabled, aiDiveEnabled, aiResponse, diveResponse]);
+
 
   // Regular AI (Karakulak) — fire immediately in parallel when Dive mode is OFF
   useEffect(() => {
@@ -1020,9 +1000,6 @@ function SearchPageContent() {
     return /(?:^|\s)![a-z]+/.test(input.toLowerCase());
   };
 
-  useEffect(() => {
-    setHasBang(checkForBang(searchInput));
-  }, [searchInput]);
 
   useEffect(() => {
     if (query) {
