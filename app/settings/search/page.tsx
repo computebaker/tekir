@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
+import { useAuth } from "@/components/auth-provider";
 
 interface LocationData {
   lat: number;
@@ -81,6 +82,8 @@ const COUNTRIES = [
 export default function SearchSettingsPage() {
   // Use the settings hook for centralized state management
   const { settings, updateSetting, isInitialized, isSyncing, syncEnabled } = useSettings();
+  const { status: authStatus, user } = useAuth();
+  const isAuthenticated = authStatus === "authenticated" && !!user;
   
   // Local UI state
   const [weatherLocationQuery, setWeatherLocationQuery] = useState("");
@@ -285,9 +288,20 @@ export default function SearchSettingsPage() {
   };
 
   const handleSearchProviderChange = (engine: string) => {
+    if (engine === 'google' && !isAuthenticated) {
+      // Prevent guests from selecting Google
+      setSearchProviderDropdownOpen(false);
+      return;
+    }
     void updateSetting("searchEngine", engine);
     setSearchProviderDropdownOpen(false);
   };
+
+  useEffect(() => {
+    if (!isAuthenticated && (settings.searchEngine ?? 'brave') === 'google') {
+      void updateSetting('searchEngine', 'brave');
+    }
+  }, [isAuthenticated, settings.searchEngine, updateSetting]);
 
   const handleWeatherUnitsChange = (units: string) => {
     updateSetting("weatherUnits", units);
@@ -827,7 +841,7 @@ export default function SearchSettingsPage() {
                     aria-controls="search-provider-menu"
                   >
                     <span className="text-sm font-medium capitalize">
-                      {(settings.searchEngine ?? 'brave') === 'google' ? 'Google Search' : 'Brave Search'}
+                      {(settings.searchEngine ?? 'brave') === 'google' && isAuthenticated ? 'Google Search' : 'Brave Search'}
                     </span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${searchProviderDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -857,22 +871,32 @@ export default function SearchSettingsPage() {
                           )}
                         </button>
 
-                        <button
-                          onClick={() => handleSearchProviderChange('google')}
-                          role="menuitemradio"
-                          aria-checked={(settings.searchEngine ?? 'brave') === 'google'}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                            (settings.searchEngine ?? 'brave') === 'google' ? 'bg-muted' : ''
-                          }`}
-                        >
-                          <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">Google Search</span>
-                            <span className="text-xs text-muted-foreground">Broader coverage via Custom Search API</span>
+                        {isAuthenticated ? (
+                          <button
+                            onClick={() => handleSearchProviderChange('google')}
+                            role="menuitemradio"
+                            aria-checked={(settings.searchEngine ?? 'brave') === 'google'}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                              (settings.searchEngine ?? 'brave') === 'google' ? 'bg-muted' : ''
+                            }`}
+                          >
+                            <div className="flex flex-col items-start flex-1">
+                              <span className="font-medium text-sm">Google Search</span>
+                              <span className="text-xs text-muted-foreground">Broader coverage via Custom Search API</span>
+                            </div>
+                            {(settings.searchEngine ?? 'brave') === 'google' && (
+                              <div className="w-2 h-2 bg-primary rounded-full" />
+                            )}
+                          </button>
+                        ) : (
+                          <div className="w-full flex items-start gap-3 px-3 py-2 rounded-md bg-muted/60 text-muted-foreground text-xs">
+                            <div className="mt-1 w-2 h-2 rounded-full bg-border" />
+                            <div className="flex-1">
+                              <span className="font-medium text-sm block">Google Search</span>
+                              <span>Sign in to unlock Google results.</span>
+                            </div>
                           </div>
-                          {(settings.searchEngine ?? 'brave') === 'google' && (
-                            <div className="w-2 h-2 bg-primary rounded-full" />
-                          )}
-                        </button>
+                        )}
                       </div>
                     </div>
                   )}

@@ -4,6 +4,7 @@ import iconv from 'iconv-lite';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
+import { getJWTUser } from '@/lib/jwt-auth';
 
 async function fetchFaviconsForResults(items: Array<{ url: string; favicon?: string }>) {
   if (!Array.isArray(items) || items.length === 0) return;
@@ -306,6 +307,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       break;
     }
     case 'google': {
+      const authUser = await getJWTUser(req);
+      if (!authUser) {
+        return NextResponse.json({ error: 'Authentication required for Google search.' }, { status: 401 });
+      }
       const googleRes = await getGoogle(query, country, safesearch, lang);
       results = googleRes.results;
       totalResultsCount = googleRes.totalResults || results.length;

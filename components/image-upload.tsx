@@ -141,16 +141,19 @@ export default function ImageUpload({
                   unoptimized
                 />
               );
-            } else {
-              return (
-                <Image
-                  src={currentImage}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                  style={{ width: size, height: size }}
-                />
-              );
             }
+
+            return (
+              <Image
+                src={currentImage}
+                alt="Profile"
+                width={size}
+                height={size}
+                className="w-full h-full object-cover"
+                style={{ width: size, height: size }}
+                unoptimized
+              />
+            );
           })()
         ) : (
         <div className="w-full h-full flex flex-col items-center justify-center bg-muted/30">

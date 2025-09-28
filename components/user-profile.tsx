@@ -224,24 +224,25 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   }}
                 />
               );
-                  } else {
-                    return (
-                      <Image
-                  key={`avatar-${user.id}-${avatarKey}`}
-                  src={avatarUrl}
-                  alt={user.name || "Profile"}
-                  className="w-full h-full object-cover"
-                  style={{ width: avatarPx, height: avatarPx }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    const userId = user.id;
-                    target.src = user.image
-                      ? generateAvatarUrl(userId, user.email || undefined)
-                      : generateInitialsAvatar(user.name || user.email || "User");
-                  }}
-                />
-              );
             }
+            return (
+              <Image
+                key={`avatar-${user.id}-${avatarKey}`}
+                src={avatarUrl}
+                alt={user.name || "Profile"}
+                width={avatarPx}
+                height={avatarPx}
+                className="w-full h-full object-cover"
+                unoptimized
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  const userId = user.id;
+                  target.src = user.image
+                    ? generateAvatarUrl(userId, user.email || undefined)
+                    : generateInitialsAvatar(user.name || user.email || "User");
+                }}
+              />
+            );
           })()}
         </div>
         {!showOnlyAvatar && (
@@ -292,24 +293,25 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                         }}
                       />
                     );
-                  } else {
-                    return (
-                      <Image
-                        key={`dropdown-avatar-${user.id}-${avatarKey}`}
-                        src={dropdownAvatarUrl}
-                        alt={user.name || "Profile"}
-                        className="w-full h-full object-cover"
-                        style={{ width: 40, height: 40 }}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          const userId = user.id;
-                          target.src = user.image
-                            ? generateAvatarUrl(userId, user.email || undefined)
-                            : generateInitialsAvatar(user.name || user.email || "User");
-                        }}
-                      />
-                    );
                   }
+                  return (
+                    <Image
+                      key={`dropdown-avatar-${user.id}-${avatarKey}`}
+                      src={dropdownAvatarUrl}
+                      alt={user.name || "Profile"}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                      unoptimized
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        const userId = user.id;
+                        target.src = user.image
+                          ? generateAvatarUrl(userId, user.email || undefined)
+                          : generateInitialsAvatar(user.name || user.email || "User");
+                      }}
+                    />
+                  );
                 })()}
               </div>
               <div className="flex-1 min-w-0">

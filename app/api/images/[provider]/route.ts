@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
+import { getJWTUser } from '@/lib/jwt-auth';
 
 interface ImageResult {
   title: string;
@@ -211,6 +212,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
         return NextResponse.json(response, { status: 200 });
       }
       case 'google': {
+        const authUser = await getJWTUser(req);
+        if (!authUser) {
+          return NextResponse.json({ error: 'Authentication required for Google image search.' }, { status: 401 });
+        }
         const results = await getGoogleImages(query, count, country, safesearch, lang);
 
         const response: SearchResponse = {

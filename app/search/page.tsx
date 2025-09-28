@@ -12,6 +12,7 @@ import Footer from "@/components/footer";
 import { handleBangRedirect } from "@/utils/bangs";
 import { fetchWithSessionRefreshAndCache, SearchCache } from "@/lib/cache";
 import { apiEndpoints } from "@/lib/migration-config";
+import { useAuth } from "@/components/auth-provider";
 import { Input, SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SearchTabs from "@/components/search/search-tabs";
@@ -134,9 +135,19 @@ function SearchPageContent() {
   const [aiEnabled, setAiEnabled] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('karakulakEnabled') === 'true' : true
   );
+  const { status: authStatus, user } = useAuth();
+  const isAuthenticated = authStatus === 'authenticated' && !!user;
   const [searchEngine, setSearchEngine] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('searchEngine') || 'brave' : 'brave'
   );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem('searchEngine');
+    if (!isAuthenticated && stored === 'google') {
+      localStorage.setItem('searchEngine', 'brave');
+      setSearchEngine('brave');
+    }
+  }, [isAuthenticated]);
   const [aiModel, setAiModel] = useState<string>(() =>
     typeof window !== 'undefined' ? localStorage.getItem('aiModel') || 'gemini' : 'gemini'
   );
@@ -219,7 +230,10 @@ function SearchPageContent() {
     
     // Always fetch regular search results for display, regardless of Dive mode
     const storedEngine = localStorage.getItem("searchEngine") || "brave";
-    const engineToUse = storedEngine;
+    const engineToUse = storedEngine === 'google' && !isAuthenticated ? 'brave' : storedEngine;
+    if (!isAuthenticated && storedEngine === 'google') {
+      localStorage.setItem('searchEngine', 'brave');
+    }
 
     const fetchRegularSearch = async () => {
       // Abort any previous in-flight request
@@ -319,7 +333,7 @@ function SearchPageContent() {
         webSearchAbortRef.current = null;
       }
     };
-  }, [searchParams, router]);
+  }, [searchParams, router, isAuthenticated]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
