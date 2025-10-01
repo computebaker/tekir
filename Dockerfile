@@ -1,19 +1,30 @@
-FROM node:20-bookworm
-
+FROM node:20-slim AS base
+RUN apt-get update \
+  && apt-get upgrade -y \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install dependencies
-COPY package*.json ./
-RUN npm install
+FROM base AS deps
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Copy the rest of the application code
+FROM base AS builder
+ENV NODE_ENV=production
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Build the app
 RUN npm run build
 
-# Expose the expected port (adjust if needed)
+FROM base AS runner
+ENV NODE_ENV=production
+ENV PORT=3000
+COPY package.json package-lock.json ./
+COPY --from=deps /app/node_modules ./node_modules
+RUN npm prune --omit=dev && npm cache clean --force
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/next.config.js ./next.config.js
+
 EXPOSE 3000
 
-# Start the server
-CMD [ "npm", "run", "start" ]
+CMD [ "sh", "-c", "npm run start -- --hostname 0.0.0.0 --port ${PORT:-3000}" ]
