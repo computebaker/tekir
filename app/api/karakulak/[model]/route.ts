@@ -115,7 +115,7 @@ async function chatgpt(message: string): Promise<string> {
 
 async function grok(message: string): Promise<string> {
   const response = await openai.chat.completions.create({
-    model: 'x-ai/grok-4-fast:free',
+    model: 'x-ai/grok-4-fast',
     ...generationConfig,
     messages: [
       {
