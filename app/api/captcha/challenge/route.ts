@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Generate 3 challenges with difficulty 60, valid for 5 minutes
-    const challenges = createChallenge(3, 60, 300);
+    // Generate 3 challenges with difficulty 20, valid for 5 minutes
+    const challenges = createChallenge(3, 20, 100);
     
     return NextResponse.json({ challenges });
   } catch (error) {
