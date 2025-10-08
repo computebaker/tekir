@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { verify } from 'crypto';
 
@@ -29,7 +29,7 @@ interface RibauntWidgetElement extends HTMLElement {
   startVerification(): void;
 }
 
-export default function CaptchaPage() {
+function CaptchaPageContent() {
   const searchParams = useSearchParams();
   const widgetRef = useRef<RibauntWidgetElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -372,5 +372,22 @@ export default function CaptchaPage() {
         </footer>
       </div>
     </>
+  );
+}
+
+export default function CaptchaPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ 
+        maxWidth: '690px', 
+        margin: '3em auto', 
+        padding: '18px',
+        fontFamily: 'system-ui'
+      }}>
+        <div style={{ fontSize: '16px', color: '#666' }}>Loading verification page...</div>
+      </div>
+    }>
+      <CaptchaPageContent />
+    </Suspense>
   );
 }
