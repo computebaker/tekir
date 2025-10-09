@@ -6,6 +6,15 @@ export async function middleware(request: NextRequest) {
 
   console.log('[Middleware] Request to:', pathname);
 
+  // Check if captcha verification is enabled
+  const captchaEnabled = process.env.ENABLE_CAPTCHA === 'true';
+  
+  // If captcha is disabled, allow all requests through
+  if (!captchaEnabled) {
+    console.log('[Middleware] Captcha disabled, allowing access');
+    return NextResponse.next();
+  }
+
   // Skip middleware for API routes and static files
   if (
     pathname.startsWith('/api/captcha') ||

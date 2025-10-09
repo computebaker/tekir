@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { verify } from 'crypto';
 
 // Type definition for the Ribaunt widget custom element in JSX
@@ -29,27 +28,33 @@ interface RibauntWidgetElement extends HTMLElement {
   startVerification(): void;
 }
 
-function CaptchaPageContent() {
-  const searchParams = useSearchParams();
+export default function CaptchaPage() {
   const widgetRef = useRef<RibauntWidgetElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [widgetLoaded, setWidgetLoaded] = useState(false);
   const [heading, setHeading] = useState('Let\'s verify you before proceeding.');
   const [returnUrl, setReturnUrl] = useState('/');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [hostname, setHostname] = useState('localhost:3000');
 
   // Get the return URL from either query param or current pathname
   useEffect(() => {
-    // Try to get returnUrl from query params first (for direct /captcha access)
-    let url = searchParams.get('returnUrl');
+    if (typeof window === 'undefined') return;
+    
+    // Set the hostname for display
+    setHostname(window.location.host);
+    
+    // Parse URL search params directly from window.location
+    const urlParams = new URLSearchParams(window.location.search);
+    let url = urlParams.get('returnUrl');
     
     // If no query param, use the current pathname (for rewritten pages)
-    if (!url && typeof window !== 'undefined') {
+    if (!url) {
       url = window.location.pathname;
     }
     
     // Default to home
-    if (!url) {
+    if (!url || url === '/captcha') {
       url = '/';
     }
     
@@ -60,7 +65,7 @@ function CaptchaPageContent() {
     
     console.log('Return URL set to:', url);
     setReturnUrl(url);
-  }, [searchParams]);
+  }, []);
 
   // Theme detection
   useEffect(() => {
@@ -111,12 +116,6 @@ function CaptchaPageContent() {
       setWidgetLoaded(true);
     }
   }, []);
-
-  useEffect(() => {
-    // Debug: Log the current URL and returnUrl parameter
-    console.log('Current URL:', window.location.href);
-    console.log('ReturnUrl param:', searchParams.get('returnUrl'));
-  }, [searchParams]);
 
   useEffect(() => {
     if (!widgetLoaded || !widgetRef.current) {
@@ -175,7 +174,7 @@ function CaptchaPageContent() {
 
   useEffect(() => {
     // Import the widget dynamically (client-side only)
-    import('@ribaunt/tools/widget')
+    import('ribaunt/widget')
       .then(() => {
         console.log('Widget script loaded successfully');
         setIsLoading(false);
@@ -298,7 +297,7 @@ function CaptchaPageContent() {
               e.currentTarget.style.display = 'none';
             }}
           />
-          <h1>{typeof window !== 'undefined' ? window.location.host : 'localhost:3000'}</h1>
+          <h1>{hostname}</h1>
         </div>
         <h2>{heading}</h2>
 
@@ -372,22 +371,5 @@ function CaptchaPageContent() {
         </footer>
       </div>
     </>
-  );
-}
-
-export default function CaptchaPage() {
-  return (
-    <Suspense fallback={
-      <div style={{ 
-        maxWidth: '690px', 
-        margin: '3em auto', 
-        padding: '18px',
-        fontFamily: 'system-ui'
-      }}>
-        <div style={{ fontSize: '16px', color: '#666' }}>Loading verification page...</div>
-      </div>
-    }>
-      <CaptchaPageContent />
-    </Suspense>
   );
 }

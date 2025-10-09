@@ -1,4 +1,4 @@
-import { createChallenge } from '@ribaunt/tools';
+import { createChallenge } from 'ribaunt';
 import { NextResponse } from 'next/server';
 
 export async function GET() {

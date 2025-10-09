@@ -1,4 +1,4 @@
-import { verifySolution } from '@ribaunt/tools';
+import { verifySolution } from 'ribaunt';
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 
