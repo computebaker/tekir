@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, useTransition, useMemo } from "react";
+import { useEffect, useState, useRef, useTransition, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Lock, MessageCircleMore, Github, Heart, RefreshCw } from "lucide-react";
+import { Search, Lock, MessageCircleMore, RefreshCw } from "lucide-react";
 import UserProfile from "@/components/user-profile";
 import { useAuth } from "@/components/auth-provider";
 import { useSettings } from "@/lib/settings";
@@ -42,6 +42,7 @@ async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: Request
 
 interface Suggestion {
   query: string;
+  type?: 'autocomplete' | 'recommendation';
 }
 
 export default function Home() {
@@ -71,8 +72,8 @@ export default function Home() {
   const [recs, setRecs] = useState<string[]>([]);
   const [recIndex, setRecIndex] = useState(0);
   const [recLoading, setRecLoading] = useState(false);
-  const [recDateLabel, setRecDateLabel] = useState<string | undefined>(undefined);
   const [recSwitching, setRecSwitching] = useState(false);
+  const recommendationWindowSize = 4;
   // Lock raised state while submitting so it doesn't animate back before redirect
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Focus lock on mobile: keep input focused until back/outside tap
@@ -139,21 +140,10 @@ export default function Home() {
     }
   }, [isInitialized, settings.showRecommendations]);
 
-  // Fetch daily recommendations (only when effective preference is true)
+  // Fetch daily recommendations in background on page load
   useEffect(() => {
     let active = true;
     const run = async () => {
-      // Only fetch when effective preference is true. If null or false, skip.
-      if (effectiveShowRecs !== true) {
-        // If recommendations are disabled, ensure clean state and skip fetch
-        if (active) {
-          setRecLoading(false);
-          setRecs([]);
-          setRecIndex(0);
-          setRecDateLabel(undefined);
-        }
-        return;
-      }
       setRecLoading(true);
       try {
         const res = await fetchWithSessionRefreshAndCache<{ results: string[]; date?: string; dateLabel?: string }>(
@@ -167,14 +157,17 @@ export default function Home() {
           const items = Array.isArray(data?.results) ? data.results.filter((s: any) => typeof s === "string" && s.trim()) : [];
           if (items.length > 0) {
             setRecs(items);
-            setRecIndex(Math.floor(Math.random() * items.length));
-            setRecDateLabel(data?.dateLabel);
+            setRecIndex(0);
+            console.log(`[Recommendations] Loaded ${items.length} recommendations:`, items);
           } else {
             setRecs([]);
+            console.log('[Recommendations] No recommendations returned from API');
           }
+        } else {
+          console.warn(`[Recommendations] API returned error status: ${res.status}`);
         }
       } catch (e) {
-        console.warn("Failed to load recommendations", e);
+        console.warn("[Recommendations] Failed to load recommendations", e);
       } finally {
         if (active) setRecLoading(false);
       }
@@ -183,7 +176,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, [effectiveShowRecs]);
+  }, []); // Only run once on mount
 
   useEffect(() => {
     const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -281,6 +274,30 @@ export default function Home() {
     };
   }, []);
 
+  const isBlankQuery = searchQuery.trim().length === 0;
+  const canShowRecommendations = effectiveShowRecs === true && isBlankQuery;
+  const recommendationSuggestions = useMemo(() => {
+    if (!canShowRecommendations || recs.length === 0) return [] as Suggestion[];
+    const size = Math.min(recommendationWindowSize, recs.length);
+    const items: Suggestion[] = [];
+    for (let i = 0; i < size; i++) {
+      const query = recs[(recIndex + i) % recs.length];
+      items.push({ query, type: "recommendation" });
+    }
+    return items;
+  }, [canShowRecommendations, recs, recIndex, recommendationWindowSize]);
+  const visibleSuggestions = canShowRecommendations ? recommendationSuggestions : suggestions;
+
+  const handleRefreshRecommendations = useCallback(() => {
+    if (!canShowRecommendations || recs.length === 0 || recSwitching) return;
+    setRecSwitching(true);
+    window.setTimeout(() => {
+      setRecIndex((prev) => (recs.length ? (prev + recommendationWindowSize) % recs.length : 0));
+      setSelectedIndex(-1);
+      setRecSwitching(false);
+    }, 200);
+  }, [canShowRecommendations, recs.length, recSwitching, recommendationWindowSize]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowSuggestions(false);
@@ -316,7 +333,20 @@ export default function Home() {
     const fetchSuggestions = async () => {
       if (!isMounted) return;
 
-      if (searchQuery.trim().length < 2) {
+      // When search is empty and recommendations are enabled, show recommendations immediately
+  if (isBlankQuery) {
+        if (effectiveShowRecs === true && recs.length > 0) {
+          const recSuggestions = recs.map(rec => ({ query: rec, type: 'recommendation' as const }));
+          console.log(`[Suggestions] Showing ${recSuggestions.length} recommendations`, recSuggestions);
+          if (isMounted) setSuggestions(recSuggestions);
+        } else {
+          console.log(`[Suggestions] Not showing recommendations - effectiveShowRecs: ${effectiveShowRecs}, recs.length: ${recs.length}`);
+          if (isMounted) setSuggestions([]);
+        }
+        return;
+      }
+
+  if (!isBlankQuery && searchQuery.trim().length < 2) {
         if (isMounted) setSuggestions([]);
         return;
       }
@@ -372,7 +402,7 @@ export default function Home() {
         const data = await response.json();
         
         if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
-          const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
+          const processedSuggestions = data[1].map(suggestion => ({ query: suggestion, type: 'autocomplete' as const }));
           if (isMounted) setSuggestions(processedSuggestions);
           sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
           // clear any retry mark
@@ -387,22 +417,24 @@ export default function Home() {
       }
     };
 
-    const timeoutId = setTimeout(fetchSuggestions, 200);
+  // Show recommendations immediately when search is empty, debounce autocomplete
+  const delay = isBlankQuery ? 0 : 200;
+    const timeoutId = setTimeout(fetchSuggestions, delay);
     
     return () => {
       isMounted = false; // Set to false on cleanup
       clearTimeout(timeoutId);
     };
-  }, [searchQuery, autocompleteSource]);
+  }, [searchQuery, autocompleteSource, effectiveShowRecs, recs, isBlankQuery]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showSuggestions) return;
+    if (!shouldRenderDropdown || visibleSuggestions.length === 0) return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
         setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : prev
+          prev < visibleSuggestions.length - 1 ? prev + 1 : prev
         );
         break;
       case 'ArrowUp':
@@ -412,7 +444,7 @@ export default function Home() {
       case 'Enter':
         if (selectedIndex >= 0) {
           e.preventDefault();
-          const selected = suggestions[selectedIndex];
+          const selected = visibleSuggestions[selectedIndex];
           setSearchQuery(selected.query);
           router.push(`/search?q=${encodeURIComponent(selected.query)}`);
           setShowSuggestions(false);
@@ -435,9 +467,12 @@ export default function Home() {
   // Click outside handler for suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionsRef.current && 
-          !suggestionsRef.current.contains(event.target as Node) && 
-          showSuggestions) {
+      const target = event.target as Node;
+      const clickedInsideSuggestions = suggestionsRef.current?.contains(target);
+      const clickedInsideInput = searchInputRef.current?.contains(target);
+      const clickedInsideForm = heroFormRef.current?.contains(target);
+      
+      if (!clickedInsideSuggestions && !clickedInsideInput && !clickedInsideForm && showSuggestions) {
         setShowSuggestions(false);
       }
     };
@@ -482,7 +517,19 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleGlobalKeydown);
   }, []);
 
+  const dropdownActive = (showSuggestions || (isHeroInputFocused && isBlankQuery)) && !isSubmitting;
+  const shouldRenderDropdown = dropdownActive && (
+    visibleSuggestions.length > 0 ||
+    (canShowRecommendations && (recLoading || recs.length > 0))
+  );
   const keyboardAware = isMobile && (isHeroInputFocused || kbVisible || isSubmitting);
+
+  useEffect(() => {
+    if (!isHeroInputFocused || !canShowRecommendations) return;
+    if (showSuggestions) return;
+    if (!recLoading && recs.length === 0) return;
+    setShowSuggestions(true);
+  }, [isHeroInputFocused, canShowRecommendations, showSuggestions, recLoading, recs.length]);
 
   return (
     <main className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
@@ -599,6 +646,8 @@ export default function Home() {
           }
           setIsHeroInputFocused(false);
           setIsFocusLocked(false);
+          setShowSuggestions(false);
+          setSelectedIndex(-1);
         }}
                 placeholder="What's on your mind?"
                 className="w-full pr-24 shadow-lg transition-all duration-300 relative z-10"
@@ -612,150 +661,96 @@ export default function Home() {
               </div>
             </div>
             
-            {/* Recommendations row under the search bar (toggleable) */}
-            <div className="absolute w-full mt-2 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
-              <div className="flex items-center justify-center">
-                <div className="inline-flex items-center gap-2 sm:gap-3">
-                  {effectiveShowRecs === null ? (
-                    // still deciding (either waiting for server or local explicit value)
-                    null
-                  ) : effectiveShowRecs ? (
-                    recLoading ? (
-                      <div
-                        className="relative inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-border/50 bg-background/60 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/40 overflow-hidden max-w-[92%] sm:max-w-none"
-                        aria-live="polite"
-                        aria-busy="true"
-                        role="status"
-                        title="Loading daily picks"
-                      >
-                        <div
-                          aria-hidden="true"
-                          className="absolute inset-0 rounded-full bg-muted/70 dark:bg-muted/50 border border-border/50 animate-pulse pointer-events-none"
-                        />
-                        <div aria-hidden="true" className="shimmer-soft" />
-                        <span className="text-muted-foreground/80">Try:</span>
-                        <span className="inline-block h-4 bg-muted rounded w-[160px] sm:w-[220px] mr-1 sm:mr-2" aria-hidden="true" />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          shape="pill"
-                          title="Loading"
-                          className="h-5 w-5 sm:h-6 sm:w-6 opacity-80 ml-0.5 sm:ml-1 cursor-wait"
-                          disabled
-                        >
-                          <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
-                        </Button>
+            {/* Static links row under the search bar (when recommendations disabled or search not focused) */}
+            {!isHeroInputFocused && effectiveShowRecs !== true && (
+              <div className="absolute w-full mt-2 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
+                <div className="flex items-center justify-center">
+                  <div className="flex items-center gap-3 mt-1 text-muted-foreground mx-auto flex-wrap">
+                    <Link href="/about" className="hover:text-foreground transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4" />
+                        <span className="font-medium">Your searches, private.</span>
                       </div>
-                    ) : recs.length > 0 ? (
-                      <div className="relative inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-border/50 bg-background/60 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/40 overflow-hidden max-w-[92%] sm:max-w-none whitespace-nowrap">
-                        {recSwitching && (
-                          <>
-                            <div
-                              aria-hidden="true"
-                              className="absolute inset-0 rounded-full bg-muted/70 dark:bg-muted/50 border border-border/50 animate-pulse pointer-events-none"
-                            />
-                            <div aria-hidden="true" className="shimmer-soft" />
-                          </>
-                        )}
-                        <span className="text-muted-foreground/80">Try:</span>
-                        <button
-                          type="button"
-                          className={`hover:text-foreground transition-colors underline-offset-4 hover:underline font-semibold text-foreground ${recSwitching ? "animate-pulse cursor-wait" : ""} truncate max-w-[60vw] sm:max-w-none`}
-                          onClick={() => {
-                            const q = recs[recIndex];
-                            router.push(`/search?q=${encodeURIComponent(q)}`);
-                          }}
-                          title={recDateLabel ? `Daily pick — ${recDateLabel}` : "Daily pick"}
-                          aria-label={recDateLabel ? `You can search: ${recs[recIndex]} — ${recDateLabel}` : `You can search: ${recs[recIndex]}`}
-                          aria-busy={recSwitching}
-                          disabled={recSwitching}
-                        >
-                          {recs[recIndex]}
-                        </button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          shape="pill"
-                          title="Show another"
-                          onClick={() => {
-                            if (!recs.length || recSwitching) return;
-                            setRecSwitching(true);
-                            window.setTimeout(() => {
-                              setRecIndex((i) => (recs.length ? (i + 1) % recs.length : 0));
-                              setRecSwitching(false);
-                            }, 600);
-                          }}
-                          className="h-5 w-5 sm:h-6 sm:w-6 opacity-80 hover:opacity-100 ml-0.5 sm:ml-1"
-                          disabled={recSwitching}
-                        >
-                          <RefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${recLoading || recSwitching ? "animate-spin" : ""}`} />
-                        </Button>
+                    </Link>
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
+                    <Link href="https://chat.tekir.co" className="hover:text-foreground transition-colors">
+                      <div className="flex items-center gap-2">
+                        <MessageCircleMore className="w-4 h-4" />
+                        <span className="font-medium">AI Chat</span>
                       </div>
-                    ) : (
-                      hasBang ? (
-                        <div className="text-center">
-                          <a href="https://bang.lat"> Bangs by bang.lat — the fastest bang resolver. </a>
-                        </div>
-                      ) : null
-                    )
-                  ) : (
-                    <div className="flex items-center gap-3 mt-1 text-muted-foreground mx-auto flex-wrap">
-                      <Link href="/about" className="hover:text-foreground transition-colors">
-                        <div className="flex items-center gap-2">
-                          <Lock className="w-4 h-4" />
-                          <span className="font-medium">Your searches, private.</span>
-                        </div>
-                      </Link>
-                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
-                      <Link href="https://chat.tekir.co" className="hover:text-foreground transition-colors">
-                        <div className="flex items-center gap-2">
-                          <MessageCircleMore className="w-4 h-4" />
-                          <span className="font-medium">AI Chat</span>
-                        </div>
-                      </Link>
-                      {showHeroWeather && (
-                        <>
-                          <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
-                          <WeatherWidget size="link" />
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {(effectiveShowRecs === true && recs.length > 0 && showHeroWeather) && (
-                    <div className="ml-1 sm:ml-2">
-            <WeatherWidget size="link" />
-                    </div>
-                  )}
+                    </Link>
+                    {showHeroWeather && (
+                      <>
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
+                        <WeatherWidget size="link" />
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
-            {/* Autocomplete dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
+            {/* Autocomplete dropdown with recommendations */}
+            {shouldRenderDropdown && (
               <div 
                 ref={suggestionsRef}
                 className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50"
               >
-                {suggestions.map((suggestion, index) => (
-                  <button
-                    key={suggestion.query}
-                    onClick={() => {
-                      setSearchQuery(suggestion.query);
-                      router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
-                      setShowSuggestions(false);
-                    }}
-                    className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
-                      index === selectedIndex ? 'bg-muted' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Search className="w-4 h-4 text-muted-foreground" />
-                      <span>{suggestion.query}</span>
+                {canShowRecommendations && (
+                  <>
+                    <div className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 text-left">
+                      Recommendations
                     </div>
-                  </button>
-                ))}
+                    {recLoading && recommendationSuggestions.length === 0 && (
+                      <div className="px-4 py-3 text-sm text-muted-foreground/70 flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                        <span>Fetching today&apos;s picks…</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {visibleSuggestions.map((suggestion: Suggestion, index: number) => {
+                  const isRecommendation = suggestion.type === 'recommendation';
+                  return (
+                    <button
+                      key={`${suggestion.type}-${suggestion.query}`}
+                      onClick={() => {
+                        setSearchQuery(suggestion.query);
+                        router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+                        setShowSuggestions(false);
+                      }}
+                      className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
+                        index === selectedIndex ? 'bg-muted' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isRecommendation ? (
+                          <>
+                            <Search className="w-4 h-4 text-primary" />
+                            <span className="text-sm text-foreground/90 font-normal">{suggestion.query}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Search className="w-4 h-4 text-muted-foreground" />
+                            <span>{suggestion.query}</span>
+                          </>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+                {canShowRecommendations && recommendationSuggestions.length > 0 && recs.length > recommendationWindowSize && (
+                  <div className="px-4 pt-2">
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                      onClick={handleRefreshRecommendations}
+                      disabled={recSwitching}
+                    >
+                      {recSwitching ? "Refreshing…" : "Refresh recommendations"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </form>          
