@@ -164,7 +164,6 @@ export default function CaptchaPage() {
     widget.addEventListener('error', errorHandler);
     widget.addEventListener('state-change', stateChangeHandler);
 
-    // Cleanup function
     return () => {
       widget.removeEventListener('verify', verifyHandler);
       widget.removeEventListener('error', errorHandler);
