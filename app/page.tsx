@@ -73,7 +73,7 @@ export default function Home() {
   const [recIndex, setRecIndex] = useState(0);
   const [recLoading, setRecLoading] = useState(false);
   const [recSwitching, setRecSwitching] = useState(false);
-  const recommendationWindowSize = 4;
+  const recommendationWindowSize = 5;
   // Lock raised state while submitting so it doesn't animate back before redirect
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Focus lock on mobile: keep input focused until back/outside tap
@@ -402,7 +402,7 @@ export default function Home() {
         const data = await response.json();
         
         if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
-          const processedSuggestions = data[1].map(suggestion => ({ query: suggestion, type: 'autocomplete' as const }));
+          const processedSuggestions = data[1].slice(0, 5).map(suggestion => ({ query: suggestion, type: 'autocomplete' as const }));
           if (isMounted) setSuggestions(processedSuggestions);
           sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
           // clear any retry mark
