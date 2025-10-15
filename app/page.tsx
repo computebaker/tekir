@@ -634,20 +634,34 @@ export default function Home() {
             }, 50);
           }
         }}
-    onBlur={() => { 
+    onBlur={(e) => { 
           if (isSubmitting) return; 
-          if (isMobile && isFocusLocked && !unlockingRef.current) {
-            const ua = navigator.userAgent || "";
-            const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
-            if (!isApple) {
-              window.setTimeout(() => searchInputRef.current?.focus(), 0);
+          
+          // Give time for click events on suggestions to fire first
+          window.setTimeout(() => {
+            // Check if the newly focused element is within suggestions
+            const newFocus = document.activeElement;
+            const clickedInSuggestions = suggestionsRef.current?.contains(newFocus as Node);
+            
+            if (clickedInSuggestions) {
+              // Keep the dropdown open and refocus input after interaction
+              return;
             }
-            return;
-          }
-          setIsHeroInputFocused(false);
-          setIsFocusLocked(false);
-          setShowSuggestions(false);
-          setSelectedIndex(-1);
+            
+            if (isMobile && isFocusLocked && !unlockingRef.current) {
+              const ua = navigator.userAgent || "";
+              const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
+              if (!isApple) {
+                window.setTimeout(() => searchInputRef.current?.focus(), 0);
+              }
+              return;
+            }
+            
+            setIsHeroInputFocused(false);
+            setIsFocusLocked(false);
+            setShowSuggestions(false);
+            setSelectedIndex(-1);
+          }, 150);
         }}
                 placeholder="What's on your mind?"
                 className="w-full pr-24 shadow-lg transition-all duration-300 relative z-10"
@@ -714,7 +728,8 @@ export default function Home() {
                   return (
                     <button
                       key={`${suggestion.type}-${suggestion.query}`}
-                      onClick={() => {
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // Prevent input blur
                         setSearchQuery(suggestion.query);
                         router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
                         setShowSuggestions(false);
@@ -744,7 +759,10 @@ export default function Home() {
                     <button
                       type="button"
                       className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                      onClick={handleRefreshRecommendations}
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // Prevent input blur
+                        handleRefreshRecommendations();
+                      }}
                       disabled={recSwitching}
                     >
                       {recSwitching ? "Refreshing…" : "Refresh recommendations"}
