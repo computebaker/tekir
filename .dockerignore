@@ -1,0 +1,29 @@
+# Dependencies and build output
+node_modules
+.next
+out
+dist
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Version control
+.git
+.gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local tooling caches
+.vscode
+.DS_Store
+coverage
+tmp
+.tsbuildinfo
+tsconfig.tsbuildinfo
