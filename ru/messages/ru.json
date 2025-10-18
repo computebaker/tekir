@@ -22,568 +22,568 @@
       "videos": "Видео",
       "news": "Новости",
       "ai": "AI",
-      "dive": "Dive"
+      "dive": "Погрузиться"
     },
     "filters": {
-      "country": "Country",
-      "safeSearch": "Safe Search",
-      "time": "Time",
-      "all": "All",
-      "pastDay": "Past 24 hours",
-      "pastWeek": "Past week",
-      "pastMonth": "Past month",
-      "pastYear": "Past year"
+      "country": "Страна",
+      "safeSearch": "Безопасный поиск",
+      "time": "Время",
+      "all": "Все",
+      "pastDay": "За последние 24 часа",
+      "pastWeek": "За последнюю неделю",
+      "pastMonth": "Прошлый месяц",
+      "pastYear": "Прошлый год"
     },
-    "noResults": "No results found for \"{query}\"",
-    "searchError": "Failed to fetch search results",
-    "tryAgain": "Please try again",
-    "resultsCount": "{count, plural, one {# result} other {# results}}",
-    "showMore": "Show more results",
-    "relatedSearches": "Related searches"
+    "noResults": "Ничего не найдено для \"{query}\"",
+    "searchError": "Не удалось получить результаты поиска",
+    "tryAgain": "Пожалуйста, попробуйте еще раз",
+    "resultsCount": "{count, plural, one {# результат} other {# результаты}}",
+    "showMore": "Показать больше результатов",
+    "relatedSearches": "Связанные поиски"
   },
   "navigation": {
-    "about": "About Tekir",
-    "aiChat": "AI Chat",
-    "settings": "Settings",
-    "privacy": "Privacy",
-    "terms": "Terms",
-    "home": "Home",
-    "bangs": "Bangs"
+    "about": "О Tekir",
+    "aiChat": "AI Чат",
+    "settings": "Настройки",
+    "privacy": "Приватность",
+    "terms": "Условия",
+    "home": "Домашний",
+    "bangs": "Блок"
   },
   "settings": {
-    "title": "Settings",
-    "search": "Search",
-    "privacy": "Privacy",
-    "account": "Account",
-    "language": "Language",
-    "theme": "Theme",
-    "searchEngine": "Search Engine",
-    "country": "Country",
-    "safesearch": "Safe Search",
-    "appearance": "Appearance",
-    "general": "General",
-    "saveChanges": "Save changes",
-    "changesSaved": "Changes saved successfully",
+    "title": "Настройки",
+    "search": "Искать",
+    "privacy": "Приватность",
+    "account": "Аккаунт",
+    "language": "Язык",
+    "theme": "Тема",
+    "searchEngine": "Поисковая система",
+    "country": "Страна",
+    "safesearch": "Безопасный поиск",
+    "appearance": "Внешний вид",
+    "general": "Общие положения",
+    "saveChanges": "Сохранить изменения",
+    "changesSaved": "Изменения успешно сохранены",
     "accountPage": {
-      "metaTitle": "Account Settings",
+      "metaTitle": "Настройки учётной записи",
       "mobileNav": {
-        "back": "Back to Search",
-        "chat": "AI Chat",
-        "privacy": "Privacy Policy"
+        "back": "Вернуться к поиску",
+        "chat": "AI Чат",
+        "privacy": "Политика конфиденциальности"
       },
-      "pageTitle": "Account Settings",
-      "pageDescription": "Manage your account information, security, and preferences.",
+      "pageTitle": "Настройки учётной записи",
+      "pageDescription": "Управляйте информацией о вашем аккаунте, безопасностью и предпочтениями.",
       "accessDenied": {
-        "title": "Access Denied",
-        "description": "Please sign in to access account settings.",
-        "backButton": "Back to settings"
+        "title": "Доступ запрещен",
+        "description": "Пожалуйста, войдите для доступа к настройкам учетной записи.",
+        "backButton": "Вернуться к настройкам"
       },
       "messages": {
-        "requiredField": "{field} cannot be empty",
-        "updateSuccess": "{field} updated successfully",
-        "updateError": "Failed to update {field}",
-        "updateException": "An error occurred while updating {field}",
-        "passwordRequired": "All password fields are required",
-        "passwordMismatch": "New passwords do not match",
-        "passwordLength": "New password must be at least 8 characters long",
-        "passwordSuccess": "Password changed successfully",
-        "passwordError": "Failed to change password",
-        "passwordException": "An error occurred while changing password",
-        "avatarRegenerateSuccess": "Profile avatar regenerated successfully",
-        "avatarRegenerateError": "Failed to regenerate avatar",
-        "avatarRegenerateException": "An error occurred while regenerating avatar",
-        "avatarUploadSuccess": "Profile picture uploaded successfully",
-        "avatarUploadError": "Failed to upload profile picture",
-        "avatarUploadException": "An error occurred while uploading",
-        "avatarRemoveSuccess": "Profile picture removed successfully",
-        "avatarRemoveError": "Failed to remove profile picture",
-        "avatarRemoveException": "An error occurred while removing",
-        "deleteConfirmationMissing": "Please type \"{phrase}\" to confirm",
-        "deleteError": "Failed to delete account",
-        "deleteException": "An error occurred while deleting account",
-        "syncLoading": "Settings are still loading. Please wait a moment.",
-        "syncEnabled": "Settings sync enabled. Your settings will now be synced across devices.",
-        "syncDisabled": "Settings sync disabled. Your settings are now stored locally only.",
-        "syncError": "Failed to toggle settings sync",
-        "syncException": "An error occurred while toggling settings sync",
-        "sessionOutdated": "Your session is outdated. Please sign out and sign in again to continue."
+        "requiredField": "{field} не может быть пустым",
+        "updateSuccess": "{field} успешно обновлен",
+        "updateError": "Не удалось обновить {field}",
+        "updateException": "Произошла ошибка при обновлении {field}",
+        "passwordRequired": "Все поля пароля обязательны",
+        "passwordMismatch": "Новые пароли не совпадают",
+        "passwordLength": "Новый пароль должен содержать не менее 8 символов",
+        "passwordSuccess": "Пароль успешно изменен",
+        "passwordError": "Не удалось сменить пароль",
+        "passwordException": "Произошла ошибка при изменении пароля",
+        "avatarRegenerateSuccess": "Аватар профиля успешно регенерирован",
+        "avatarRegenerateError": "Не удалось восстановить аватар",
+        "avatarRegenerateException": "Произошла ошибка при создании аватара",
+        "avatarUploadSuccess": "Изображение профиля успешно загружено",
+        "avatarUploadError": "Не удалось загрузить изображение профиля",
+        "avatarUploadException": "Произошла ошибка при загрузке",
+        "avatarRemoveSuccess": "Изображение профиля успешно удалено",
+        "avatarRemoveError": "Не удалось удалить изображение профиля",
+        "avatarRemoveException": "Произошла ошибка при удалении",
+        "deleteConfirmationMissing": "Пожалуйста, введите \"{phrase}\" для подтверждения",
+        "deleteError": "Не удалось удалить аккаунт",
+        "deleteException": "Произошла ошибка при удалении учетной записи",
+        "syncLoading": "Настройки все еще загружаются. Пожалуйста, подождите секунду.",
+        "syncEnabled": "Включена синхронизация настроек. Ваши настройки будут синхронизированы между устройствами.",
+        "syncDisabled": "Синхронизация настроек отключена. Ваши настройки теперь хранятся только локально.",
+        "syncError": "Не удалось включить синхронизацию настроек",
+        "syncException": "Произошла ошибка при переключении настроек",
+        "sessionOutdated": "Ваша сессия устарела. Пожалуйста, выйдите и войдите снова, чтобы продолжить."
       },
       "profilePicture": {
-        "title": "Profile Picture",
-        "alternativeTitle": "Alternative Options",
-        "alternativeDescription": "Don't have a photo? You can use a generated avatar instead.",
-        "generateButton": "Generate New Avatar"
+        "title": "Изображение профиля",
+        "alternativeTitle": "Альтернативные параметры",
+        "alternativeDescription": "У вас нет фотографии? Вместо этого вы можете использовать сгенерированный аватар.",
+        "generateButton": "Создать новый аватар"
       },
       "emailSection": {
         "title": "Email Address",
-        "label": "Email",
-        "placeholder": "Enter your email",
-        "button": "Update Email"
+        "label": "Почта",
+        "placeholder": "Введите ваш email",
+        "button": "Обновить Email"
       },
       "nameSection": {
-        "title": "Display Name",
-        "label": "Name",
-        "description": "This is the name that will be displayed publicly on your profile.",
-        "placeholder": "Enter your display name",
-        "button": "Update Name"
+        "title": "Показать имя",
+        "label": "Наименование",
+        "description": "Это имя, которое будет публично отображаться в вашем профиле.",
+        "placeholder": "Введите отображаемое имя",
+        "button": "Обновить имя"
       },
       "usernameSection": {
-        "title": "Username",
-        "label": "Username",
-        "description": "Your unique username will be displayed as @{username} under your name.",
-        "placeholder": "username",
-        "button": "Update Username"
+        "title": "Имя пользователя",
+        "label": "Имя пользователя",
+        "description": "Ваше уникальное имя пользователя будет отображаться как @{username} под вашим именем.",
+        "placeholder": "имя пользователя",
+        "button": "Обновить имя пользователя"
       },
       "passwordSection": {
-        "title": "Change Password",
-        "currentLabel": "Current Password",
-        "currentPlaceholder": "Enter current password",
-        "newLabel": "New Password",
-        "newPlaceholder": "Enter new password",
-        "confirmLabel": "Confirm New Password",
-        "confirmPlaceholder": "Confirm new password",
-        "button": "Change Password"
+        "title": "Изменить пароль",
+        "currentLabel": "Текущий пароль",
+        "currentPlaceholder": "Введите текущий пароль",
+        "newLabel": "Новый пароль",
+        "newPlaceholder": "Введите новый пароль",
+        "confirmLabel": "Подтвердите новый пароль",
+        "confirmPlaceholder": "Подтвердите новый пароль",
+        "button": "Изменить пароль"
       },
       "syncSection": {
-        "title": "Settings Sync",
-        "description": "Enable settings sync to keep your search preferences, AI options, theme, and other settings synchronized across all your devices.",
-        "cardTitle": "Sync Settings",
-        "statusEnabled": "Your settings are synced across devices",
-        "statusDisabled": "Settings are stored locally only",
-        "syncedList": "<strong>Synced settings include:</strong> Search engine preferences, AI model choices, weather settings, theme, autocomplete provider, search regions, and SafeSearch settings."
+        "title": "Настройки Синхронизации",
+        "description": "Включите синхронизацию настроек, чтобы сохранить настройки поиска, параметры ИИ, темы и другие параметры, синхронизированные на всех ваших устройствах.",
+        "cardTitle": "Настройки синхронизации",
+        "statusEnabled": "Ваши настройки синхронизируются между устройствами",
+        "statusDisabled": "Настройки хранятся только локально",
+        "syncedList": "<strong>Синхронизированные настройки включают:</strong> параметры поиска, выбор модели ИИ, настройки погоды, темы, поставщика автозаполнения, регионы поиска и настройки безопасного поиска."
       },
       "dangerZone": {
-        "title": "Danger Zone",
-        "description": "Once you delete your account, there is no going back. This action cannot be undone.",
-        "deleteButton": "Delete Account",
-        "confirmButton": "Confirm Delete",
-        "confirmPrompt": "Please type <strong>\"{phrase}\"</strong> to confirm account deletion:",
-        "placeholder": "Type: {phrase}",
-        "confirmPhrase": "DELETE MY ACCOUNT"
+        "title": "Опасная зона",
+        "description": "Как только вы удалите свою учетную запись, это действие не может быть отменено.",
+        "deleteButton": "Удалить аккаунт",
+        "confirmButton": "Подтвердить удаление",
+        "confirmPrompt": "Пожалуйста, введите <strong>\"{phrase}\"</strong> для подтверждения удаления учетной записи:",
+        "placeholder": "Тип: {phrase}",
+        "confirmPhrase": "УДАЛИТЬ МОЙ СЧЕТ"
       }
     },
     "privacyPage": {
-      "metaTitle": "Privacy Settings",
+      "metaTitle": "Настройки приватности",
       "mobileNav": {
-        "back": "Back to Search",
-        "account": "Account Settings"
+        "back": "Вернуться к поиску",
+        "account": "Настройки учётной записи"
       },
-      "pageTitle": "Privacy Settings",
-      "pageDescription": "Review what we store and manage your search preferences export/import.",
+      "pageTitle": "Настройки приватности",
+      "pageDescription": "Проверьте, что мы храним и управляем вашими поисковыми предпочтениями экспорт/импорт.",
       "messages": {
-        "exportSuccess": "Preferences exported to {file}",
-        "exportError": "Failed to export settings",
-        "importSuccess": "Preferences imported successfully",
-        "importInvalidKind": "Invalid file format: expected tekir.settings file",
-        "importInvalidPreferences": "Invalid file format: missing or invalid preferences",
-        "importParseError": "Failed to parse import file"
+        "exportSuccess": "Настройки экспортированы в {file}",
+        "exportError": "Не удалось экспортировать настройки",
+        "importSuccess": "Настройки успешно импортированы",
+        "importInvalidKind": "Недопустимый формат файла: ожидаемый файл tekir.settings",
+        "importInvalidPreferences": "Неверный формат файла: отсутствует или неверные настройки",
+        "importParseError": "Не удалось разобрать файл импорта"
       },
       "sections": {
         "serverOverview": {
-          "title": "Your Data on Tekir Servers",
-          "signInPrompt": "Sign in to view your server-stored data overview.",
+          "title": "Ваши данные на Текирских серверах",
+          "signInPrompt": "Войдите, чтобы просмотреть ваши серверные данные.",
           "fields": {
             "email": "Email:",
-            "name": "Name:",
-            "username": "Username:",
-            "settingsSync": "Settings Sync:",
-            "serverPreferences": "Server Preferences:",
-            "lastUpdated": "Last Updated:"
+            "name": "Имя:",
+            "username": "Имя пользователя:",
+            "settingsSync": "Синхронизация настроек:",
+            "serverPreferences": "Настройки сервера:",
+            "lastUpdated": "Обновлено:"
           },
           "values": {
-            "enabled": "Enabled",
-            "disabled": "Disabled",
-            "present": "Present",
-            "none": "None"
+            "enabled": "Включено",
+            "disabled": "Отключено",
+            "present": "Подарочный",
+            "none": "Нет"
           },
-          "privacyNote": "We store only what’s needed to provide your experience. No analytics, no tracking. Account details aren’t included in export/import; only search preferences are. Your privacy is our priority."
+          "privacyNote": "Мы храним только то, что необходимо для обеспечения вашего опыта. Без аналитики, без отслеживания. Данные учетной записи не включаются в экспорт/импорт; только поисковые предпочтения. Ваша конфиденциальность является нашим приоритетом."
         },
         "serverJson": {
-          "title": "Server-stored Preferences (JSON)",
-          "copyButton": "Copy",
-          "copyButtonCopied": "Copied",
-          "copyAria": "Copy JSON"
+          "title": "Настройки хранимых серверов (JSON)",
+          "copyButton": "Копировать",
+          "copyButtonCopied": "Скопировано",
+          "copyAria": "Копировать JSON"
         },
         "transfer": {
-          "title": "Export / Import Preferences",
+          "title": "Экспорт / Импорт настроек",
           "export": {
-            "title": "Export",
-            "description": "Download your current search preferences as {file}.",
-            "button": "Export preferences",
-            "ariaLabel": "Export preferences"
+            "title": "Экспорт",
+            "description": "Загрузите ваши текущие настройки поиска как {file}.",
+            "button": "Экспорт настроек",
+            "ariaLabel": "Экспорт настроек"
           },
           "import": {
-            "title": "Import",
-            "description": "Import preferences from a {file} file. This won’t change your account details.",
-            "button": "Import from file",
-            "ariaLabel": "Import preferences"
+            "title": "Импорт",
+            "description": "Импорт настроек из файла {file} . Это не изменит реквизиты вашего аккаунта.",
+            "button": "Импортировать из файла",
+            "ariaLabel": "Импорт настроек"
           },
-          "hint": "Supported file: {file} (kind: tekir.settings, version: 1). Only search preferences are applied."
+          "hint": "Поддерживаемый файл: {file} (смотри : tekir.settings, version: 1). Применяются только параметры поиска."
         }
       }
     },
     "searchPage": {
-      "metaTitle": "Search Settings",
+      "metaTitle": "Настройки поиска",
       "mobileNav": {
-        "back": "Back to Search",
-        "chat": "AI Chat",
-        "privacy": "Privacy Policy"
+        "back": "Вернуться к поиску",
+        "chat": "AI Чат",
+        "privacy": "Политика конфиденциальности"
       },
-      "pageTitle": "Search Settings",
-      "pageDescription": "Customize your search experience and AI preferences.",
+      "pageTitle": "Настройки поиска",
+      "pageDescription": "Настройте ваш поисковый запрос и параметры ИИ.",
       "sections": {
         "aiFeatures": {
-          "title": "AI Features",
-          "description": "Configure AI-powered search and response features.",
-          "karakulakTitle": "Karakulak AI Mode",
-          "karakulakDescription": "Enable AI-powered responses for your search queries",
-          "karakulakAria": "Karakulak AI Mode",
-          "modelTitle": "AI Model",
-          "modelDescription": "Select your preferred AI model for responses",
-          "modelMenuLabel": "AI model options",
+          "title": "Функции AI",
+          "description": "Настройка функций поиска и ответов с использованием AI.",
+          "karakulakTitle": "Режим ИИ Каракулака",
+          "karakulakDescription": "Включить ответы с помощью AI для поисковых запросов",
+          "karakulakAria": "Режим ИИ Каракулака",
+          "modelTitle": "Модель ИИ",
+          "modelDescription": "Выберите вашу модель ИИ для ответов",
+          "modelMenuLabel": "Параметры модели ИИ",
           "options": {
             "llama": {
               "name": "Llama 4",
-              "description": "A powerful and open-source model by Meta"
+              "description": "Мощная модель с открытым исходным кодом Мета"
             },
             "gemini": {
               "name": "Gemini 2.5",
-              "description": "A fast and intelligent model by Google"
+              "description": "Быстрая и интеллектуальная модель от Google"
             },
             "claude": {
-              "name": "Claude 4.5",
-              "description": "Latest and fastest model from Anthropic"
+              "name": "Клод 4.5",
+              "description": "Последняя и самая быстрая модель из Антропии"
             },
             "chatgpt": {
-              "name": "ChatGPT 5",
-              "description": "Powerful, efficient model by OpenAI"
+              "name": "ЧатGPT 5",
+              "description": "Мощная эффективная модель OpenAI"
             },
             "mistral": {
-              "name": "Mistral Mini",
-              "description": "A lightweight model by Mistral AI"
+              "name": "Мистраль Мини",
+              "description": "Легкая модель Mistral AI"
             },
             "grok": {
               "name": "Grok 4",
-              "description": "An intelligent model from xAI"
+              "description": "Интеллектуальная модель из xAI"
             }
           }
         },
         "uiLanguage": {
-          "title": "UI & Language",
-          "description": "Customize your interface and language preferences.",
-          "languageTitle": "Language",
-          "languageDescription": "Choose your preferred language for the interface",
-          "languageMenuLabel": "Language options"
+          "title": "Пользовательский интерфейс и язык",
+          "description": "Настройте свой интерфейс и языковые настройки.",
+          "languageTitle": "Язык",
+          "languageDescription": "Выберите предпочитаемый язык интерфейса",
+          "languageMenuLabel": "Языковые настройки"
         },
         "externalServices": {
-          "title": "External Services",
-          "description": "Configure integrations with external services.",
-          "clim8Title": "Clim8 Weather Service",
-          "clim8Description": "Enable weather data from Clim8 based on your IP location",
-          "clim8Aria": "Clim8 Weather",
-          "customWeatherTitle": "Custom Weather Location",
-          "customWeatherDescription": "Set a preferred location for weather reports instead of using your IP location",
-          "locationPlaceholder": "Search for a city...",
-          "clearLocation": "Clear location",
-          "suggestionsLabel": "Location suggestions",
-          "selectedLabel": "Selected: {location}",
-          "weatherUnitsTitle": "Weather Units",
-          "weatherUnitsDescription": "Choose between metric (°C, km/h) or imperial (°F, mph) units",
-          "weatherUnitsMenuLabel": "Weather unit options",
+          "title": "Внешние сервисы",
+          "description": "Настройка интеграции с внешними сервисами.",
+          "clim8Title": "Служба погоды Clim8",
+          "clim8Description": "Включить данные о погоде от Clim8 на основе вашего IP-адреса",
+          "clim8Aria": "Погода Clim8",
+          "customWeatherTitle": "Пользовательское местоположение",
+          "customWeatherDescription": "Задайте предпочтительное местоположение для отчетов о погоде вместо использования вашего IP местоположения",
+          "locationPlaceholder": "Поиск города...",
+          "clearLocation": "Очистить местоположение",
+          "suggestionsLabel": "Подсказки о местоположении",
+          "selectedLabel": "Выбрано: {location}",
+          "weatherUnitsTitle": "Единицы погоды",
+          "weatherUnitsDescription": "Выберите единицы измерения (°C, км/ч) или имперские (°F, мч)",
+          "weatherUnitsMenuLabel": "Варианты единиц погоды",
           "weatherUnits": {
             "metric": {
-              "label": "Metric",
-              "subtitle": "°C, km/h, mm"
+              "label": "Метрика",
+              "subtitle": "°C, км/ч, мм"
             },
             "imperial": {
-              "label": "Imperial",
-              "subtitle": "°F, mph, in"
+              "label": "Имперская",
+              "subtitle": "°F, миль/ч в"
             }
           },
-          "weatherPlacementTitle": "Weather Placement",
-          "weatherPlacementDescription": "Choose where to show the Clim8 widget on the homepage",
-          "weatherPlacementMenuLabel": "Weather placement options",
+          "weatherPlacementTitle": "Размещение погоды",
+          "weatherPlacementDescription": "Выберите, где показывать виджет Clim8 на главной странице",
+          "weatherPlacementMenuLabel": "Параметры размещения погоды",
           "weatherPlacement": {
             "hero": {
-              "label": "Under search bar",
-              "description": "Show weather chip beneath the main search box"
+              "label": "Под строкой поиска",
+              "description": "Показывать фишку погоды под главным окном поиска"
             },
             "topRight": {
-              "label": "Next to profile",
-              "description": "Show under the welcome text near your avatar"
+              "label": "Далее к профилю",
+              "description": "Показывать под надписью приветствия рядом с вашим аватаром"
             }
           }
         },
         "searchOptions": {
-          "title": "Search Options",
-          "description": "Configure your search provider and filtering preferences.",
-          "enchantedTitle": "Enchanted Results",
-          "enchantedDescription": "Toggle News and Videos widgets in search results",
-          "enchantedAria": "Enchanted Results",
-          "wikipediaTitle": "Wikipedia Results",
-          "wikipediaDescription": "Show Wikipedia summaries and information in search results",
-          "wikipediaAria": "Wikipedia Results",
-          "faviconsTitle": "Favicons in Results",
-          "faviconsDescription": "Show site icons next to result links",
-          "faviconsAria": "Show favicons in results",
-          "recommendationsTitle": "Homepage Recommendations",
-          "recommendationsDescription": "Show daily recommended searches under the search bar on the homepage",
-          "recommendationsAria": "Show recommendations under search bar",
-          "searchProviderTitle": "Search Provider",
-          "searchProviderDescription": "Choose your search engine for web results",
-          "searchProviderMenuLabel": "Search providers",
-          "searchProviderSigninNotice": "Sign in to unlock {provider} results.",
+          "title": "Параметры поиска",
+          "description": "Настройте поискового провайдера и параметры фильтрации.",
+          "enchantedTitle": "Зачарованные результаты",
+          "enchantedDescription": "Вкл/выкл виджеты новостей и видео в результатах поиска",
+          "enchantedAria": "Зачарованные результаты",
+          "wikipediaTitle": "Результаты Википедии",
+          "wikipediaDescription": "Показывать резюме Википедии и информацию в результатах поиска",
+          "wikipediaAria": "Результаты Википедии",
+          "faviconsTitle": "Иконки в результатах",
+          "faviconsDescription": "Показывать иконки сайта рядом со ссылками на результат",
+          "faviconsAria": "Показывать значки в результатах",
+          "recommendationsTitle": "Рекомендации домашней страницы",
+          "recommendationsDescription": "Показывать ежедневные рекомендуемые поиски под строкой поиска на главной странице",
+          "recommendationsAria": "Показывать рекомендации в строке поиска",
+          "searchProviderTitle": "Поисковый провайдер",
+          "searchProviderDescription": "Выберите поисковую систему для веб-результатов",
+          "searchProviderMenuLabel": "Провайдеры поиска",
+          "searchProviderSigninNotice": "Войдите, чтобы разблокировать результаты {provider}.",
           "searchProviderOptions": {
             "brave": {
-              "label": "Brave",
-              "description": "Privacy-focused results with video and news options"
+              "label": "Храбрый",
+              "description": "Результаты с видео и новостными опциями"
             },
             "you": {
               "label": "You.com",
-              "description": "Search engine optimized for AI-assisted results"
+              "description": "Поисковая система, оптимизированная для результатов с помощью AI"
             },
             "google": {
               "label": "Google",
-              "description": "The most popular and accurate search engine worldwide"
+              "description": "Самые популярные и точные поисковые системы по всему миру"
             }
           },
-          "autocompleteTitle": "Autocomplete Provider",
-          "autocompleteDescription": "Choose your search suggestion provider",
-          "autocompleteMenuLabel": "Autocomplete providers",
+          "autocompleteTitle": "Поставщик автозаполнения",
+          "autocompleteDescription": "Выберите провайдера поиска",
+          "autocompleteMenuLabel": "Провайдеры автозаполнения",
           "autocompleteOptions": {
-            "brave": "Brave",
+            "brave": "Храбрый",
             "duck": "DuckDuckGo"
           },
-          "searchRegionTitle": "Search Region",
-          "searchRegionDescription": "Choose your preferred search region for localized results",
-          "searchRegionMenuLabel": "Search regions",
-          "safeSearchTitle": "SafeSearch",
-          "safeSearchDescription": "Filter explicit content from your search results",
-          "safeSearchMenuLabel": "SafeSearch levels",
+          "searchRegionTitle": "Регион поиска",
+          "searchRegionDescription": "Выберите предпочитаемый вами регион поиска для локализованных результатов",
+          "searchRegionMenuLabel": "Поиск регионов",
+          "safeSearchTitle": "Поиск SafeSearch",
+          "safeSearchDescription": "Фильтровать явное содержимое из результатов поиска",
+          "safeSearchMenuLabel": "Уровень безопасного поиска",
           "safeSearchLevels": {
             "off": {
-              "label": "Off",
-              "description": "Show all results"
+              "label": "Выкл",
+              "description": "Показать все результаты"
             },
             "moderate": {
-              "label": "Moderate",
-              "description": "Filter explicit content"
+              "label": "Модерировать",
+              "description": "Фильтровать явное содержимое"
             },
             "strict": {
-              "label": "Strict",
-              "description": "Maximum filtering"
+              "label": "Строгий",
+              "description": "Максимальная фильтрация"
             }
           },
           "capabilities": {
-            "Search": "Search",
-            "Images": "Images",
-            "News": "News",
-            "Videos": "Videos"
+            "Search": "Искать",
+            "Images": "Изображения",
+            "News": "Новости",
+            "Videos": "Видео"
           }
         },
         "cache": {
-          "title": "Cache",
-          "description": "Tekir saves some data in your device's cache to serve faster responses. You can clear it anytime.",
-          "clearTitle": "Clear search cache",
-          "clearDescription": "Removes cached search, images, news, videos, AI, Dive, Wikipedia, and autocomplete entries stored locally.",
-          "buttonDefault": "Clear search cache",
-          "buttonCleared": "Cleared!"
+          "title": "Кэш",
+          "description": "Tekir сохраняет некоторые данные в кэш вашего устройства, чтобы обрабатывать более быстрые ответы. Вы можете очистить их в любое время.",
+          "clearTitle": "Очистить кэш поиска",
+          "clearDescription": "Удаляет кэшированный поиск, изображения, новости, видео, AI, Dive, Wikipedia, и записи с автозаполнением хранятся локально.",
+          "buttonDefault": "Очистить кэш поиска",
+          "buttonCleared": "Очищено!"
         }
       },
       "syncStatus": {
-        "syncing": "Syncing settings to server...",
-        "synced": "Settings are automatically saved and synced across devices.",
-        "localOnly": "Settings are automatically saved to your local storage."
+        "syncing": "Синхронизация настроек с сервером...",
+        "synced": "Настройки автоматически сохраняются и синхронизируются между устройствами.",
+        "localOnly": "Настройки автоматически сохраняются в вашем локальном хранилище."
       }
     }
   },
   "auth": {
-    "signIn": "Sign In",
-    "signUp": "Sign Up",
-    "signOut": "Sign Out",
-    "email": "Email",
-    "password": "Password",
-    "confirmPassword": "Confirm Password",
-    "forgotPassword": "Forgot password?",
-    "dontHaveAccount": "Don't have an account?",
-    "alreadyHaveAccount": "Already have an account?",
-    "emailRequired": "Email is required",
-    "passwordRequired": "Password is required",
-    "invalidEmail": "Invalid email address",
-    "passwordTooShort": "Password must be at least 8 characters",
-    "passwordsMustMatch": "Passwords must match"
+    "signIn": "Войти",
+    "signUp": "Регистрация",
+    "signOut": "Выйти",
+    "email": "Почта",
+    "password": "Пароль",
+    "confirmPassword": "Подтверждение пароля",
+    "forgotPassword": "Забыли пароль?",
+    "dontHaveAccount": "У вас нет учетной записи?",
+    "alreadyHaveAccount": "Уже зарегистрированы?",
+    "emailRequired": "Требуется адрес электронной почты",
+    "passwordRequired": "Требуется пароль",
+    "invalidEmail": "Неверный адрес электронной почты",
+    "passwordTooShort": "Пароль должен содержать не менее 8 символов",
+    "passwordsMustMatch": "Пароли должны совпадать"
   },
   "userMenu": {
-    "guest": "Guest",
-    "guestSubtitle": "Not signed in",
-    "loading": "Loading user profile",
-    "guestAria": "Guest user profile",
-    "profileAria": "{name} profile",
-    "usageTooltip": "This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.",
-    "usageIndicatorAria": "Usage indicator",
-    "dashboard": "Dashboard"
+    "guest": "Гость",
+    "guestSubtitle": "Не авторизован",
+    "loading": "Загрузка профиля пользователя",
+    "guestAria": "Профиль гостя",
+    "profileAria": "Профиль {name}",
+    "usageTooltip": "Это количество запросов, которые у вас остались в течение дня. Обычно стоимость поиска составляет 6 запросов.",
+    "usageIndicatorAria": "Индикатор использования",
+    "dashboard": "Панель"
   },
   "wikipedia": {
-    "readMore": "Read more",
-    "on": "on",
-    "facts": "Facts",
-    "loading": "Loading Wikipedia...",
-    "error": "Failed to load Wikipedia article"
+    "readMore": "Читать далее",
+    "on": "вкл",
+    "facts": "Факты",
+    "loading": "Загрузка Википедии...",
+    "error": "Не удалось загрузить статью из Википедии"
   },
   "images": {
-    "viewImage": "View image",
-    "openInNewTab": "Open in new tab",
-    "imageFrom": "Image from {source}",
+    "viewImage": "Просмотр изображения",
+    "openInNewTab": "Открыть в новой вкладке",
+    "imageFrom": "Изображение от {source}",
     "dimensions": "{width} × {height}",
-    "noImagesFound": "No images found for \"{query}\""
+    "noImagesFound": "Не найдено изображений для \"{query}\""
   },
   "videos": {
-    "watchOn": "Watch on {platform}",
-    "duration": "Duration",
-    "views": "{count, plural, one {# view} other {# views}}",
-    "noVideosFound": "No videos found for \"{query}\""
+    "watchOn": "Смотреть на {platform}",
+    "duration": "Продолжительность",
+    "views": "{count, plural, one {# просмотреть} other {# просмотров}}",
+    "noVideosFound": "Видео не найдено для \"{query}\""
   },
   "news": {
-    "readArticle": "Read article",
-    "publishedOn": "Published on {date}",
-    "source": "Source",
-    "noNewsFound": "No news found for \"{query}\""
+    "readArticle": "Читать статью",
+    "publishedOn": "Опубликовано на {date}",
+    "source": "Источник",
+    "noNewsFound": "Новости для \"{query} \" не найдены"
   },
   "ai": {
-    "askQuestion": "Ask a question...",
-    "thinking": "Thinking...",
-    "regenerate": "Regenerate",
-    "copy": "Copy",
-    "copied": "Copied!",
-    "modelSelect": "Select AI model",
+    "askQuestion": "Задайте вопрос...",
+    "thinking": "Утончение...",
+    "regenerate": "Восстановить",
+    "copy": "Копировать",
+    "copied": "Скопировано!",
+    "modelSelect": "Выберите модель AI",
     "models": {
       "gpt": "GPT",
       "gemini": "Gemini",
-      "mistral": "Mistral",
+      "mistral": "Мистрал",
       "llama": "Llama"
     }
   },
   "feedback": {
-    "title": "Feedback",
-    "helpful": "Was this helpful?",
-    "yes": "Yes",
-    "no": "No",
-    "comment": "Add a comment (optional)",
-    "submit": "Submit",
-    "thankYou": "Thank you for your feedback!",
-    "error": "Failed to submit feedback",
-    "searchHelpful": "Was this search helpful?",
-    "placeholder": "Add more information...",
-    "sending": "Sending...",
-    "sent": "Feedback sent",
-    "openButtonTitle": "Send feedback"
+    "title": "Отзыв",
+    "helpful": "Был ли это полезным?",
+    "yes": "Да",
+    "no": "Нет",
+    "comment": "Добавить комментарий (необязательно)",
+    "submit": "Отправить",
+    "thankYou": "Спасибо за ваш отзыв!",
+    "error": "Не удалось отправить отзыв",
+    "searchHelpful": "Был ли этот поиск полезным?",
+    "placeholder": "Добавить дополнительную информацию...",
+    "sending": "Отправка...",
+    "sent": "Отзыв отправлен",
+    "openButtonTitle": "Отправить отзыв"
   },
   "errors": {
-    "notFound": "Page not found",
-    "unauthorized": "You are not authorized",
-    "forbidden": "Access forbidden",
-    "serverError": "Server error",
-    "networkError": "Network error",
-    "tryAgainLater": "Please try again later",
-    "sessionExpired": "Session expired",
-    "loginRequired": "Please sign in to continue"
+    "notFound": "Страница не найдена",
+    "unauthorized": "Вы не авторизованы",
+    "forbidden": "Доступ запрещен",
+    "serverError": "Ошибка сервера",
+    "networkError": "Ошибка сети",
+    "tryAgainLater": "Повторите попытку позже",
+    "sessionExpired": "Сессия истекла",
+    "loginRequired": "Пожалуйста, войдите, чтобы продолжить"
   },
   "footer": {
-    "about": "About",
-    "privacy": "Privacy",
-    "terms": "Terms",
-    "contact": "Contact",
-    "links": "Links",
-    "settings": "Settings",
-    "privacyPromise": "Your searches are always private",
-    "builtBy": "Tekir, built by {author}.",
-    "tagline": "Tekir is a privacy-friendly search engine that serves the best search experience.",
-    "discoverService": "Discover the service",
-    "productsTitle": "Products",
-    "search": "Search",
-    "aiChat": "AI Chat",
-    "aboutTitle": "About Tekir",
-    "aboutUs": "About us",
-    "followUs": "Follow us",
-    "instagram": "Instagram",
-    "bluesky": "Bluesky",
-    "instagramAria": "Follow us on Instagram",
-    "githubAria": "View our GitHub",
-    "statusLoading": "Loading status...",
-    "shareFeedback": "Share your feedback",
-    "feedback": "Feedback",
-    "termsOfService": "Terms of Service",
-    "rightsReserved": "All rights reserved.",
-    "copyright": "© {year} Tekir. All rights reserved."
+    "about": "О программе",
+    "privacy": "Приватность",
+    "terms": "Условия",
+    "contact": "Контакт",
+    "links": "Ссылки",
+    "settings": "Настройки",
+    "privacyPromise": "Ваши поиски всегда скрыты",
+    "builtBy": "Tekir, построен {author}.",
+    "tagline": "Tekir - это удобная для конфиденциальности поисковая система, которая обслуживает наилучшие условия поиска.",
+    "discoverService": "Откройте для себя сервис",
+    "productsTitle": "Товары",
+    "search": "Искать",
+    "aiChat": "AI Чат",
+    "aboutTitle": "О Tekir",
+    "aboutUs": "О нас",
+    "followUs": "Следите за нами",
+    "instagram": "Инстаграмма",
+    "bluesky": "Синески",
+    "instagramAria": "Подпишитесь на нас в Instagram",
+    "githubAria": "Просмотреть наш GitHub",
+    "statusLoading": "Загрузка статуса...",
+    "shareFeedback": "Поделитесь своим отзывом",
+    "feedback": "Отзыв",
+    "termsOfService": "Условия предоставления услуг",
+    "rightsReserved": "Все права защищены.",
+    "copyright": "©️ {year} Tekir. Все права защищены."
   },
   "home": {
-    "metaTitle": "Tekir - The capable search engine",
-    "welcomePrefix": "Welcome,",
-    "defaultUser": "User",
-    "searchPlaceholder": "What's on your mind?",
+    "metaTitle": "Tekir - способная поисковая система",
+    "welcomePrefix": "Добро пожаловать,",
+    "defaultUser": "Пользователь",
+    "searchPlaceholder": "Что вы думаете?",
     "quickLinks": {
-      "privateSearches": "Your searches, private.",
-      "aiChat": "AI Chat"
+      "privateSearches": "Ваши поиски, приватные.",
+      "aiChat": "AI Чат"
     },
     "recommendations": {
-      "title": "Recommendations",
-      "loading": "Fetching today's picks…",
-      "refresh": "Refresh recommendations",
-      "refreshing": "Refreshing…"
+      "title": "Рекомендации",
+      "loading": "Извлечение сегодняшних шагов…",
+      "refresh": "Обновить рекомендации",
+      "refreshing": "Обновление…"
     }
   },
   "about": {
-    "metaTitle": "About Us | Tekir",
+    "metaTitle": "О нас | Tekir",
     "heading": {
-      "title": "The Search Engine That Respects You",
-      "subtitleLine1": "Discover why others choose Tekir for their daily searches.",
-      "subtitleLine2": "Privacy-focused, lightning-fast, and packed with intelligent features."
+      "title": "Поисковая система, которая вас воспринимает",
+      "subtitleLine1": "Узнайте, почему другие выбирают Tekir для ежедневных поисков.",
+      "subtitleLine2": "Приватность, фокусирующаяся на освещении быстро и упакована с интеллектуальными функциями."
     },
     "cards": {
       "privacy": {
-        "title": "Privacy by Design",
-        "description": "No tracking, no data collection, no profile building. Your searches remain completely private and are never stored or shared with third parties."
+        "title": "Конфиденциальность по дизайну",
+        "description": "Без отслеживания, без сбора данных, без создания профиля. Ваши поиски остаются полностью конфиденциальными и никогда не хранятся и не передаются третьим лицам."
       },
       "speed": {
         "title": "Lightning Fast",
-        "description": "Get results in milliseconds with our optimized search infrastructure. Never wait around for answers."
+        "description": "Получайте результаты в миллисекундах с нашей оптимизированной инфраструктурой поиска. Никогда не ждайте ответов."
       },
       "aiChat": {
-        "title": "AI-Powered Chat",
+        "title": "AI-Powered Чат",
         "description1": "Get instant answers with our integrated AI chat powered by advanced language models.",
-        "description2": "Experience seamless conversations and get the information you need, when you need it. Use our AI chat to dive deeper into topics and ask follow-up questions."
+        "description2": "Попробуйте бесшовные беседы и получите необходимую информацию в нужный Вам момент. Воспользуйтесь нашим AI чатом, чтобы погрузиться в темы и задать дополнительные вопросы."
       },
       "bangs": {
-        "title": "Bang Commands",
-        "description": "Search directly on your favorite sites with bang commands. Type !g for Google, !w for Wikipedia, and hundreds more.",
-        "more": "More bangs →"
+        "title": "Команды баннеров",
+        "description": "Ищите прямо на ваших любимых сайтах с помощью команд банг. Введите !g для Google, !w для Википедии и сотни других.",
+        "more": "Больше бангов →"
       },
       "autocomplete": {
-        "title": "Smart Autocomplete",
-        "description": "Intelligent suggestions that learn from global search patterns while keeping your data private."
+        "title": "Умное автозаполнение",
+        "description": "Интеллектуальные подсказки, которые узнают из глобальных поисковых шаблонов, сохраняя ваши данные конфиденциальными."
       },
       "weather": {
-        "title": "Weather at a Glance",
-        "description": "Get current weather conditions right on your search homepage."
+        "title": "Погода на взгляд",
+        "description": "Получите текущие погодные условия прямо на главной странице поиска."
       },
       "openSource": {
-        "title": "Open Source",
-        "description": "Transparent, auditable code that you can inspect and contribute to."
+        "title": "Открытый код",
+        "description": "Прозрачный, прослушиваемый код, который вы можете проверить и внести свой вклад."
       },
       "providers": {
-        "title": "Multiple Search Providers",
-        "description": "Choose from multiple search engines and sources to get the most comprehensive results. Switch between providers to find exactly what you're looking for."
+        "title": "Несколько поставщиков поиска",
+        "description": "Выберите из нескольких поисковых систем и источников, чтобы получить наиболее полные результаты. Перейдите между провайдерами, чтобы найти именно то, что вы ищете."
       },
       "inclusive": {
-        "title": "Made for Everyone",
-        "description": "Accessible, inclusive, and designed to work for all users regardless of their background or abilities."
+        "title": "Сделано для всех",
+        "description": "Доступный, инклюзивный и предназначен для работы для всех пользователей, независимо от их фона или способностей."
       }
     },
     "cta": {
-      "title": "Ready to experience better search?",
-      "subtitle": "Start searching with Tekir today and discover the difference privacy makes.",
-      "primary": "Try Tekir Now",
-      "secondary": "Settings"
+      "title": "Готовы улучшить поиск?",
+      "subtitle": "Начните поиск с Tekir сегодня и откройте для себя разницу в конфиденциальности.",
+      "primary": "Попробуйте Tekir сейчас",
+      "secondary": "Настройки"
     }
   }
 }
