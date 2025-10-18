@@ -7,7 +7,7 @@
  * @see /.github/instructions/i18n.instructions.md
  */
 
-export const locales = ['en', 'tr'] as const;
+export const locales = ['en', 'tr', 'it', 'de', 'ru'] as const;
 export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = 'en';
@@ -21,6 +21,9 @@ export interface LocaleMetadata {
 export const localeMetadata: Record<Locale, LocaleMetadata> = {
   en: { name: 'English', flag: '🇺🇸', nativeName: 'English' },
   tr: { name: 'Turkish', flag: '🇹🇷', nativeName: 'Türkçe' },
+  it: { name: 'Italian', flag: '🇮🇹', nativeName: 'Italiano' },
+  de: { name: 'German', flag: '🇩🇪', nativeName: 'Deutsch' },
+  ru: { name: 'Russian', flag: '🇷🇺', nativeName: 'Русский' },
 };
 
 /**
