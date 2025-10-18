@@ -1,0 +1,589 @@
+{
+  "common": {
+    "loading": "Caricamento...",
+    "error": "Si è verificato un errore",
+    "retry": "Riprova",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "close": "Chiudi",
+    "back": "Indietro",
+    "next": "Successivo",
+    "more": "Altro",
+    "less": "Meno"
+  },
+  "search": {
+    "placeholder": "Cerca nel web...",
+    "searchButton": "Cerca",
+    "tabs": {
+      "web": "Cerca",
+      "images": "Immagini",
+      "videos": "Video",
+      "news": "Notizie",
+      "ai": "AI",
+      "dive": "Dive"
+    },
+    "filters": {
+      "country": "Country",
+      "safeSearch": "Safe Search",
+      "time": "Time",
+      "all": "All",
+      "pastDay": "Past 24 hours",
+      "pastWeek": "Past week",
+      "pastMonth": "Past month",
+      "pastYear": "Past year"
+    },
+    "noResults": "No results found for \"{query}\"",
+    "searchError": "Failed to fetch search results",
+    "tryAgain": "Please try again",
+    "resultsCount": "{count, plural, one {# result} other {# results}}",
+    "showMore": "Show more results",
+    "relatedSearches": "Related searches"
+  },
+  "navigation": {
+    "about": "About Tekir",
+    "aiChat": "AI Chat",
+    "settings": "Settings",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "home": "Home",
+    "bangs": "Bangs"
+  },
+  "settings": {
+    "title": "Settings",
+    "search": "Search",
+    "privacy": "Privacy",
+    "account": "Account",
+    "language": "Language",
+    "theme": "Theme",
+    "searchEngine": "Search Engine",
+    "country": "Country",
+    "safesearch": "Safe Search",
+    "appearance": "Appearance",
+    "general": "General",
+    "saveChanges": "Save changes",
+    "changesSaved": "Changes saved successfully",
+    "accountPage": {
+      "metaTitle": "Account Settings",
+      "mobileNav": {
+        "back": "Back to Search",
+        "chat": "AI Chat",
+        "privacy": "Privacy Policy"
+      },
+      "pageTitle": "Account Settings",
+      "pageDescription": "Manage your account information, security, and preferences.",
+      "accessDenied": {
+        "title": "Access Denied",
+        "description": "Please sign in to access account settings.",
+        "backButton": "Back to settings"
+      },
+      "messages": {
+        "requiredField": "{field} cannot be empty",
+        "updateSuccess": "{field} updated successfully",
+        "updateError": "Failed to update {field}",
+        "updateException": "An error occurred while updating {field}",
+        "passwordRequired": "All password fields are required",
+        "passwordMismatch": "New passwords do not match",
+        "passwordLength": "New password must be at least 8 characters long",
+        "passwordSuccess": "Password changed successfully",
+        "passwordError": "Failed to change password",
+        "passwordException": "An error occurred while changing password",
+        "avatarRegenerateSuccess": "Profile avatar regenerated successfully",
+        "avatarRegenerateError": "Failed to regenerate avatar",
+        "avatarRegenerateException": "An error occurred while regenerating avatar",
+        "avatarUploadSuccess": "Profile picture uploaded successfully",
+        "avatarUploadError": "Failed to upload profile picture",
+        "avatarUploadException": "An error occurred while uploading",
+        "avatarRemoveSuccess": "Profile picture removed successfully",
+        "avatarRemoveError": "Failed to remove profile picture",
+        "avatarRemoveException": "An error occurred while removing",
+        "deleteConfirmationMissing": "Please type \"{phrase}\" to confirm",
+        "deleteError": "Failed to delete account",
+        "deleteException": "An error occurred while deleting account",
+        "syncLoading": "Settings are still loading. Please wait a moment.",
+        "syncEnabled": "Settings sync enabled. Your settings will now be synced across devices.",
+        "syncDisabled": "Settings sync disabled. Your settings are now stored locally only.",
+        "syncError": "Failed to toggle settings sync",
+        "syncException": "An error occurred while toggling settings sync",
+        "sessionOutdated": "Your session is outdated. Please sign out and sign in again to continue."
+      },
+      "profilePicture": {
+        "title": "Profile Picture",
+        "alternativeTitle": "Alternative Options",
+        "alternativeDescription": "Don't have a photo? You can use a generated avatar instead.",
+        "generateButton": "Generate New Avatar"
+      },
+      "emailSection": {
+        "title": "Email Address",
+        "label": "Email",
+        "placeholder": "Enter your email",
+        "button": "Update Email"
+      },
+      "nameSection": {
+        "title": "Display Name",
+        "label": "Name",
+        "description": "This is the name that will be displayed publicly on your profile.",
+        "placeholder": "Enter your display name",
+        "button": "Update Name"
+      },
+      "usernameSection": {
+        "title": "Username",
+        "label": "Username",
+        "description": "Your unique username will be displayed as @{username} under your name.",
+        "placeholder": "username",
+        "button": "Update Username"
+      },
+      "passwordSection": {
+        "title": "Change Password",
+        "currentLabel": "Current Password",
+        "currentPlaceholder": "Enter current password",
+        "newLabel": "New Password",
+        "newPlaceholder": "Enter new password",
+        "confirmLabel": "Confirm New Password",
+        "confirmPlaceholder": "Confirm new password",
+        "button": "Change Password"
+      },
+      "syncSection": {
+        "title": "Settings Sync",
+        "description": "Enable settings sync to keep your search preferences, AI options, theme, and other settings synchronized across all your devices.",
+        "cardTitle": "Sync Settings",
+        "statusEnabled": "Your settings are synced across devices",
+        "statusDisabled": "Settings are stored locally only",
+        "syncedList": "<strong>Synced settings include:</strong> Search engine preferences, AI model choices, weather settings, theme, autocomplete provider, search regions, and SafeSearch settings."
+      },
+      "dangerZone": {
+        "title": "Danger Zone",
+        "description": "Once you delete your account, there is no going back. This action cannot be undone.",
+        "deleteButton": "Delete Account",
+        "confirmButton": "Confirm Delete",
+        "confirmPrompt": "Please type <strong>\"{phrase}\"</strong> to confirm account deletion:",
+        "placeholder": "Type: {phrase}",
+        "confirmPhrase": "DELETE MY ACCOUNT"
+      }
+    },
+    "privacyPage": {
+      "metaTitle": "Privacy Settings",
+      "mobileNav": {
+        "back": "Back to Search",
+        "account": "Account Settings"
+      },
+      "pageTitle": "Privacy Settings",
+      "pageDescription": "Review what we store and manage your search preferences export/import.",
+      "messages": {
+        "exportSuccess": "Preferences exported to {file}",
+        "exportError": "Failed to export settings",
+        "importSuccess": "Preferences imported successfully",
+        "importInvalidKind": "Invalid file format: expected tekir.settings file",
+        "importInvalidPreferences": "Invalid file format: missing or invalid preferences",
+        "importParseError": "Failed to parse import file"
+      },
+      "sections": {
+        "serverOverview": {
+          "title": "Your Data on Tekir Servers",
+          "signInPrompt": "Sign in to view your server-stored data overview.",
+          "fields": {
+            "email": "Email:",
+            "name": "Name:",
+            "username": "Username:",
+            "settingsSync": "Settings Sync:",
+            "serverPreferences": "Server Preferences:",
+            "lastUpdated": "Last Updated:"
+          },
+          "values": {
+            "enabled": "Enabled",
+            "disabled": "Disabled",
+            "present": "Present",
+            "none": "None"
+          },
+          "privacyNote": "We store only what’s needed to provide your experience. No analytics, no tracking. Account details aren’t included in export/import; only search preferences are. Your privacy is our priority."
+        },
+        "serverJson": {
+          "title": "Server-stored Preferences (JSON)",
+          "copyButton": "Copy",
+          "copyButtonCopied": "Copied",
+          "copyAria": "Copy JSON"
+        },
+        "transfer": {
+          "title": "Export / Import Preferences",
+          "export": {
+            "title": "Export",
+            "description": "Download your current search preferences as {file}.",
+            "button": "Export preferences",
+            "ariaLabel": "Export preferences"
+          },
+          "import": {
+            "title": "Import",
+            "description": "Import preferences from a {file} file. This won’t change your account details.",
+            "button": "Import from file",
+            "ariaLabel": "Import preferences"
+          },
+          "hint": "Supported file: {file} (kind: tekir.settings, version: 1). Only search preferences are applied."
+        }
+      }
+    },
+    "searchPage": {
+      "metaTitle": "Search Settings",
+      "mobileNav": {
+        "back": "Back to Search",
+        "chat": "AI Chat",
+        "privacy": "Privacy Policy"
+      },
+      "pageTitle": "Search Settings",
+      "pageDescription": "Customize your search experience and AI preferences.",
+      "sections": {
+        "aiFeatures": {
+          "title": "AI Features",
+          "description": "Configure AI-powered search and response features.",
+          "karakulakTitle": "Karakulak AI Mode",
+          "karakulakDescription": "Enable AI-powered responses for your search queries",
+          "karakulakAria": "Karakulak AI Mode",
+          "modelTitle": "AI Model",
+          "modelDescription": "Select your preferred AI model for responses",
+          "modelMenuLabel": "AI model options",
+          "options": {
+            "llama": {
+              "name": "Llama 4",
+              "description": "A powerful and open-source model by Meta"
+            },
+            "gemini": {
+              "name": "Gemini 2.5",
+              "description": "A fast and intelligent model by Google"
+            },
+            "claude": {
+              "name": "Claude 4.5",
+              "description": "Latest and fastest model from Anthropic"
+            },
+            "chatgpt": {
+              "name": "ChatGPT 5",
+              "description": "Powerful, efficient model by OpenAI"
+            },
+            "mistral": {
+              "name": "Mistral Mini",
+              "description": "A lightweight model by Mistral AI"
+            },
+            "grok": {
+              "name": "Grok 4",
+              "description": "An intelligent model from xAI"
+            }
+          }
+        },
+        "uiLanguage": {
+          "title": "UI & Language",
+          "description": "Customize your interface and language preferences.",
+          "languageTitle": "Language",
+          "languageDescription": "Choose your preferred language for the interface",
+          "languageMenuLabel": "Language options"
+        },
+        "externalServices": {
+          "title": "External Services",
+          "description": "Configure integrations with external services.",
+          "clim8Title": "Clim8 Weather Service",
+          "clim8Description": "Enable weather data from Clim8 based on your IP location",
+          "clim8Aria": "Clim8 Weather",
+          "customWeatherTitle": "Custom Weather Location",
+          "customWeatherDescription": "Set a preferred location for weather reports instead of using your IP location",
+          "locationPlaceholder": "Search for a city...",
+          "clearLocation": "Clear location",
+          "suggestionsLabel": "Location suggestions",
+          "selectedLabel": "Selected: {location}",
+          "weatherUnitsTitle": "Weather Units",
+          "weatherUnitsDescription": "Choose between metric (°C, km/h) or imperial (°F, mph) units",
+          "weatherUnitsMenuLabel": "Weather unit options",
+          "weatherUnits": {
+            "metric": {
+              "label": "Metric",
+              "subtitle": "°C, km/h, mm"
+            },
+            "imperial": {
+              "label": "Imperial",
+              "subtitle": "°F, mph, in"
+            }
+          },
+          "weatherPlacementTitle": "Weather Placement",
+          "weatherPlacementDescription": "Choose where to show the Clim8 widget on the homepage",
+          "weatherPlacementMenuLabel": "Weather placement options",
+          "weatherPlacement": {
+            "hero": {
+              "label": "Under search bar",
+              "description": "Show weather chip beneath the main search box"
+            },
+            "topRight": {
+              "label": "Next to profile",
+              "description": "Show under the welcome text near your avatar"
+            }
+          }
+        },
+        "searchOptions": {
+          "title": "Search Options",
+          "description": "Configure your search provider and filtering preferences.",
+          "enchantedTitle": "Enchanted Results",
+          "enchantedDescription": "Toggle News and Videos widgets in search results",
+          "enchantedAria": "Enchanted Results",
+          "wikipediaTitle": "Wikipedia Results",
+          "wikipediaDescription": "Show Wikipedia summaries and information in search results",
+          "wikipediaAria": "Wikipedia Results",
+          "faviconsTitle": "Favicons in Results",
+          "faviconsDescription": "Show site icons next to result links",
+          "faviconsAria": "Show favicons in results",
+          "recommendationsTitle": "Homepage Recommendations",
+          "recommendationsDescription": "Show daily recommended searches under the search bar on the homepage",
+          "recommendationsAria": "Show recommendations under search bar",
+          "searchProviderTitle": "Search Provider",
+          "searchProviderDescription": "Choose your search engine for web results",
+          "searchProviderMenuLabel": "Search providers",
+          "searchProviderSigninNotice": "Sign in to unlock {provider} results.",
+          "searchProviderOptions": {
+            "brave": {
+              "label": "Brave",
+              "description": "Privacy-focused results with video and news options"
+            },
+            "you": {
+              "label": "You.com",
+              "description": "Search engine optimized for AI-assisted results"
+            },
+            "google": {
+              "label": "Google",
+              "description": "The most popular and accurate search engine worldwide"
+            }
+          },
+          "autocompleteTitle": "Autocomplete Provider",
+          "autocompleteDescription": "Choose your search suggestion provider",
+          "autocompleteMenuLabel": "Autocomplete providers",
+          "autocompleteOptions": {
+            "brave": "Brave",
+            "duck": "DuckDuckGo"
+          },
+          "searchRegionTitle": "Search Region",
+          "searchRegionDescription": "Choose your preferred search region for localized results",
+          "searchRegionMenuLabel": "Search regions",
+          "safeSearchTitle": "SafeSearch",
+          "safeSearchDescription": "Filter explicit content from your search results",
+          "safeSearchMenuLabel": "SafeSearch levels",
+          "safeSearchLevels": {
+            "off": {
+              "label": "Off",
+              "description": "Show all results"
+            },
+            "moderate": {
+              "label": "Moderate",
+              "description": "Filter explicit content"
+            },
+            "strict": {
+              "label": "Strict",
+              "description": "Maximum filtering"
+            }
+          },
+          "capabilities": {
+            "Search": "Search",
+            "Images": "Images",
+            "News": "News",
+            "Videos": "Videos"
+          }
+        },
+        "cache": {
+          "title": "Cache",
+          "description": "Tekir saves some data in your device's cache to serve faster responses. You can clear it anytime.",
+          "clearTitle": "Clear search cache",
+          "clearDescription": "Removes cached search, images, news, videos, AI, Dive, Wikipedia, and autocomplete entries stored locally.",
+          "buttonDefault": "Clear search cache",
+          "buttonCleared": "Cleared!"
+        }
+      },
+      "syncStatus": {
+        "syncing": "Syncing settings to server...",
+        "synced": "Settings are automatically saved and synced across devices.",
+        "localOnly": "Settings are automatically saved to your local storage."
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot password?",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "emailRequired": "Email is required",
+    "passwordRequired": "Password is required",
+    "invalidEmail": "Invalid email address",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordsMustMatch": "Passwords must match"
+  },
+  "userMenu": {
+    "guest": "Guest",
+    "guestSubtitle": "Not signed in",
+    "loading": "Loading user profile",
+    "guestAria": "Guest user profile",
+    "profileAria": "{name} profile",
+    "usageTooltip": "This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.",
+    "usageIndicatorAria": "Usage indicator",
+    "dashboard": "Dashboard"
+  },
+  "wikipedia": {
+    "readMore": "Read more",
+    "on": "on",
+    "facts": "Facts",
+    "loading": "Loading Wikipedia...",
+    "error": "Failed to load Wikipedia article"
+  },
+  "images": {
+    "viewImage": "View image",
+    "openInNewTab": "Open in new tab",
+    "imageFrom": "Image from {source}",
+    "dimensions": "{width} × {height}",
+    "noImagesFound": "No images found for \"{query}\""
+  },
+  "videos": {
+    "watchOn": "Watch on {platform}",
+    "duration": "Duration",
+    "views": "{count, plural, one {# view} other {# views}}",
+    "noVideosFound": "No videos found for \"{query}\""
+  },
+  "news": {
+    "readArticle": "Read article",
+    "publishedOn": "Published on {date}",
+    "source": "Source",
+    "noNewsFound": "No news found for \"{query}\""
+  },
+  "ai": {
+    "askQuestion": "Ask a question...",
+    "thinking": "Thinking...",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "modelSelect": "Select AI model",
+    "models": {
+      "gpt": "GPT",
+      "gemini": "Gemini",
+      "mistral": "Mistral",
+      "llama": "Llama"
+    }
+  },
+  "feedback": {
+    "title": "Feedback",
+    "helpful": "Was this helpful?",
+    "yes": "Yes",
+    "no": "No",
+    "comment": "Add a comment (optional)",
+    "submit": "Submit",
+    "thankYou": "Thank you for your feedback!",
+    "error": "Failed to submit feedback",
+    "searchHelpful": "Was this search helpful?",
+    "placeholder": "Add more information...",
+    "sending": "Sending...",
+    "sent": "Feedback sent",
+    "openButtonTitle": "Send feedback"
+  },
+  "errors": {
+    "notFound": "Page not found",
+    "unauthorized": "You are not authorized",
+    "forbidden": "Access forbidden",
+    "serverError": "Server error",
+    "networkError": "Network error",
+    "tryAgainLater": "Please try again later",
+    "sessionExpired": "Session expired",
+    "loginRequired": "Please sign in to continue"
+  },
+  "footer": {
+    "about": "About",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact",
+    "links": "Links",
+    "settings": "Settings",
+    "privacyPromise": "Your searches are always private",
+    "builtBy": "Tekir, built by {author}.",
+    "tagline": "Tekir is a privacy-friendly search engine that serves the best search experience.",
+    "discoverService": "Discover the service",
+    "productsTitle": "Products",
+    "search": "Search",
+    "aiChat": "AI Chat",
+    "aboutTitle": "About Tekir",
+    "aboutUs": "About us",
+    "followUs": "Follow us",
+    "instagram": "Instagram",
+    "bluesky": "Bluesky",
+    "instagramAria": "Follow us on Instagram",
+    "githubAria": "View our GitHub",
+    "statusLoading": "Loading status...",
+    "shareFeedback": "Share your feedback",
+    "feedback": "Feedback",
+    "termsOfService": "Terms of Service",
+    "rightsReserved": "All rights reserved.",
+    "copyright": "© {year} Tekir. All rights reserved."
+  },
+  "home": {
+    "metaTitle": "Tekir - The capable search engine",
+    "welcomePrefix": "Welcome,",
+    "defaultUser": "User",
+    "searchPlaceholder": "What's on your mind?",
+    "quickLinks": {
+      "privateSearches": "Your searches, private.",
+      "aiChat": "AI Chat"
+    },
+    "recommendations": {
+      "title": "Recommendations",
+      "loading": "Fetching today's picks…",
+      "refresh": "Refresh recommendations",
+      "refreshing": "Refreshing…"
+    }
+  },
+  "about": {
+    "metaTitle": "About Us | Tekir",
+    "heading": {
+      "title": "The Search Engine That Respects You",
+      "subtitleLine1": "Discover why others choose Tekir for their daily searches.",
+      "subtitleLine2": "Privacy-focused, lightning-fast, and packed with intelligent features."
+    },
+    "cards": {
+      "privacy": {
+        "title": "Privacy by Design",
+        "description": "No tracking, no data collection, no profile building. Your searches remain completely private and are never stored or shared with third parties."
+      },
+      "speed": {
+        "title": "Lightning Fast",
+        "description": "Get results in milliseconds with our optimized search infrastructure. Never wait around for answers."
+      },
+      "aiChat": {
+        "title": "AI-Powered Chat",
+        "description1": "Get instant answers with our integrated AI chat powered by advanced language models.",
+        "description2": "Experience seamless conversations and get the information you need, when you need it. Use our AI chat to dive deeper into topics and ask follow-up questions."
+      },
+      "bangs": {
+        "title": "Bang Commands",
+        "description": "Search directly on your favorite sites with bang commands. Type !g for Google, !w for Wikipedia, and hundreds more.",
+        "more": "More bangs →"
+      },
+      "autocomplete": {
+        "title": "Smart Autocomplete",
+        "description": "Intelligent suggestions that learn from global search patterns while keeping your data private."
+      },
+      "weather": {
+        "title": "Weather at a Glance",
+        "description": "Get current weather conditions right on your search homepage."
+      },
+      "openSource": {
+        "title": "Open Source",
+        "description": "Transparent, auditable code that you can inspect and contribute to."
+      },
+      "providers": {
+        "title": "Multiple Search Providers",
+        "description": "Choose from multiple search engines and sources to get the most comprehensive results. Switch between providers to find exactly what you're looking for."
+      },
+      "inclusive": {
+        "title": "Made for Everyone",
+        "description": "Accessible, inclusive, and designed to work for all users regardless of their background or abilities."
+      }
+    },
+    "cta": {
+      "title": "Ready to experience better search?",
+      "subtitle": "Start searching with Tekir today and discover the difference privacy makes.",
+      "primary": "Try Tekir Now",
+      "secondary": "Settings"
+    }
+  }
+}
