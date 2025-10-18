@@ -2,17 +2,20 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Search, Image as ImageIcon, Newspaper, Video, MoreHorizontal } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Props = any;
 
-const TABS = [
-  { key: 'web', label: 'Search', Icon: Search },
-  { key: 'images', label: 'Images', Icon: ImageIcon },
-  { key: 'videos', label: 'Videos', Icon: Video },
-  { key: 'news', label: 'News', Icon: Newspaper },
-];
-
 export function SearchTabs({ active, onChange }: Props) {
+  const t = useTranslations('search.tabs');
+  
+  const TABS = [
+    { key: 'web', label: t('web'), Icon: Search },
+    { key: 'images', label: t('images'), Icon: ImageIcon },
+    { key: 'videos', label: t('videos'), Icon: Video },
+    { key: 'news', label: t('news'), Icon: Newspaper },
+  ];
+
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);

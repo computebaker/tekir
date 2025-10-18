@@ -46,6 +46,10 @@ export interface UserSettings {
   karakulakEnabled_chatgpt?: boolean;
   karakulakEnabled_mistral?: boolean;
   karakulakEnabled_grok?: boolean;
+
+  // i18n: User's preferred language (ISO 639-1 code)
+  // @see /.github/instructions/i18n.instructions.md
+  language?: string;
 }
 
 // Default settings values
@@ -70,21 +74,24 @@ export const DEFAULT_SETTINGS: UserSettings = {
   karakulakEnabled_chatgpt: true,
   karakulakEnabled_mistral: true,
   karakulakEnabled_grok: true,
+  language: "en", // Default language: English
 };
 
 class ConvexSettingsManager {
   private settings: UserSettings = { ...DEFAULT_SETTINGS };
   private listeners: Set<() => void> = new Set();
   private userId: string | null = null;
+  private hasLoadedLocalStorage = false;
 
   initialize(userId?: string | null) {
     this.userId = userId || null;
+    this.hasLoadedLocalStorage = false;
     this.loadFromLocalStorage();
     console.log('ConvexSettingsManager initialized for userId:', this.userId);
   }
 
   private loadFromLocalStorage() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || this.hasLoadedLocalStorage) return;
     
     // Load all settings from localStorage as fallback
     Object.keys(DEFAULT_SETTINGS).forEach(key => {
@@ -104,6 +111,7 @@ class ConvexSettingsManager {
         }
       }
     });
+    this.hasLoadedLocalStorage = true;
   }
 
   private saveToLocalStorage() {
@@ -176,6 +184,9 @@ class ConvexSettingsManager {
 
   // Public methods
   get<K extends keyof UserSettings>(key: K): UserSettings[K] {
+    if (!this.hasLoadedLocalStorage) {
+      this.loadFromLocalStorage();
+    }
     return this.settings[key] ?? DEFAULT_SETTINGS[key];
   }
 
@@ -185,6 +196,9 @@ class ConvexSettingsManager {
   }
 
   getAll(): UserSettings {
+    if (!this.hasLoadedLocalStorage) {
+      this.loadFromLocalStorage();
+    }
     return { ...this.settings };
   }
 

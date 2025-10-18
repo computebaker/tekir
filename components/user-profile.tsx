@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { User, LogOut, LogIn, Settings, LucideIcon, LayoutDashboard, Coins } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
 import { storeRedirectUrl } from "@/lib/utils";
 
@@ -22,12 +23,14 @@ interface UserProfileProps {
 
 export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = false, avatarSize }: UserProfileProps) {
   const { user, status, signOut, updateUser } = useAuth();
+  const t = useTranslations();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarKey, setAvatarKey] = useState(Date.now()); // For forcing avatar refresh
   const [limitInfo, setLimitInfo] = useState<{ limit: number; remaining: number } | null>(null);
   const [limitLoading, setLimitLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const avatarPx = showOnlyAvatar ? (avatarSize ?? 40) : 32;
+  const fallbackDisplayName = user?.name || user?.email || t("home.defaultUser");
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -83,8 +86,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
       <div
         className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-muted animate-pulse flex-shrink-0`}
         style={{ width: avatarPx, height: avatarPx }}
-        aria-label="Loading user profile"
-        title="Loading user profile"
+        aria-label={t("userMenu.loading")}
+        title={t("userMenu.loading")}
       />
     );
   }
@@ -101,10 +104,13 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
             className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0`}
             style={{ width: avatarPx, height: avatarPx }}
           >
-            <User className={`${showOnlyAvatar ? 'w-5 h-5' : 'w-4 h-4'} text-muted-foreground`} aria-label="Guest user profile" />
+            <User
+              className={`${showOnlyAvatar ? 'w-5 h-5' : 'w-4 h-4'} text-muted-foreground`}
+              aria-label={t("userMenu.guestAria")}
+            />
           </div>
           {!showOnlyAvatar && (
-            <span className="hidden sm:block">Guest</span>
+            <span className="hidden sm:block">{t("userMenu.guest")}</span>
           )}
         </button>
 
@@ -120,11 +126,11 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 }}
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-muted-foreground" aria-label="Guest user profile" />
+                  <User className="w-5 h-5 text-muted-foreground" aria-label={t("userMenu.guestAria")} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Guest</p>
-                  <p className="text-xs text-muted-foreground">Not signed in</p>
+                  <p className="text-sm font-medium">{t("userMenu.guest")}</p>
+                  <p className="text-xs text-muted-foreground">{t("userMenu.guestSubtitle")}</p>
                 </div>
               </Link>
             </div>
@@ -138,7 +144,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 </div>
               )}
               {!limitLoading && limitInfo && (
-                <div className="relative group" role="group" aria-label="Usage indicator">
+                <div className="relative group" role="group" aria-label={t("userMenu.usageIndicatorAria")}>
                   <div
                     className="flex items-center gap-2 px-3 py-2 text-sm rounded-md select-none focus:outline-none focus:ring-2 focus:ring-ring/50"
                     tabIndex={0}
@@ -160,7 +166,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                     id="guest-usage-tooltip"
                     className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 w-64 whitespace-normal rounded-md border border-border bg-card text-card-foreground shadow-lg p-2 text-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50"
                   >
-                    This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.
+                    {t("userMenu.usageTooltip")}
                   </div>
                 </div>
               )}
@@ -173,7 +179,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 }}
               >
                 <LogIn className="w-4 h-4" />
-                Sign in
+                {t("auth.signIn")}
               </Link>
             </div>
           </div>
@@ -192,8 +198,8 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         <div
           className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-border flex-shrink-0`}
           style={{ width: avatarPx, height: avatarPx }}
-          aria-label={`${user.name || user.email || "User"} profile`}
-          title={`${user.name || user.email || "User"} profile`}
+          aria-label={t("userMenu.profileAria", { name: fallbackDisplayName })}
+          title={t("userMenu.profileAria", { name: fallbackDisplayName })}
         >
           {(() => {
             const avatarUrl = getUserAvatarUrl({
@@ -210,7 +216,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 <Image
                   key={`avatar-${user.id}-${avatarKey}`}
                   src={avatarUrl}
-                  alt={user.name || "Profile"}
+                  alt={fallbackDisplayName}
                   width={avatarPx}
                   height={avatarPx}
                   className="w-full h-full object-cover"
@@ -220,7 +226,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                     const userId = user.id;
                     target.src = user.image
                       ? generateAvatarUrl(userId, user.email || undefined)
-                      : generateInitialsAvatar(user.name || user.email || "User");
+                      : generateInitialsAvatar(fallbackDisplayName);
                   }}
                 />
               );
@@ -229,7 +235,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               <Image
                 key={`avatar-${user.id}-${avatarKey}`}
                 src={avatarUrl}
-                alt={user.name || "Profile"}
+                alt={fallbackDisplayName}
                 width={avatarPx}
                 height={avatarPx}
                 className="w-full h-full object-cover"
@@ -239,7 +245,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   const userId = user.id;
                   target.src = user.image
                     ? generateAvatarUrl(userId, user.email || undefined)
-                    : generateInitialsAvatar(user.name || user.email || "User");
+                    : generateInitialsAvatar(fallbackDisplayName);
                 }}
               />
             );
@@ -247,7 +253,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         </div>
         {!showOnlyAvatar && (
           <span className="hidden sm:block truncate max-w-24">
-            {user.name || "User"}
+            {fallbackDisplayName}
           </span>
         )}
       </button>
@@ -263,7 +269,11 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 setIsOpen(false);
               }}
             >
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border flex-shrink-0" aria-label={`${user.name || user.email || "User"} profile`} title={`${user.name || user.email || "User"} profile`}>
+              <div
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-border flex-shrink-0"
+                aria-label={t("userMenu.profileAria", { name: fallbackDisplayName })}
+                title={t("userMenu.profileAria", { name: fallbackDisplayName })}
+              >
                 {(() => {
                   const dropdownAvatarUrl = getUserAvatarUrl({
                     id: user.id,
@@ -279,7 +289,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                       <Image
                         key={`dropdown-avatar-${user.id}-${avatarKey}`}
                         src={dropdownAvatarUrl}
-                        alt={user.name || "Profile"}
+                          alt={fallbackDisplayName}
                         width={40}
                         height={40}
                         className="w-full h-full object-cover"
@@ -289,7 +299,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                           const userId = user.id;
                           target.src = user.image
                             ? generateAvatarUrl(userId, user.email || undefined)
-                            : generateInitialsAvatar(user.name || user.email || "User");
+                              : generateInitialsAvatar(fallbackDisplayName);
                         }}
                       />
                     );
@@ -298,7 +308,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                     <Image
                       key={`dropdown-avatar-${user.id}-${avatarKey}`}
                       src={dropdownAvatarUrl}
-                      alt={user.name || "Profile"}
+                        alt={fallbackDisplayName}
                       width={40}
                       height={40}
                       className="w-full h-full object-cover"
@@ -308,14 +318,14 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                         const userId = user.id;
                         target.src = user.image
                           ? generateAvatarUrl(userId, user.email || undefined)
-                          : generateInitialsAvatar(user.name || user.email || "User");
+                            : generateInitialsAvatar(fallbackDisplayName);
                       }}
                     />
                   );
                 })()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name || "User"}</p>
+                <p className="text-sm font-medium truncate">{fallbackDisplayName}</p>
                 <p className="text-xs text-muted-foreground truncate">
                   @{(user as any).username || user.email?.split('@')[0] || "user"}
                 </p>
@@ -332,7 +342,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 onClick={() => setIsOpen(false)}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                Dashboard
+                {t("userMenu.dashboard")}
               </Link>
             )}
             <Link
@@ -344,7 +354,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               }}
             >
               <Settings className="w-4 h-4" />
-              Settings
+              {t("navigation.settings")}
             </Link>
 
             {/* Usage indicator as a menu item */}
@@ -355,7 +365,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
               </div>
             )}
             {!limitLoading && limitInfo && (
-              <div className="relative group" role="group" aria-label="Usage indicator">
+              <div className="relative group" role="group" aria-label={t("userMenu.usageIndicatorAria")}>
                 <div
                   className="flex items-center gap-2 px-3 py-2 text-sm rounded-md select-none focus:outline-none focus:ring-2 focus:ring-ring/50"
                   tabIndex={0}
@@ -377,7 +387,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   id="auth-usage-tooltip"
                   className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 w-64 whitespace-normal rounded-md border border-border bg-card text-card-foreground shadow-lg p-2 text-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50"
                 >
-                  This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.
+                  {t("userMenu.usageTooltip")}
                 </div>
               </div>
             )}
@@ -392,7 +402,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors w-full text-left text-muted-foreground hover:text-foreground"
               >
                 <LogOut className="w-4 h-4" />
-                Sign out
+                {t("auth.signOut")}
               </button>
             </div>
           </div>

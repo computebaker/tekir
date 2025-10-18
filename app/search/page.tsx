@@ -21,13 +21,7 @@ import FlyingCats from "@/components/shared/flying-cats";
 import WikiNotebook from '@/components/wiki-notebook';
 import FloatingFeedback from '@/components/feedback/floating-feedback';
 import { storeRedirectUrl } from "@/lib/utils";
-
-// Define mobile navigation items
-const mobileNavItems = [
-  { href: "/about", icon: Lock, label: "About Tekir" },
-  { href: "https://chat.tekir.co", icon: MessageCircleMore, label: "AI Chat" },
-  { href: "/settings/search", icon: Settings, label: "Settings" }
-];
+import { useTranslations } from "next-intl";
 
 interface SearchResult {
   title: string;
@@ -88,6 +82,13 @@ function SearchPageContent() {
   const router = useRouter();
   const query = searchParams.get("q") || "";
   const { settings } = useSettings();
+  const t = useTranslations();
+
+  const mobileNavItems = useMemo(() => [
+    { href: "/about", icon: Lock, label: t('navigation.about') },
+    { href: "https://chat.tekir.co", icon: MessageCircleMore, label: t('navigation.aiChat') },
+    { href: "/settings/search", icon: Settings, label: t('navigation.settings') }
+  ], [t]);
 
   // Helper function to check if a response should hide Karakulak
   const shouldHideKarakulak = (response: string | null): boolean => {
@@ -967,32 +968,59 @@ function SearchPageContent() {
         if (suggestionsAbortRef.current) {
           try { suggestionsAbortRef.current.abort(); } catch {}
         }
-  suggestionsAbortRef.current = new AbortController();
-  const sugSignal = suggestionsAbortRef.current.signal;
-  const params = new URLSearchParams();
-  params.set('q', searchInput);
-  if (country) params.set('country', country);
-  if (safesearch) params.set('safesearch', safesearch);
-  if (lang) params.set('lang', lang);
-  const url = `/api/autocomplete/${autocompleteSource}?${params.toString()}`;
-  const response = await fetchWithSessionRefreshAndCache(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: sugSignal
-        });
-        if (!response.ok) throw new Error(`Autocomplete fetch failed with status ${response.status}`);
-        const data = await response.json();
+        suggestionsAbortRef.current = new AbortController();
+        const sugSignal = suggestionsAbortRef.current.signal;
 
-        if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
-          const processedSuggestions = data[1].map(suggestion => ({ query: suggestion }));
-          setSuggestions(processedSuggestions);
-          try { sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions)); } catch {}
-          if (retryMap[cacheKey]) delete retryMap[cacheKey];
-        } else {
+        const fetchSuggestionsForLang = async (langParam?: string) => {
+          const params = new URLSearchParams();
+          params.set('q', searchInput);
+          if (country) params.set('country', country);
+          if (safesearch) params.set('safesearch', safesearch);
+          if (langParam) params.set('lang', langParam);
+          const response = await fetchWithSessionRefreshAndCache(`/api/autocomplete/${autocompleteSource}?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            signal: sugSignal,
+          });
+          if (!response.ok) throw new Error(`Autocomplete fetch failed with status ${response.status}`);
+          const data = await response.json();
+
+          if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
+            return data[1].map((suggestion) => ({ query: suggestion }));
+          }
+
           console.warn('Unexpected suggestion format:', data);
-          setSuggestions([]);
+          return [] as Suggestion[];
+        };
+
+        let processedSuggestions: Suggestion[] = [];
+
+        try {
+          processedSuggestions = await fetchSuggestionsForLang(lang || undefined);
+        } catch (primaryError) {
+          console.error('Failed to fetch suggestions for current language:', primaryError);
+        }
+
+        if (processedSuggestions.length === 0 && lang && lang.toLowerCase() !== 'en') {
+          try {
+            const fallbackSuggestions = await fetchSuggestionsForLang('en');
+            if (fallbackSuggestions.length > 0) {
+              processedSuggestions = fallbackSuggestions;
+            }
+          } catch (fallbackError) {
+            console.error('Fallback autocomplete fetch failed:', fallbackError);
+          }
+        }
+
+        setSuggestions(processedSuggestions);
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions)); } catch {}
+
+        if (processedSuggestions.length === 0) {
+          retryMap[cacheKey] = true;
+        } else if (retryMap[cacheKey]) {
+          delete retryMap[cacheKey];
         }
       } catch (error) {
         console.error('Failed to fetch suggestions:', error);
@@ -1745,7 +1773,7 @@ function SearchPageContent() {
                 onChange={(e) => { setSearchInput(e.target.value); setShowSuggestions(true); }}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowSuggestions(true)}
-                placeholder="Search..."
+                placeholder={t('search.placeholder')}
                 className="w-full pr-12 h-10"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -1806,7 +1834,7 @@ function SearchPageContent() {
                 }}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowSuggestions(true)}
-                placeholder="Search anything..."
+                placeholder={t('search.placeholder')}
                 maxLength={800}
                 className="flex-1 px-4 py-2 pr-16 rounded-full shadow-lg text-lg"
                 style={{ minWidth: 0 }}

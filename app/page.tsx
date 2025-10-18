@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Lock, MessageCircleMore, RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import UserProfile from "@/components/user-profile";
 import { useAuth } from "@/components/auth-provider";
 import { useSettings } from "@/lib/settings";
@@ -46,6 +47,8 @@ interface Suggestion {
 }
 
 export default function Home() {
+  const tHome = useTranslations("home");
+  const tSearch = useTranslations("search");
   const { user } = useAuth();
   const { settings, isInitialized } = useSettings();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -383,33 +386,58 @@ export default function Home() {
       }
 
       try {
-  const params = new URLSearchParams();
-  params.set('q', searchQuery);
-  params.set('country', country);
-  if (lang) params.set('lang', lang);
-  params.set('safesearch', safesearch);
-  const url = `/api/autocomplete/${autocompleteSource}?${params.toString()}`;
-  const response = await fetchWithSessionRefresh(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
+        const fetchSuggestionsForLang = async (langParam?: string) => {
+          const params = new URLSearchParams();
+          params.set('q', searchQuery);
+          params.set('country', country);
+          if (langParam) params.set('lang', langParam);
+          params.set('safesearch', safesearch);
+          const response = await fetchWithSessionRefresh(`/api/autocomplete/${autocompleteSource}?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
 
-        if (!response.ok) {
-          throw new Error(`Autocomplete fetch failed with status ${response.status}`);
-        }
-        const data = await response.json();
-        
-        if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
-          const processedSuggestions = data[1].slice(0, 5).map(suggestion => ({ query: suggestion, type: 'autocomplete' as const }));
-          if (isMounted) setSuggestions(processedSuggestions);
-          sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
-          // clear any retry mark
-          if (retryMap[cacheKey]) delete retryMap[cacheKey];
-        } else {
+          if (!response.ok) {
+            throw new Error(`Autocomplete fetch failed with status ${response.status}`);
+          }
+          const data = await response.json();
+
+          if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
+            return data[1].slice(0, 5).map((suggestion) => ({ query: suggestion, type: 'autocomplete' as const }));
+          }
+
           console.warn('Unexpected suggestion format:', data);
-          if (isMounted) setSuggestions([]);
+          return [] as Suggestion[];
+        };
+
+        let processedSuggestions: Suggestion[] = [];
+
+        try {
+          processedSuggestions = await fetchSuggestionsForLang(lang || undefined);
+        } catch (primaryError) {
+          console.error('Failed to fetch suggestions for current language:', primaryError);
+        }
+
+        if (processedSuggestions.length === 0 && lang && lang.toLowerCase() !== 'en') {
+          try {
+            const fallbackSuggestions = await fetchSuggestionsForLang('en');
+            if (fallbackSuggestions.length > 0) {
+              processedSuggestions = fallbackSuggestions;
+            }
+          } catch (fallbackError) {
+            console.error('Fallback autocomplete fetch failed:', fallbackError);
+          }
+        }
+
+        if (isMounted) setSuggestions(processedSuggestions);
+        sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
+
+        if (processedSuggestions.length === 0) {
+          retryMap[cacheKey] = true;
+        } else if (retryMap[cacheKey]) {
+          delete retryMap[cacheKey];
         }
       } catch (error) {
         console.error('Failed to fetch suggestions:', error);
@@ -461,8 +489,8 @@ export default function Home() {
 
   // Set the document title for the homepage
   useEffect(() => {
-    document.title = "Tekir - The capable search engine";
-  }, []);
+    document.title = tHome("metaTitle");
+  }, [tHome]);
 
   // Click outside handler for suggestions
   useEffect(() => {
@@ -549,7 +577,7 @@ export default function Home() {
           <div className="flex flex-col items-end gap-1">
             {user && (
               <div className="text-sm text-muted-foreground">
-                Welcome, <span className="font-semibold text-foreground">{user.name || "User"}!</span>
+                {tHome("welcomePrefix")} <span className="font-semibold text-foreground">{user.name || tHome("defaultUser")}</span>!
               </div>
             )}
             {/* Weather below welcome (only if placement is topRight) */}
@@ -663,13 +691,13 @@ export default function Home() {
             setSelectedIndex(-1);
           }, 150);
         }}
-                placeholder="What's on your mind?"
+                placeholder={tHome("searchPlaceholder")}
                 className="w-full pr-24 shadow-lg transition-all duration-300 relative z-10"
               />
               
               {/* Search button */}
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center z-20">
-                <Button type="submit" variant="ghost" size="icon" shape="pill" title="Search">
+                <Button type="submit" variant="ghost" size="icon" shape="pill" title={tSearch("searchButton")}>
                   <Search className="w-5 h-5" />
                 </Button>
               </div>
@@ -683,14 +711,14 @@ export default function Home() {
                     <Link href="/about" className="hover:text-foreground transition-colors">
                       <div className="flex items-center gap-2">
                         <Lock className="w-4 h-4" />
-                        <span className="font-medium">Your searches, private.</span>
+                        <span className="font-medium">{tHome("quickLinks.privateSearches")}</span>
                       </div>
                     </Link>
                     <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
                     <Link href="https://chat.tekir.co" className="hover:text-foreground transition-colors">
                       <div className="flex items-center gap-2">
                         <MessageCircleMore className="w-4 h-4" />
-                        <span className="font-medium">AI Chat</span>
+                        <span className="font-medium">{tHome("quickLinks.aiChat")}</span>
                       </div>
                     </Link>
                     {showHeroWeather && (
@@ -713,12 +741,12 @@ export default function Home() {
                 {canShowRecommendations && (
                   <>
                     <div className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 text-left">
-                      Recommendations
+                      {tHome("recommendations.title")}
                     </div>
                     {recLoading && recommendationSuggestions.length === 0 && (
                       <div className="px-4 py-3 text-sm text-muted-foreground/70 flex items-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-                        <span>Fetching today&apos;s picks…</span>
+                        <span>{tHome("recommendations.loading")}</span>
                       </div>
                     )}
                   </>
@@ -765,7 +793,7 @@ export default function Home() {
                       }}
                       disabled={recSwitching}
                     >
-                      {recSwitching ? "Refreshing…" : "Refresh recommendations"}
+                      {recSwitching ? tHome("recommendations.refreshing") : tHome("recommendations.refresh")}
                     </button>
                   </div>
                 )}

@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "@/components/theme-provider";
 import AuthProvider from "@/components/auth-provider";
+import I18nProvider from "@/components/i18n-provider";
 import { ConvexProvider } from "convex/react";
 import convex from "@/lib/convex-proxy";
 import { useEffect } from 'react';
@@ -87,7 +88,9 @@ export default function ClientLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <I18nProvider>
+            {children}
+          </I18nProvider>
         </ThemeProvider>
       </AuthProvider>
     </ConvexProvider>

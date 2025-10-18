@@ -1,11 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, Settings as SettingsIcon, Search, User, Shield, Bell, MessageCircleMore, Lock, MapPin, X } from "lucide-react";
-import Link from "next/link";
+import { ChevronDown, Search, User, Shield, MessageCircleMore, Lock, MapPin, X } from "lucide-react";
 import Image from "next/image";
-import { getRedirectUrlWithFallback } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import SearchCache from "@/lib/cache";
 import { useSettings } from "@/lib/settings";
+import { locales, localeMetadata, defaultLocale } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -18,25 +19,6 @@ interface LocationData {
   name: string;
   country: string;
 }
-
-// Define mobile navigation items for settings
-const settingsMobileNavItems: MobileNavItem[] = [
-  {
-    href: "/",
-    icon: Search,
-    label: "Back to Search"
-  },
-  {
-    href: "https://chat.tekir.co",
-    icon: MessageCircleMore,
-    label: "AI Chat"
-  },
-  {
-    href: "/about",
-    icon: Lock,
-    label: "Privacy Policy"
-  }
-];
 
 // Countries/regions data
 const COUNTRIES = [
@@ -81,8 +63,8 @@ const COUNTRIES = [
 
 type SearchProviderOption = {
   value: 'brave' | 'you' | 'google';
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   requiresAuth?: boolean;
   capabilities: string[];
 };
@@ -90,26 +72,56 @@ type SearchProviderOption = {
 const SEARCH_PROVIDER_OPTIONS: SearchProviderOption[] = [
   {
     value: 'brave',
-    label: 'Brave',
-    description: 'Privacy-focused results with video and news options',
+    labelKey: 'sections.searchOptions.searchProviderOptions.brave.label',
+    descriptionKey: 'sections.searchOptions.searchProviderOptions.brave.description',
     capabilities: ['Search', 'Images', 'News', 'Videos'],
   },
   {
     value: 'you',
-    label: 'You.com',
-    description: 'Search engine optimized for AI-assisted results',
+    labelKey: 'sections.searchOptions.searchProviderOptions.you.label',
+    descriptionKey: 'sections.searchOptions.searchProviderOptions.you.description',
     capabilities: ['Search'],
   },
   {
     value: 'google',
-    label: 'Google',
-    description: 'The most popular and accurate search engine worldwide',
+    labelKey: 'sections.searchOptions.searchProviderOptions.google.label',
+    descriptionKey: 'sections.searchOptions.searchProviderOptions.google.description',
     requiresAuth: true,
     capabilities: ['Search', 'Images'],
   },
 ];
 
+const MODEL_METADATA: Record<string, { icon: string; key: string; className?: string }> = {
+  llama: { icon: '/logos/meta.svg', key: 'llama' },
+  mistral: { icon: '/logos/mistral.svg', key: 'mistral' },
+  claude: { icon: '/logos/claude.svg', key: 'claude' },
+  chatgpt: { icon: '/logos/openai.svg', key: 'chatgpt', className: 'invert dark:invert-0' },
+  grok: { icon: '/logos/grok.svg', key: 'grok', className: 'invert dark:invert-0' },
+  gemini: { icon: '/logos/gemini.svg', key: 'gemini' },
+};
+
+const MODEL_ORDER = ['llama', 'gemini', 'claude', 'chatgpt', 'mistral', 'grok'] as const;
+
 export default function SearchSettingsPage() {
+  const tSettings = useTranslations("settings");
+  const tSearchPage = useTranslations("settings.searchPage");
+  const mobileNavItems: MobileNavItem[] = [
+    {
+      href: "/",
+      icon: Search,
+      label: tSearchPage("mobileNav.back"),
+    },
+    {
+      href: "https://chat.tekir.co",
+      icon: MessageCircleMore,
+      label: tSearchPage("mobileNav.chat"),
+    },
+    {
+      href: "/about",
+      icon: Lock,
+      label: tSearchPage("mobileNav.privacy"),
+    },
+  ];
   // Use the settings hook for centralized state management
   const { settings, updateSetting, isInitialized, isSyncing, syncEnabled } = useSettings();
   const { status: authStatus, user } = useAuth();
@@ -121,6 +133,7 @@ export default function SearchSettingsPage() {
   const [showWeatherLocationSuggestions, setShowWeatherLocationSuggestions] = useState(false);
 
   // Dropdown states
+  const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [autocompleteDropdownOpen, setAutocompleteDropdownOpen] = useState(false);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
@@ -129,7 +142,6 @@ export default function SearchSettingsPage() {
   const [weatherPlacementDropdownOpen, setWeatherPlacementDropdownOpen] = useState(false);
   const [searchProviderDropdownOpen, setSearchProviderDropdownOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
-  const [cacheClearedAt, setCacheClearedAt] = useState<number | null>(null);
   const [cacheCleared, setCacheCleared] = useState(false);
 
   // Refs for click outside handling
@@ -141,22 +153,22 @@ export default function SearchSettingsPage() {
   const weatherUnitsDropdownRef = useRef<HTMLDivElement>(null);
   const weatherPlacementDropdownRef = useRef<HTMLDivElement>(null);
   const searchProviderDropdownRef = useRef<HTMLDivElement>(null);
+  const languageDropdownRef = useRef<HTMLDivElement>(null);
   const mobileSettingsRef = useRef<HTMLDivElement>(null);
 
   // Reset cache cleared state after 3 seconds
   useEffect(() => {
     if (cacheCleared) {
       const timer = setTimeout(() => {
-        setCacheCleared(false);
-        setCacheClearedAt(null);
+  setCacheCleared(false);
       }, 3000);
       return () => clearTimeout(timer);
     }
   }, [cacheCleared]);
 
   useEffect(() => {
-    document.title = "Search Settings | Tekir";
-  }, []);
+    document.title = `${tSearchPage("metaTitle")} | Tekir`;
+  }, [tSearchPage]);
 
   // Click outside handler
   useEffect(() => {
@@ -209,6 +221,12 @@ export default function SearchSettingsPage() {
         setSearchProviderDropdownOpen(false);
       }
 
+      if (languageDropdownRef.current &&
+          !languageDropdownRef.current.contains(event.target as Node) &&
+          languageDropdownOpen) {
+        setLanguageDropdownOpen(false);
+      }
+
       if (mobileSettingsRef.current && !mobileSettingsRef.current.contains(event.target as Node)) {
         setIsMobileSettingsOpen(false);
       }
@@ -218,7 +236,7 @@ export default function SearchSettingsPage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions, weatherUnitsDropdownOpen, weatherPlacementDropdownOpen, searchProviderDropdownOpen]);
+  }, [autocompleteDropdownOpen, modelDropdownOpen, countryDropdownOpen, safesearchDropdownOpen, showWeatherLocationSuggestions, weatherUnitsDropdownOpen, weatherPlacementDropdownOpen, searchProviderDropdownOpen, languageDropdownOpen]);
 
   // Handlers for settings changes
   const handleKarakulakToggle = async () => {
@@ -317,6 +335,11 @@ export default function SearchSettingsPage() {
     setSafesearchDropdownOpen(false);
   };
 
+  const handleLanguageChange = (language: Locale) => {
+    void updateSetting("language", language);
+    setLanguageDropdownOpen(false);
+  };
+
   const handleSearchProviderChange = (engine: string) => {
     const option = SEARCH_PROVIDER_OPTIONS.find((opt) => opt.value === engine);
     if (!option) {
@@ -345,21 +368,20 @@ export default function SearchSettingsPage() {
   };
 
   const getModelDisplay = (model: string) => {
-    switch (model) {
-      case 'llama':
-        return { name: 'Llama 4', icon: '/logos/meta.svg', description: 'A powerful and open-source model by Meta' };
-      case 'mistral':
-        return { name: 'Mistral Mini', icon: '/logos/mistral.svg', description: 'A lightweight model by Mistral AI' };
-      case 'claude':
-        return { name: 'Claude 4.5', icon: '/logos/claude.svg', description: 'Latest and fastest model from Anthropic' };
-      case 'chatgpt':
-        return { name: 'ChatGPT 5', icon: '/logos/openai.svg', description: 'Powerful, efficient model by OpenAI', className: 'invert dark:invert-0' };
-      case 'grok':
-        return { name: 'Grok 4', icon: '/logos/grok.svg', description: 'An intelligent model from xAI', className: 'invert dark:invert-0' };
-      default:
-        return { name: 'Gemini 2.5', icon: '/logos/gemini.svg', description: 'A fast and intelligent model by Google' };
-    }
+    const meta = MODEL_METADATA[model] ?? MODEL_METADATA.gemini;
+    return {
+      name: tSearchPage(`sections.aiFeatures.options.${meta.key}.name`),
+      description: tSearchPage(`sections.aiFeatures.options.${meta.key}.description`),
+      icon: meta.icon,
+      className: meta.className,
+    };
   };
+
+  const rawLanguage = settings.language as string | undefined;
+  const resolvedLanguage = rawLanguage && (locales as readonly string[]).includes(rawLanguage)
+    ? (rawLanguage as Locale)
+    : defaultLocale;
+  const currentLanguageMeta = localeMetadata[resolvedLanguage] ?? localeMetadata[defaultLocale];
 
   const currentModel = getModelDisplay(settings.aiModel || 'gemini');
   const currentCountry = COUNTRIES.find(country => country.code === settings.searchCountry) || COUNTRIES[0];
@@ -367,42 +389,48 @@ export default function SearchSettingsPage() {
   const selectedSearchEngine = settings.searchEngine ?? 'brave';
   const selectedProviderOption = SEARCH_PROVIDER_OPTIONS.find((option) => option.value === selectedSearchEngine);
   const selectedProviderLabel = selectedProviderOption && (!selectedProviderOption.requiresAuth || isAuthenticated)
-    ? selectedProviderOption.label
-    : 'Brave Search';
+    ? tSearchPage(selectedProviderOption.labelKey)
+    : tSearchPage('sections.searchOptions.searchProviderOptions.brave.label');
   const resolvedProviderCapabilities = selectedProviderOption && (!selectedProviderOption.requiresAuth || isAuthenticated)
     ? selectedProviderOption.capabilities
     : (SEARCH_PROVIDER_OPTIONS.find((option) => option.value === 'brave')?.capabilities ?? []);
   const selectedProviderCapabilitiesLabel = resolvedProviderCapabilities.length > 0
-    ? resolvedProviderCapabilities.join(' • ')
+    ? resolvedProviderCapabilities.map((capability) => tSearchPage(`sections.searchOptions.capabilities.${capability}`)).join(' • ')
     : '';
+  const weatherUnitKey = settings.weatherUnits === 'imperial' ? 'imperial' : 'metric';
+  const weatherUnitsDisplay = `${tSearchPage(`sections.externalServices.weatherUnits.${weatherUnitKey}.label`)} (${tSearchPage(`sections.externalServices.weatherUnits.${weatherUnitKey}.subtitle`)})`;
+  const weatherPlacementKey = (settings.weatherPlacement || 'topRight') === 'hero' ? 'hero' : 'topRight';
+  const safeSearchLevels = {
+    off: {
+      label: tSearchPage('sections.searchOptions.safeSearchLevels.off.label'),
+      description: tSearchPage('sections.searchOptions.safeSearchLevels.off.description'),
+    },
+    moderate: {
+      label: tSearchPage('sections.searchOptions.safeSearchLevels.moderate.label'),
+      description: tSearchPage('sections.searchOptions.safeSearchLevels.moderate.description'),
+    },
+    strict: {
+      label: tSearchPage('sections.searchOptions.safeSearchLevels.strict.label'),
+      description: tSearchPage('sections.searchOptions.safeSearchLevels.strict.description'),
+    },
+  } as const;
 
-  const getSafesearchDisplay = (value: string) => {
-    switch (value) {
-      case 'off':
-        return 'Off';
-      case 'moderate':
-        return 'Moderate';
-      case 'strict':
-        return 'Strict';
-      default:
-        return 'Moderate';
-    }
-  };
+  const getSafesearchDisplay = (value: string) => (safeSearchLevels[value as keyof typeof safeSearchLevels] || safeSearchLevels.moderate).label;
 
   const sidebarItems: SettingsNavItem[] = [
-    { href: "/settings/search", icon: Search, label: "Search", active: true },
-    { href: "/settings/account", icon: User, label: "Account" },
-    { href: "/settings/privacy", icon: Shield, label: "Privacy" },
+    { href: "/settings/search", icon: Search, label: tSettings('search'), active: true },
+    { href: "/settings/account", icon: User, label: tSettings('account') },
+    { href: "/settings/privacy", icon: Shield, label: tSettings('privacy') },
   ];
 
   return (
-    <SettingsShell title="Settings" currentSectionLabel="Search" sidebar={sidebarItems} mobileNavItems={settingsMobileNavItems}>
+    <SettingsShell title={tSettings('title')} currentSectionLabel={tSettings('search')} sidebar={sidebarItems} mobileNavItems={mobileNavItems}>
             <div className="space-y-8">
               {/* Page Title and Description */}
               <div>
-                <h2 className="text-3xl font-bold tracking-tight">Search Settings</h2>
+                <h2 className="text-3xl font-bold tracking-tight">{tSearchPage('pageTitle')}</h2>
                 <p className="text-muted-foreground mt-2">
-                  Customize your search experience and AI preferences.
+                  {tSearchPage('pageDescription')}
                 </p>
               </div>          
           
@@ -412,9 +440,9 @@ export default function SearchSettingsPage() {
             {/* AI Features Section */}
             <div className="space-y-4">
               <div>
-                <h3 className="text-xl font-semibold">AI Features</h3>
+                <h3 className="text-xl font-semibold">{tSearchPage('sections.aiFeatures.title')}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Configure AI-powered search and response features
+                  {tSearchPage('sections.aiFeatures.description')}
                 </p>
               </div>
               
@@ -424,17 +452,17 @@ export default function SearchSettingsPage() {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="text-lg font-medium">Karakulak AI Mode</h4>
+                        <h4 className="text-lg font-medium">{tSearchPage('sections.aiFeatures.karakulakTitle')}</h4>
                         {isSyncing && syncEnabled && (
                           <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Enable AI-powered responses for your search queries
+                        {tSearchPage('sections.aiFeatures.karakulakDescription')}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Switch checked={settings.karakulakEnabled} onChange={() => { void handleKarakulakToggle(); }} aria-label="Karakulak AI Mode" />
+                      <Switch checked={settings.karakulakEnabled} onChange={() => { void handleKarakulakToggle(); }} aria-label={tSearchPage('sections.aiFeatures.karakulakAria')} />
                     </div>
                   </div>
                 </div>
@@ -444,9 +472,9 @@ export default function SearchSettingsPage() {
                   <div className="rounded-lg border border-border bg-card p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <h4 className="text-lg font-medium">AI Model</h4>
+                        <h4 className="text-lg font-medium">{tSearchPage('sections.aiFeatures.modelTitle')}</h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Select your preferred AI model for responses
+                          {tSearchPage('sections.aiFeatures.modelDescription')}
                         </p>
                       </div>
             <div className="relative w-full sm:w-auto" ref={modelDropdownRef}>
@@ -456,6 +484,7 @@ export default function SearchSettingsPage() {
               aria-haspopup="menu"
               aria-expanded={modelDropdownOpen}
               aria-controls="ai-model-menu"
+                          aria-label={tSearchPage('sections.aiFeatures.modelMenuLabel')}
                         >
                           <div className="flex items-center gap-2">
                             <Image
@@ -463,7 +492,7 @@ export default function SearchSettingsPage() {
                               alt={`${currentModel.name} Logo`}
                               width={20}
                               height={20}
-                              className={`rounded ${'className' in currentModel && (currentModel as any).className ? (currentModel as any).className : ''}`}
+                              className={`rounded ${currentModel.className ?? ''}`}
                             />
                             <span className="text-sm font-medium">{currentModel.name}</span>
                           </div>
@@ -471,115 +500,32 @@ export default function SearchSettingsPage() {
                         </button>
                         
                         {modelDropdownOpen && (
-                          <div id="ai-model-menu" role="menu" aria-label="AI model options" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-80 rounded-lg bg-background border border-border shadow-lg z-10">
+                          <div id="ai-model-menu" role="menu" aria-label={tSearchPage('sections.aiFeatures.modelMenuLabel')} className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-80 rounded-lg bg-background border border-border shadow-lg z-10">
                             <div className="p-1">
-                              <button
-                                onClick={() => handleModelChange('llama')}
-                                role="menuitemradio"
-                                aria-checked={settings.aiModel === 'llama'}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  settings.aiModel === 'llama' ? 'bg-muted' : ''
-                                }`}
-                              >
-                                <Image src="/logos/meta.svg" alt="Meta Logo" width={24} height={24} className="rounded" />
-                                <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Llama 4</span>
-                                  <span className="text-xs text-muted-foreground text-left">A powerful and open-source model by Meta</span>
-                                </div>
-                                {settings.aiModel === 'llama' && (
-                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                )}
-                              </button>
-                              
-                              <button
-                                onClick={() => handleModelChange('gemini')}
-                                role="menuitemradio"
-                                aria-checked={settings.aiModel === 'gemini'}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  settings.aiModel === 'gemini' ? 'bg-muted' : ''
-                                }`}
-                              >
-                                <Image src="/logos/gemini.svg" alt="Google Logo" width={24} height={24} className="rounded" />
-                                <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Gemini 2.5</span>
-                                  <span className="text-xs text-muted-foreground text-left">A fast and intelligent model by Google</span>
-                                </div>
-                                {settings.aiModel === 'gemini' && (
-                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                )}
-                              </button>
-
-                              <button
-                                onClick={() => handleModelChange('claude')}
-                                role="menuitemradio"
-                                aria-checked={settings.aiModel === 'claude'}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  settings.aiModel === 'claude' ? 'bg-muted' : ''
-                                }`}
-                              >
-                                <Image src="/logos/claude.svg" alt="Claude Logo" width={24} height={24} className="rounded" />
-                                <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Claude 4.5</span>
-                                  <span className="text-xs text-muted-foreground text-left">Latest and fastest model from Anthropic</span>
-                                </div>
-                                {settings.aiModel === 'claude' && (
-                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                )}
-                              </button>
-
-                              <button
-                                onClick={() => handleModelChange('chatgpt')}
-                                role="menuitemradio"
-                                aria-checked={settings.aiModel === 'chatgpt'}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  settings.aiModel === 'chatgpt' ? 'bg-muted' : ''
-                                }`}
-                              >
-                                <Image src="/logos/openai.svg" alt="OpenAI Logo" width={24} height={24} className="rounded invert dark:invert-0" />
-                                <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">ChatGPT 5</span>
-                                  <span className="text-xs text-muted-foreground text-left">Powerful, efficient model by OpenAI</span>
-                                </div>
-                                {settings.aiModel === 'chatgpt' && (
-                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                )}
-                              </button>
-
-                              <button
-                                onClick={() => handleModelChange('mistral')}
-                                role="menuitemradio"
-                                aria-checked={settings.aiModel === 'mistral'}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  settings.aiModel === 'mistral' ? 'bg-muted' : ''
-                                }`}
-                              >
-                                <Image src="/logos/mistral.svg" alt="Mistral Logo" width={24} height={24} className="rounded" />
-                                <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Mistral Mini</span>
-                                  <span className="text-xs text-muted-foreground text-left">A lightweight model by Mistral AI</span>
-                                </div>
-                                {settings.aiModel === 'mistral' && (
-                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                )}
-                              </button>
-
-                              <button
-                                onClick={() => handleModelChange('grok')}
-                                role="menuitemradio"
-                                aria-checked={settings.aiModel === 'grok'}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
-                                  settings.aiModel === 'grok' ? 'bg-muted' : ''
-                                }`}
-                              >
-                                <Image src="/logos/grok.svg" alt="Grok Logo" width={24} height={24} className="rounded invert dark:invert-0" />
-                                <div className="flex flex-col items-start flex-1">
-                                  <span className="font-medium text-sm">Grok 4</span>
-                                  <span className="text-xs text-muted-foreground text-left">An intelligent model from xAI</span>
-                                </div>
-                                {settings.aiModel === 'grok' && (
-                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                )}
-                              </button>
+                              {MODEL_ORDER.map((modelKey) => {
+                                const meta = MODEL_METADATA[modelKey];
+                                const isSelected = (settings.aiModel || 'gemini') === modelKey;
+                                return (
+                                  <button
+                                    key={modelKey}
+                                    onClick={() => handleModelChange(modelKey)}
+                                    role="menuitemradio"
+                                    aria-checked={isSelected}
+                                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-md hover:bg-muted transition-colors ${
+                                      isSelected ? 'bg-muted' : ''
+                                    }`}
+                                  >
+                                    <Image src={meta.icon} alt={`${tSearchPage(`sections.aiFeatures.options.${meta.key}.name`)} Logo`} width={24} height={24} className={`rounded ${meta.className ?? ''}`} />
+                                    <div className="flex flex-col items-start flex-1">
+                                      <span className="font-medium text-sm">{tSearchPage(`sections.aiFeatures.options.${meta.key}.name`)}</span>
+                                      <span className="text-xs text-muted-foreground text-left">{tSearchPage(`sections.aiFeatures.options.${meta.key}.description`)}</span>
+                                    </div>
+                                    {isSelected && (
+                                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                    )}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -590,12 +536,90 @@ export default function SearchSettingsPage() {
               </div>
             </div>
 
+            {/* UI & Language Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold">{tSearchPage('sections.uiLanguage.title')}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {tSearchPage('sections.uiLanguage.description')}
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Language Preference */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="text-lg font-medium">{tSearchPage('sections.uiLanguage.languageTitle')}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {tSearchPage('sections.uiLanguage.languageDescription')}
+                      </p>
+                    </div>
+                    <div className="relative w-full sm:w-auto" ref={languageDropdownRef}>
+                      <button
+                        onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
+                        className="flex items-center gap-3 px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors w-full sm:w-auto sm:min-w-[200px] justify-between"
+                        aria-haspopup="menu"
+                        aria-expanded={languageDropdownOpen}
+                        aria-controls="language-menu"
+                        aria-label={tSearchPage('sections.uiLanguage.languageMenuLabel')}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg" aria-hidden="true">{currentLanguageMeta.flag}</span>
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm font-medium">{currentLanguageMeta.nativeName ?? currentLanguageMeta.name}</span>
+                            <span className="text-xs text-muted-foreground">{currentLanguageMeta.name}</span>
+                          </div>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${languageDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {languageDropdownOpen && (
+                        <div
+                          id="language-menu"
+                          role="menu"
+                          aria-label={tSearchPage('sections.uiLanguage.languageMenuLabel')}
+                          className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-72 rounded-lg bg-background border border-border shadow-lg z-10"
+                        >
+                          <div className="p-1 space-y-1">
+                            {locales.map((locale) => {
+                              const localeKey = locale as Locale;
+                              const meta = localeMetadata[localeKey];
+                              const isSelected = resolvedLanguage === localeKey;
+                              return (
+                                <button
+                                  key={localeKey}
+                                  onClick={() => handleLanguageChange(localeKey)}
+                                  role="menuitemradio"
+                                  aria-checked={isSelected}
+                                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
+                                    isSelected ? 'bg-muted' : ''
+                                  }`}
+                                >
+                                  <span className="text-xl" aria-hidden="true">{meta.flag}</span>
+                                  <div className="flex flex-col items-start flex-1">
+                                    <span className="font-medium text-sm">{meta.nativeName ?? meta.name}</span>
+                                    <span className="text-xs text-muted-foreground">{meta.name}</span>
+                                  </div>
+                                  {isSelected && <div className="w-2 h-2 bg-primary rounded-full" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* External Services Section */}
             <div className="space-y-4">
               <div>
-                <h3 className="text-xl font-semibold">External Services</h3>
+                <h3 className="text-xl font-semibold">{tSearchPage('sections.externalServices.title')}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Configure integrations with external services
+                  {tSearchPage('sections.externalServices.description')}
                 </p>
               </div>
               
@@ -605,13 +629,13 @@ export default function SearchSettingsPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="text-lg font-medium">Clim8 Weather Service</h4>
+                  <h4 className="text-lg font-medium">{tSearchPage('sections.externalServices.clim8Title')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Enable weather data from Clim8 based on your IP location
+                    {tSearchPage('sections.externalServices.clim8Description')}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Switch checked={settings.clim8Enabled} onChange={() => { void handleClim8Toggle(); }} aria-label="Clim8 Weather" />
+                  <Switch checked={settings.clim8Enabled} onChange={() => { void handleClim8Toggle(); }} aria-label={tSearchPage('sections.externalServices.clim8Aria')} />
                 </div>
               </div>
             </div>
@@ -621,9 +645,9 @@ export default function SearchSettingsPage() {
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-medium">Custom Weather Location</h3>
+                    <h3 className="text-lg font-medium">{tSearchPage('sections.externalServices.customWeatherTitle')}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Set a preferred location for weather reports instead of using your IP location
+                      {tSearchPage('sections.externalServices.customWeatherDescription')}
                     </p>
                   </div>
                   
@@ -632,7 +656,7 @@ export default function SearchSettingsPage() {
                       <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         type="text"
-                        placeholder="Search for a city..."
+                        placeholder={tSearchPage('sections.externalServices.locationPlaceholder')}
                         value={weatherLocationQuery}
                         onChange={handleWeatherLocationInput}
                         onFocus={() => setShowWeatherLocationSuggestions(true)}
@@ -643,7 +667,7 @@ export default function SearchSettingsPage() {
         aria-controls="weather-location-suggestions"
                       />
                       {settings.customWeatherLocation && (
-                        <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={handleClearWeatherLocation} aria-label="Clear location">
+                        <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={handleClearWeatherLocation} aria-label={tSearchPage('sections.externalServices.clearLocation')}>
                           <X className="w-4 h-4" />
                         </Button>
                       )}
@@ -651,7 +675,7 @@ export default function SearchSettingsPage() {
                     
                     {/* Location suggestions dropdown */}
                     {showWeatherLocationSuggestions && weatherLocationSuggestions.length > 0 && (
-                      <div id="weather-location-suggestions" role="listbox" aria-label="Location suggestions" className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                      <div id="weather-location-suggestions" role="listbox" aria-label={tSearchPage('sections.externalServices.suggestionsLabel')} className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
                         {weatherLocationSuggestions.map((location, index) => (
                           <button
                             key={index}
@@ -671,7 +695,9 @@ export default function SearchSettingsPage() {
                       <div className="mt-2 p-2 bg-muted rounded-md flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-muted-foreground" />
                         <span className="text-sm">
-                          Selected: {settings.customWeatherLocation.name}, {settings.customWeatherLocation.country}
+                          {tSearchPage('sections.externalServices.selectedLabel', {
+                            location: `${settings.customWeatherLocation.name}, ${settings.customWeatherLocation.country}`
+                          })}
                         </span>
                       </div>
                     )}
@@ -685,9 +711,9 @@ export default function SearchSettingsPage() {
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="text-lg font-medium">Weather Units</h4>
+                    <h4 className="text-lg font-medium">{tSearchPage('sections.externalServices.weatherUnitsTitle')}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Choose between metric (°C, km/h) or imperial (°F, mph) units
+                      {tSearchPage('sections.externalServices.weatherUnitsDescription')}
                     </p>
                   </div>
           <div className="relative w-full sm:w-auto" ref={weatherUnitsDropdownRef}>
@@ -698,14 +724,12 @@ export default function SearchSettingsPage() {
             aria-expanded={weatherUnitsDropdownOpen}
             aria-controls="weather-units-menu"
                     >
-                      <span className="text-sm font-medium capitalize">
-                        {settings.weatherUnits === 'metric' ? 'Metric (°C)' : 'Imperial (°F)'}
-                      </span>
+                      <span className="text-sm font-medium capitalize">{weatherUnitsDisplay}</span>
                       <ChevronDown className={`w-4 h-4 transition-transform ${weatherUnitsDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     
                     {weatherUnitsDropdownOpen && (
-                      <div id="weather-units-menu" role="menu" aria-label="Weather unit options" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-60 rounded-lg bg-background border border-border shadow-lg z-10">
+                      <div id="weather-units-menu" role="menu" aria-label={tSearchPage('sections.externalServices.weatherUnitsMenuLabel')} className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-60 rounded-lg bg-background border border-border shadow-lg z-10">
                         <div className="p-1">
                           <button
                             onClick={() => handleWeatherUnitsChange('metric')}
@@ -716,8 +740,8 @@ export default function SearchSettingsPage() {
                             }`}
                           >
                             <div className="flex flex-col items-start flex-1">
-                              <span className="font-medium text-sm">Metric</span>
-                              <span className="text-xs text-muted-foreground">°C, km/h, mm</span>
+                              <span className="font-medium text-sm">{tSearchPage('sections.externalServices.weatherUnits.metric.label')}</span>
+                              <span className="text-xs text-muted-foreground">{tSearchPage('sections.externalServices.weatherUnits.metric.subtitle')}</span>
                             </div>
                             {settings.weatherUnits === 'metric' && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
@@ -733,8 +757,8 @@ export default function SearchSettingsPage() {
                             }`}
                           >
                             <div className="flex flex-col items-start flex-1">
-                              <span className="font-medium text-sm">Imperial</span>
-                              <span className="text-xs text-muted-foreground">°F, mph, in</span>
+                              <span className="font-medium text-sm">{tSearchPage('sections.externalServices.weatherUnits.imperial.label')}</span>
+                              <span className="text-xs text-muted-foreground">{tSearchPage('sections.externalServices.weatherUnits.imperial.subtitle')}</span>
                             </div>
                             {settings.weatherUnits === 'imperial' && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
@@ -753,9 +777,9 @@ export default function SearchSettingsPage() {
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="text-lg font-medium">Weather Placement</h4>
+                    <h4 className="text-lg font-medium">{tSearchPage('sections.externalServices.weatherPlacementTitle')}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Choose where to show the Clim8 widget on the homepage
+                      {tSearchPage('sections.externalServices.weatherPlacementDescription')}
                     </p>
                   </div>
                   <div className="relative w-full sm:w-auto" ref={weatherPlacementDropdownRef}>
@@ -765,44 +789,45 @@ export default function SearchSettingsPage() {
                       aria-haspopup="menu"
                       aria-expanded={weatherPlacementDropdownOpen}
                       aria-controls="weather-placement-menu"
+                      aria-label={tSearchPage('sections.externalServices.weatherPlacementMenuLabel')}
                     >
                       <span className="text-sm font-medium">
-                        {(settings.weatherPlacement || 'topRight') === 'hero' ? 'Under search bar' : 'Next to profile'}
+                        {tSearchPage(`sections.externalServices.weatherPlacement.${weatherPlacementKey}.label`)}
                       </span>
                       <ChevronDown className={`w-4 h-4 transition-transform ${weatherPlacementDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {weatherPlacementDropdownOpen && (
-                      <div id="weather-placement-menu" role="menu" aria-label="Weather placement options" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-72 rounded-lg bg-background border border-border shadow-lg z-10">
+                      <div id="weather-placement-menu" role="menu" aria-label={tSearchPage('sections.externalServices.weatherPlacementMenuLabel')} className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-72 rounded-lg bg-background border border-border shadow-lg z-10">
                         <div className="p-1">
                           <button
                             onClick={() => { updateSetting('weatherPlacement', 'hero'); setWeatherPlacementDropdownOpen(false); }}
                             role="menuitemradio"
-                            aria-checked={(settings.weatherPlacement || 'topRight') === 'hero'}
+                aria-checked={weatherPlacementKey === 'hero'}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                              (settings.weatherPlacement || 'topRight') === 'hero' ? 'bg-muted' : ''
+                  weatherPlacementKey === 'hero' ? 'bg-muted' : ''
                             }`}
                           >
                             <div className="flex flex-col items-start flex-1">
-                              <span className="font-medium text-sm">Under search bar</span>
-                              <span className="text-xs text-muted-foreground">Show weather chip beneath the main search box</span>
+                              <span className="font-medium text-sm">{tSearchPage('sections.externalServices.weatherPlacement.hero.label')}</span>
+                              <span className="text-xs text-muted-foreground">{tSearchPage('sections.externalServices.weatherPlacement.hero.description')}</span>
                             </div>
-                            {(settings.weatherPlacement || 'topRight') === 'hero' && (
+                            {weatherPlacementKey === 'hero' && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </button>
                           <button
                             onClick={() => { updateSetting('weatherPlacement', 'topRight'); setWeatherPlacementDropdownOpen(false); }}
                             role="menuitemradio"
-                            aria-checked={(settings.weatherPlacement || 'topRight') === 'topRight'}
+                            aria-checked={weatherPlacementKey === 'topRight'}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors text-left ${
-                              (settings.weatherPlacement || 'topRight') === 'topRight' ? 'bg-muted' : ''
+                              weatherPlacementKey === 'topRight' ? 'bg-muted' : ''
                             }`}
                           >
                             <div className="flex flex-col items-start flex-1">
-                              <span className="font-medium text-sm">Next to profile</span>
-                              <span className="text-xs text-muted-foreground">Show under the welcome text near your avatar</span>
+                              <span className="font-medium text-sm">{tSearchPage('sections.externalServices.weatherPlacement.topRight.label')}</span>
+                              <span className="text-xs text-muted-foreground">{tSearchPage('sections.externalServices.weatherPlacement.topRight.description')}</span>
                             </div>
-                            {(settings.weatherPlacement || 'topRight') === 'topRight' && (
+                            {weatherPlacementKey === 'topRight' && (
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </button>
@@ -819,9 +844,9 @@ export default function SearchSettingsPage() {
             {/* Search Options Section */}
             <div className="space-y-4">
               <div>
-                <h3 className="text-xl font-semibold">Search Options</h3>
+                <h3 className="text-xl font-semibold">{tSearchPage('sections.searchOptions.title')}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Configure your search provider and filtering preferences
+                  {tSearchPage('sections.searchOptions.description')}
                 </p>
               </div>
               
@@ -831,13 +856,13 @@ export default function SearchSettingsPage() {
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="text-lg font-medium">Enchanted Results</h4>
+                    <h4 className="text-lg font-medium">{tSearchPage('sections.searchOptions.enchantedTitle')}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Toggle News and Videos widgets in search results
+                      {tSearchPage('sections.searchOptions.enchantedDescription')}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Switch checked={settings.enchantedResults ?? true} onChange={() => { void handleEnchantedResultsToggle(); }} aria-label="Enchanted Results" />
+                    <Switch checked={settings.enchantedResults ?? true} onChange={() => { void handleEnchantedResultsToggle(); }} aria-label={tSearchPage('sections.searchOptions.enchantedAria')} />
                   </div>
                 </div>
               </div>
@@ -846,13 +871,13 @@ export default function SearchSettingsPage() {
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="text-lg font-medium">Wikipedia Results</h4>
+                    <h4 className="text-lg font-medium">{tSearchPage('sections.searchOptions.wikipediaTitle')}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Show Wikipedia summaries and information in search results
+                      {tSearchPage('sections.searchOptions.wikipediaDescription')}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Switch checked={settings.wikipediaEnabled ?? true} onChange={() => { void handleWikipediaToggle(); }} aria-label="Wikipedia Results" />
+                    <Switch checked={settings.wikipediaEnabled ?? true} onChange={() => { void handleWikipediaToggle(); }} aria-label={tSearchPage('sections.searchOptions.wikipediaAria')} />
                   </div>
                 </div>
               </div>
@@ -861,13 +886,13 @@ export default function SearchSettingsPage() {
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="text-lg font-medium">Favicons in Results</h4>
+                    <h4 className="text-lg font-medium">{tSearchPage('sections.searchOptions.faviconsTitle')}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Show site icons next to result links
+                      {tSearchPage('sections.searchOptions.faviconsDescription')}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Switch checked={settings.showFavicons ?? false} onChange={() => { void handleShowFaviconsToggle(); }} aria-label="Show favicons in results" />
+                    <Switch checked={settings.showFavicons ?? false} onChange={() => { void handleShowFaviconsToggle(); }} aria-label={tSearchPage('sections.searchOptions.faviconsAria')} />
                   </div>
                 </div>
               </div>
@@ -876,16 +901,16 @@ export default function SearchSettingsPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="text-lg font-medium">Homepage Recommendations</h4>
+                  <h4 className="text-lg font-medium">{tSearchPage('sections.searchOptions.recommendationsTitle')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Show daily recommended searches under the search bar on the homepage
+                    {tSearchPage('sections.searchOptions.recommendationsDescription')}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch
                     checked={settings.showRecommendations ?? true}
                     onChange={() => { void handleRecommendationsToggle(); }}
-                    aria-label="Show recommendations under search bar"
+                    aria-label={tSearchPage('sections.searchOptions.recommendationsAria')}
                   />
                 </div>
               </div>
@@ -895,9 +920,9 @@ export default function SearchSettingsPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="text-lg font-medium">Search Provider</h4>
+                  <h4 className="text-lg font-medium">{tSearchPage('sections.searchOptions.searchProviderTitle')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Choose your search engine for web results
+                    {tSearchPage('sections.searchOptions.searchProviderDescription')}
                   </p>
                 </div>
                 <div className="relative w-full sm:w-auto" ref={searchProviderDropdownRef}>
@@ -907,11 +932,15 @@ export default function SearchSettingsPage() {
                     aria-haspopup="menu"
                     aria-expanded={searchProviderDropdownOpen}
                     aria-controls="search-provider-menu"
+                    aria-label={tSearchPage('sections.searchOptions.searchProviderMenuLabel')}
                   >
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium">
                         {selectedProviderLabel}
                       </span>
+                      {selectedProviderCapabilitiesLabel && (
+                        <span className="text-xs text-muted-foreground">{selectedProviderCapabilitiesLabel}</span>
+                      )}
                     </div>
                     <ChevronDown className={`w-4 h-4 transition-transform ${searchProviderDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -920,14 +949,17 @@ export default function SearchSettingsPage() {
                     <div
                       id="search-provider-menu"
                       role="menu"
-                      aria-label="Search providers"
+                      aria-label={tSearchPage('sections.searchOptions.searchProviderMenuLabel')}
                       className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-72 rounded-lg bg-background border border-border shadow-lg z-10"
                     >
                       <div className="p-1 space-y-1">
                         {SEARCH_PROVIDER_OPTIONS.map((option) => {
                           const isSelected = selectedSearchEngine === option.value;
+                          const label = tSearchPage(option.labelKey);
+                          const description = tSearchPage(option.descriptionKey);
+                          const capabilityLabels = option.capabilities.map((capability) => tSearchPage(`sections.searchOptions.capabilities.${capability}`));
+
                           if (option.requiresAuth && !isAuthenticated) {
-                            const providerName = option.label.replace(/\s+Search$/, '');
                             return (
                               <div
                                 key={option.value}
@@ -935,11 +967,11 @@ export default function SearchSettingsPage() {
                               >
                                 <div className="mt-1 w-2 h-2 rounded-full bg-border" />
                                 <div className="flex-1">
-                                  <span className="font-medium text-sm block">{option.label}</span>
-                                  <span>Sign in to unlock {providerName} results.</span>
-                                  {option.capabilities.length > 0 && (
+                                  <span className="font-medium text-sm block">{label}</span>
+                                  <span>{tSearchPage('sections.searchOptions.searchProviderSigninNotice', { provider: label })}</span>
+                                  {capabilityLabels.length > 0 && (
                                     <div className="mt-2 flex flex-wrap gap-1">
-                                      {option.capabilities.map((capability) => (
+                                      {capabilityLabels.map((capability) => (
                                         <span
                                           key={capability}
                                           className="rounded-full bg-muted/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
@@ -965,11 +997,11 @@ export default function SearchSettingsPage() {
                               }`}
                             >
                               <div className="flex flex-col items-start flex-1">
-                                <span className="font-medium text-sm">{option.label}</span>
-                                <span className="text-xs text-muted-foreground">{option.description}</span>
-                                {option.capabilities.length > 0 && (
+                                <span className="font-medium text-sm">{label}</span>
+                                <span className="text-xs text-muted-foreground">{description}</span>
+                                {capabilityLabels.length > 0 && (
                                   <div className="mt-2 flex flex-wrap gap-1">
-                                    {option.capabilities.map((capability) => (
+                                    {capabilityLabels.map((capability) => (
                                       <span
                                         key={capability}
                                         className="rounded-full bg-muted/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
@@ -997,9 +1029,9 @@ export default function SearchSettingsPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="text-lg font-medium">Autocomplete Provider</h4>
+                  <h4 className="text-lg font-medium">{tSearchPage('sections.searchOptions.autocompleteTitle')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Choose your search suggestion provider
+                    {tSearchPage('sections.searchOptions.autocompleteDescription')}
                   </p>
                 </div>
         <div className="relative w-full sm:w-auto" ref={autocompleteDropdownRef}>
@@ -1009,15 +1041,16 @@ export default function SearchSettingsPage() {
           aria-haspopup="menu"
           aria-expanded={autocompleteDropdownOpen}
           aria-controls="autocomplete-menu"
+                    aria-label={tSearchPage('sections.searchOptions.autocompleteMenuLabel')}
                   >
                     <span className="text-sm font-medium">
-                      {settings.autocompleteSource === "brave" ? "Brave" : "DuckDuckGo"}
+                      {tSearchPage(`sections.searchOptions.autocompleteOptions.${settings.autocompleteSource === 'duck' ? 'duck' : 'brave'}`)}
                     </span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${autocompleteDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {autocompleteDropdownOpen && (
-                    <div id="autocomplete-menu" role="menu" aria-label="Autocomplete providers" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:min-w-[140px] rounded-lg bg-background border border-border shadow-lg z-10">
+                    <div id="autocomplete-menu" role="menu" aria-label={tSearchPage('sections.searchOptions.autocompleteMenuLabel')} className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:min-w-[140px] rounded-lg bg-background border border-border shadow-lg z-10">
                       <div className="py-1">
                         <button
                           onClick={() => handleAutocompleteChange('brave')}
@@ -1032,7 +1065,7 @@ export default function SearchSettingsPage() {
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </div>
-                          <span>Brave</span>
+                          <span>{tSearchPage('sections.searchOptions.autocompleteOptions.brave')}</span>
                         </button>
                         
                         <button
@@ -1048,7 +1081,7 @@ export default function SearchSettingsPage() {
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                             )}
                           </div>
-                          <span>DuckDuckGo</span>
+                          <span>{tSearchPage('sections.searchOptions.autocompleteOptions.duck')}</span>
                         </button>
                       </div>
                     </div>
@@ -1061,9 +1094,9 @@ export default function SearchSettingsPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="text-lg font-medium">Search Region</h4>
+                  <h4 className="text-lg font-medium">{tSearchPage('sections.searchOptions.searchRegionTitle')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Choose your preferred search region for localized results
+                    {tSearchPage('sections.searchOptions.searchRegionDescription')}
                   </p>
                 </div>
         <div className="relative w-full sm:w-auto" ref={countryDropdownRef}>
@@ -1073,13 +1106,14 @@ export default function SearchSettingsPage() {
           aria-haspopup="menu"
           aria-expanded={countryDropdownOpen}
           aria-controls="country-menu"
+                    aria-label={tSearchPage('sections.searchOptions.searchRegionMenuLabel')}
                   >
                     <span className="text-sm font-medium">{currentCountry.name}</span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${countryDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {countryDropdownOpen && (
-                    <div id="country-menu" role="menu" aria-label="Search regions" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-80 rounded-lg bg-background border border-border shadow-lg z-10 max-h-60 overflow-y-auto">
+                    <div id="country-menu" role="menu" aria-label={tSearchPage('sections.searchOptions.searchRegionMenuLabel')} className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-80 rounded-lg bg-background border border-border shadow-lg z-10 max-h-60 overflow-y-auto">
                       <div className="p-1">
                         {COUNTRIES.map((country) => (
                           <button
@@ -1111,9 +1145,9 @@ export default function SearchSettingsPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="text-lg font-medium">SafeSearch</h4>
+                  <h4 className="text-lg font-medium">{tSearchPage('sections.searchOptions.safeSearchTitle')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Filter explicit content from your search results
+                    {tSearchPage('sections.searchOptions.safeSearchDescription')}
                   </p>
                 </div>
         <div className="relative w-full sm:w-auto" ref={safesearchDropdownRef}>
@@ -1123,13 +1157,14 @@ export default function SearchSettingsPage() {
           aria-haspopup="menu"
           aria-expanded={safesearchDropdownOpen}
           aria-controls="safesearch-menu"
+                    aria-label={tSearchPage('sections.searchOptions.safeSearchMenuLabel')}
                   >
                     <span className="text-sm font-medium">{getSafesearchDisplay(settings.safesearch || 'moderate')}</span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${safesearchDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {safesearchDropdownOpen && (
-                    <div id="safesearch-menu" role="menu" aria-label="SafeSearch levels" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:min-w-[200px] rounded-lg bg-background border border-border shadow-lg z-10">
+                    <div id="safesearch-menu" role="menu" aria-label={tSearchPage('sections.searchOptions.safeSearchMenuLabel')} className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-full sm:min-w-[200px] rounded-lg bg-background border border-border shadow-lg z-10">
                       <div className="p-1">
                         <button
                           onClick={() => handleSafesearchChange('off')}
@@ -1140,8 +1175,8 @@ export default function SearchSettingsPage() {
                           }`}
                         >
                           <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">Off</span>
-                            <span className="text-xs text-muted-foreground">Show all results</span>
+                            <span className="font-medium text-sm">{safeSearchLevels.off.label}</span>
+                            <span className="text-xs text-muted-foreground">{safeSearchLevels.off.description}</span>
                           </div>
                           {settings.safesearch === 'off' && (
                             <div className="w-2 h-2 bg-primary rounded-full"></div>
@@ -1157,8 +1192,8 @@ export default function SearchSettingsPage() {
                           }`}
                         >
                           <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">Moderate</span>
-                            <span className="text-xs text-muted-foreground">Filter explicit content</span>
+                            <span className="font-medium text-sm">{safeSearchLevels.moderate.label}</span>
+                            <span className="text-xs text-muted-foreground">{safeSearchLevels.moderate.description}</span>
                           </div>
                           {settings.safesearch === 'moderate' && (
                             <div className="w-2 h-2 bg-primary rounded-full"></div>
@@ -1174,8 +1209,8 @@ export default function SearchSettingsPage() {
                           }`}
                         >
                           <div className="flex flex-col items-start flex-1">
-                            <span className="font-medium text-sm">Strict</span>
-                            <span className="text-xs text-muted-foreground">Maximum filtering</span>
+                            <span className="font-medium text-sm">{safeSearchLevels.strict.label}</span>
+                            <span className="text-xs text-muted-foreground">{safeSearchLevels.strict.description}</span>
                           </div>
                           {settings.safesearch === 'strict' && (
                             <div className="w-2 h-2 bg-primary rounded-full"></div>
@@ -1194,18 +1229,18 @@ export default function SearchSettingsPage() {
           {/* Cache Management */}
           <div className="space-y-4">
             <div>
-              <h3 className="text-xl font-semibold">Cache</h3>
+              <h3 className="text-xl font-semibold">{tSearchPage('sections.cache.title')}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Tekir saves some data in your device&apos;s cache to serve faster responses. You can clear it anytime.
+                {tSearchPage('sections.cache.description')}
               </p>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="text-lg font-medium">Clear search cache</h4>
+                  <h4 className="text-lg font-medium">{tSearchPage('sections.cache.clearTitle')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Removes cached search, images, news, videos, AI, Dive, Wikipedia, and autocomplete entries stored locally.
+                    {tSearchPage('sections.cache.clearDescription')}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1216,12 +1251,11 @@ export default function SearchSettingsPage() {
                     className={cacheCleared ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
                     onClick={() => {
                       SearchCache.clearAll();
-                      setCacheClearedAt(Date.now());
                       setCacheCleared(true);
                     }}
                     aria-live="polite"
                   >
-                    {cacheCleared ? 'Cleared!' : 'Clear search cache'}
+                    {cacheCleared ? tSearchPage('sections.cache.buttonCleared') : tSearchPage('sections.cache.buttonDefault')}
                   </Button>
                 </div>
               </div>
@@ -1233,12 +1267,12 @@ export default function SearchSettingsPage() {
                 {isSyncing && syncEnabled ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p>Syncing settings to server...</p>
+                    <p>{tSearchPage('syncStatus.syncing')}</p>
                   </div>
                 ) : syncEnabled ? (
-                  <p>Settings are automatically saved and synced across devices.</p>
+                  <p>{tSearchPage('syncStatus.synced')}</p>
                 ) : (
-                  <p>Settings are automatically saved to your local storage.</p>
+                  <p>{tSearchPage('syncStatus.localOnly')}</p>
                 )}
               </div>
             </div>

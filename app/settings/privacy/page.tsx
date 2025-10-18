@@ -1,6 +1,19 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Shield, Search, User, Download, Upload, FileText, Cloud, List, AlertCircle, CheckCircle2, ClipboardCopy } from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  Shield,
+  Search,
+  User,
+  Download,
+  Upload,
+  FileText,
+  Cloud,
+  List,
+  AlertCircle,
+  CheckCircle2,
+  ClipboardCopy,
+} from "lucide-react";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
 import { useSettings, type UserSettings } from "@/lib/settings";
 import { useAuth } from "@/components/auth-provider";
@@ -8,11 +21,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
-// Mobile nav items (consistent with other settings pages)
-const settingsMobileNavItems: MobileNavItem[] = [
-  { href: "/search", icon: Search, label: "Back to Search" },
-  { href: "/settings/account", icon: User, label: "Account" },
-];
+const EXPORT_FILENAME = "settings.tekir.json";
 
 type ExportPayload = {
   version: string; // for future compatibility
@@ -46,6 +55,8 @@ type ExportPayload = {
 export default function PrivacySettingsPage() {
   const { user } = useAuth();
   const { settings, updateSetting } = useSettings();
+  const tSettings = useTranslations("settings");
+  const tPrivacy = useTranslations("settings.privacyPage");
 
   // Server-side data overview using Convex
   const userId = user?.id as Id<"users"> | undefined;
@@ -55,6 +66,11 @@ export default function PrivacySettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
 
+  const mobileNavItems: MobileNavItem[] = [
+    { href: "/search", icon: Search, label: tPrivacy("mobileNav.back") },
+    { href: "/settings/account", icon: User, label: tPrivacy("mobileNav.account") },
+  ];
+
   useEffect(() => {
     if (message) {
       const t = setTimeout(() => setMessage(null), 5000);
@@ -63,13 +79,13 @@ export default function PrivacySettingsPage() {
   }, [message]);
 
   useEffect(() => {
-    document.title = "Privacy Settings | Tekir";
-  }, []);
+    document.title = `${tPrivacy("metaTitle")} | Tekir`;
+  }, [tPrivacy]);
 
   const sidebarItems: SettingsNavItem[] = [
-    { href: "/settings/search", icon: Search, label: "Search" },
-    { href: "/settings/account", icon: User, label: "Account" },
-    { href: "/settings/privacy", icon: Shield, label: "Privacy", active: true },
+    { href: "/settings/search", icon: Search, label: tSettings("search") },
+    { href: "/settings/account", icon: User, label: tSettings("account") },
+    { href: "/settings/privacy", icon: Shield, label: tSettings("privacy"), active: true },
   ];
 
   // Build export payload from current settings (search preferences only)
@@ -112,12 +128,12 @@ export default function PrivacySettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "settings.tekir.json";
+      a.download = EXPORT_FILENAME;
       a.click();
       URL.revokeObjectURL(url);
-      setMessage({ type: "success", text: "Preferences exported to settings.tekir.json" });
+      setMessage({ type: "success", text: tPrivacy("messages.exportSuccess", { file: EXPORT_FILENAME }) });
     } catch (e) {
-      setMessage({ type: "error", text: "Failed to export settings" });
+      setMessage({ type: "error", text: tPrivacy("messages.exportError") });
     }
   };
 
@@ -142,15 +158,18 @@ export default function PrivacySettingsPage() {
       const text = await file.text();
       const parsed = JSON.parse(text) as Partial<ExportPayload>;
       if (parsed?.kind !== "tekir.settings") {
-        throw new Error("Invalid file format: expected tekir.settings file");
+        throw new Error(tPrivacy("messages.importInvalidKind"));
       }
-      if (!parsed.preferences || typeof parsed.preferences !== 'object') {
-        throw new Error("Invalid file format: missing or invalid preferences");
+      if (!parsed.preferences || typeof parsed.preferences !== "object") {
+        throw new Error(tPrivacy("messages.importInvalidPreferences"));
       }
       await applyImportedPreferences(parsed.preferences);
-      setMessage({ type: "success", text: "Preferences imported successfully" });
+      setMessage({ type: "success", text: tPrivacy("messages.importSuccess") });
     } catch (e) {
-      setMessage({ type: "error", text: e instanceof Error ? e.message : "Failed to parse import file" });
+      setMessage({
+        type: "error",
+        text: e instanceof Error ? e.message : tPrivacy("messages.importParseError"),
+      });
     }
   };
 
@@ -161,7 +180,7 @@ export default function PrivacySettingsPage() {
       email: user.email,
       username: user.username,
       settingsSync: !!serverSettings?.settingsSync,
-    serverHasSettings: !!(serverSettings && serverSettings.settings && Object.keys(serverSettings.settings).length > 0),
+      serverHasSettings: !!(serverSettings && serverSettings.settings && Object.keys(serverSettings.settings).length > 0),
       updatedAt: serverSettings?.updatedAt ? new Date(serverSettings.updatedAt).toLocaleString() : undefined,
     };
   }, [user, serverSettings]);
@@ -183,7 +202,12 @@ export default function PrivacySettingsPage() {
   };
 
   return (
-    <SettingsShell title="Settings" currentSectionLabel="Privacy" sidebar={sidebarItems} mobileNavItems={settingsMobileNavItems}>
+    <SettingsShell
+      title={tSettings("title")}
+      currentSectionLabel={tSettings("privacy")}
+      sidebar={sidebarItems}
+      mobileNavItems={mobileNavItems}
+    >
       {message && (
         <div className={`mb-6 p-3 rounded-md border text-sm ${
           message.type === "success"
@@ -196,33 +220,33 @@ export default function PrivacySettingsPage() {
 
       <div className="space-y-8">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Privacy</h2>
-          <p className="text-muted-foreground mt-2">See what we store and control your search preferences export/import.</p>
+          <h2 className="text-3xl font-bold tracking-tight">{tPrivacy("pageTitle")}</h2>
+          <p className="text-muted-foreground mt-2">{tPrivacy("pageDescription")}</p>
         </div>
 
         {/* Server Data Overview */}
         <div className="rounded-lg border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Cloud className="w-5 h-5 text-muted-foreground" />
-            <h3 className="text-lg font-medium">Your Data on Tekir Servers</h3>
+            <h3 className="text-lg font-medium">{tPrivacy("sections.serverOverview.title")}</h3>
           </div>
           {!user ? (
-            <p className="text-sm text-muted-foreground">Sign in to view your server-stored data overview.</p>
+            <p className="text-sm text-muted-foreground">{tPrivacy("sections.serverOverview.signInPrompt")}</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span>Email:</span>
+                <span>{tPrivacy("sections.serverOverview.fields.email")}</span>
                 <span className="ml-auto text-muted-foreground">{user.email || "-"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span>Name:</span>
+                <span>{tPrivacy("sections.serverOverview.fields.name")}</span>
                 <span className="ml-auto text-muted-foreground">{user.name || "-"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span>Username:</span>
+                <span>{tPrivacy("sections.serverOverview.fields.username")}</span>
                 <span className="ml-auto text-muted-foreground">{user.username || "-"}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -231,25 +255,33 @@ export default function PrivacySettingsPage() {
                 ) : (
                   <AlertCircle className="w-4 h-4 text-muted-foreground" />
                 )}
-                <span>Settings Sync:</span>
-                <span className="ml-auto text-muted-foreground">{serverSummary?.settingsSync ? "Enabled" : "Disabled"}</span>
+                <span>{tPrivacy("sections.serverOverview.fields.settingsSync")}</span>
+                <span className="ml-auto text-muted-foreground">
+                  {serverSummary?.settingsSync
+                    ? tPrivacy("sections.serverOverview.values.enabled")
+                    : tPrivacy("sections.serverOverview.values.disabled")}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <List className="w-4 h-4 text-muted-foreground" />
-                <span>Server Preferences:</span>
-                <span className="ml-auto text-muted-foreground">{serverSummary?.serverHasSettings ? "Present" : "None"}</span>
+                <span>{tPrivacy("sections.serverOverview.fields.serverPreferences")}</span>
+                <span className="ml-auto text-muted-foreground">
+                  {serverSummary?.serverHasSettings
+                    ? tPrivacy("sections.serverOverview.values.present")
+                    : tPrivacy("sections.serverOverview.values.none")}
+                </span>
               </div>
               {serverSummary?.updatedAt && (
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span>Last Updated:</span>
+                  <span>{tPrivacy("sections.serverOverview.fields.lastUpdated")}</span>
                   <span className="ml-auto text-muted-foreground">{serverSummary.updatedAt}</span>
                 </div>
               )}
             </div>
           )}
           <p className="text-xs text-muted-foreground mt-4">
-            We store only what’s needed to provide your experience. No analytics, no tracking. Account details aren’t included in export/import; only search preferences are. Your privacy is our priority.
+            {tPrivacy("sections.serverOverview.privacyNote")}
           </p>
         </div>
 
@@ -259,14 +291,15 @@ export default function PrivacySettingsPage() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-muted-foreground" />
-                <h3 className="text-lg font-medium">Server-stored Preferences (JSON)</h3>
+                <h3 className="text-lg font-medium">{tPrivacy("sections.serverJson.title")}</h3>
               </div>
               <button
                 onClick={handleCopyServerSettings}
                 className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border rounded-md hover:bg-muted"
-                aria-label="Copy JSON"
+                aria-label={tPrivacy("sections.serverJson.copyAria")}
               >
-                <ClipboardCopy className="w-4 h-4" /> {copied ? "Copied" : "Copy"}
+                <ClipboardCopy className="w-4 h-4" />
+                {copied ? tPrivacy("sections.serverJson.copyButtonCopied") : tPrivacy("sections.serverJson.copyButton")}
               </button>
             </div>
             <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-72">
@@ -282,27 +315,37 @@ export default function PrivacySettingsPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-muted-foreground" />
-              <h3 className="text-lg font-medium">Export / Import Preferences</h3>
+              <h3 className="text-lg font-medium">{tPrivacy("sections.transfer.title")}</h3>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 rounded-md border">
-              <h4 className="font-medium mb-2 flex items-center gap-2"><Download className="w-4 h-4" /> Export</h4>
-              <p className="text-sm text-muted-foreground mb-3">Download your current search preferences as settings.tekir.json.</p>
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                {tPrivacy("sections.transfer.export.title")}
+              </h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                {tPrivacy("sections.transfer.export.description", { file: EXPORT_FILENAME })}
+              </p>
               <button
                 onClick={handleExport}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                aria-label="Export preferences"
+                aria-label={tPrivacy("sections.transfer.export.ariaLabel")}
               >
                 <Download className="w-4 h-4" />
-                Export preferences
+                {tPrivacy("sections.transfer.export.button")}
               </button>
             </div>
 
             <div className="p-4 rounded-md border">
-              <h4 className="font-medium mb-2 flex items-center gap-2"><Upload className="w-4 h-4" /> Import</h4>
-              <p className="text-sm text-muted-foreground mb-3">Import preferences from a settings.tekir.json file. This won’t change your account details.</p>
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                {tPrivacy("sections.transfer.import.title")}
+              </h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                {tPrivacy("sections.transfer.import.description", { file: EXPORT_FILENAME })}
+              </p>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -313,14 +356,16 @@ export default function PrivacySettingsPage() {
               <button
                 onClick={handleImportClick}
                 className="inline-flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-muted transition-colors"
-                aria-label="Import preferences"
+                aria-label={tPrivacy("sections.transfer.import.ariaLabel")}
               >
                 <Upload className="w-4 h-4" />
-                Import from file
+                {tPrivacy("sections.transfer.import.button")}
               </button>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">Supported file: settings.tekir.json (kind: tekir.settings, version: 1). Only search preferences are applied.</p>
+          <p className="text-xs text-muted-foreground mt-4">
+            {tPrivacy("sections.transfer.hint", { file: EXPORT_FILENAME })}
+          </p>
         </div>
       </div>
     </SettingsShell>
