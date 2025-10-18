@@ -22,440 +22,440 @@
       "videos": "Video",
       "news": "Notizie",
       "ai": "AI",
-      "dive": "Dive"
+      "dive": "Immersioni"
     },
     "filters": {
-      "country": "Country",
-      "safeSearch": "Safe Search",
-      "time": "Time",
-      "all": "All",
-      "pastDay": "Past 24 hours",
-      "pastWeek": "Past week",
-      "pastMonth": "Past month",
-      "pastYear": "Past year"
+      "country": "Paese",
+      "safeSearch": "Ricerca Sicura",
+      "time": "Tempo",
+      "all": "Tutti",
+      "pastDay": "Ultime 24 ore",
+      "pastWeek": "Ultima settimana",
+      "pastMonth": "Mese passato",
+      "pastYear": "Anno passato"
     },
-    "noResults": "No results found for \"{query}\"",
-    "searchError": "Failed to fetch search results",
-    "tryAgain": "Please try again",
-    "resultsCount": "{count, plural, one {# result} other {# results}}",
-    "showMore": "Show more results",
-    "relatedSearches": "Related searches"
+    "noResults": "Nessun risultato trovato per \"{query}\"",
+    "searchError": "Recupero dei risultati della ricerca non riuscito",
+    "tryAgain": "Per favore riprova",
+    "resultsCount": "{count, plural, one {# risultato} other {# risultati}}",
+    "showMore": "Mostra altri risultati",
+    "relatedSearches": "Ricerche correlate"
   },
   "navigation": {
-    "about": "About Tekir",
-    "aiChat": "AI Chat",
-    "settings": "Settings",
+    "about": "Informazioni Su Tekir",
+    "aiChat": "Chat AI",
+    "settings": "Impostazioni",
     "privacy": "Privacy",
-    "terms": "Terms",
+    "terms": "Termini",
     "home": "Home",
     "bangs": "Bangs"
   },
   "settings": {
-    "title": "Settings",
-    "search": "Search",
+    "title": "Impostazioni",
+    "search": "Cerca",
     "privacy": "Privacy",
     "account": "Account",
-    "language": "Language",
-    "theme": "Theme",
-    "searchEngine": "Search Engine",
-    "country": "Country",
-    "safesearch": "Safe Search",
-    "appearance": "Appearance",
-    "general": "General",
-    "saveChanges": "Save changes",
-    "changesSaved": "Changes saved successfully",
+    "language": "Lingua",
+    "theme": "Tema",
+    "searchEngine": "Motore Di Ricerca",
+    "country": "Paese",
+    "safesearch": "Ricerca Sicura",
+    "appearance": "Aspetto",
+    "general": "Generale",
+    "saveChanges": "Salva modifiche",
+    "changesSaved": "Modifiche salvate con successo",
     "accountPage": {
-      "metaTitle": "Account Settings",
+      "metaTitle": "Impostazioni Account",
       "mobileNav": {
-        "back": "Back to Search",
-        "chat": "AI Chat",
-        "privacy": "Privacy Policy"
+        "back": "Torna alla ricerca",
+        "chat": "Chat AI",
+        "privacy": "Politica Sulla Privacy"
       },
-      "pageTitle": "Account Settings",
-      "pageDescription": "Manage your account information, security, and preferences.",
+      "pageTitle": "Impostazioni Account",
+      "pageDescription": "Gestisci le informazioni, la sicurezza e le preferenze del tuo account.",
       "accessDenied": {
-        "title": "Access Denied",
-        "description": "Please sign in to access account settings.",
-        "backButton": "Back to settings"
+        "title": "Accesso Negato",
+        "description": "Accedi per accedere alle impostazioni dell'account.",
+        "backButton": "Torna alle impostazioni"
       },
       "messages": {
-        "requiredField": "{field} cannot be empty",
-        "updateSuccess": "{field} updated successfully",
-        "updateError": "Failed to update {field}",
-        "updateException": "An error occurred while updating {field}",
-        "passwordRequired": "All password fields are required",
-        "passwordMismatch": "New passwords do not match",
-        "passwordLength": "New password must be at least 8 characters long",
-        "passwordSuccess": "Password changed successfully",
-        "passwordError": "Failed to change password",
-        "passwordException": "An error occurred while changing password",
-        "avatarRegenerateSuccess": "Profile avatar regenerated successfully",
-        "avatarRegenerateError": "Failed to regenerate avatar",
-        "avatarRegenerateException": "An error occurred while regenerating avatar",
-        "avatarUploadSuccess": "Profile picture uploaded successfully",
-        "avatarUploadError": "Failed to upload profile picture",
-        "avatarUploadException": "An error occurred while uploading",
-        "avatarRemoveSuccess": "Profile picture removed successfully",
-        "avatarRemoveError": "Failed to remove profile picture",
-        "avatarRemoveException": "An error occurred while removing",
-        "deleteConfirmationMissing": "Please type \"{phrase}\" to confirm",
-        "deleteError": "Failed to delete account",
-        "deleteException": "An error occurred while deleting account",
-        "syncLoading": "Settings are still loading. Please wait a moment.",
-        "syncEnabled": "Settings sync enabled. Your settings will now be synced across devices.",
-        "syncDisabled": "Settings sync disabled. Your settings are now stored locally only.",
-        "syncError": "Failed to toggle settings sync",
-        "syncException": "An error occurred while toggling settings sync",
-        "sessionOutdated": "Your session is outdated. Please sign out and sign in again to continue."
+        "requiredField": "{field} non può essere vuoto",
+        "updateSuccess": "{field} aggiornato con successo",
+        "updateError": "Impossibile aggiornare {field}",
+        "updateException": "Si è verificato un errore durante l'aggiornamento {field}",
+        "passwordRequired": "Tutti i campi password sono obbligatori",
+        "passwordMismatch": "Le nuove password non corrispondono",
+        "passwordLength": "La nuova password deve essere lunga almeno 8 caratteri",
+        "passwordSuccess": "Password modificata con successo",
+        "passwordError": "Impossibile cambiare la password",
+        "passwordException": "Si è verificato un errore durante la modifica della password",
+        "avatarRegenerateSuccess": "Avatar profilo rigenerato con successo",
+        "avatarRegenerateError": "Impossibile rigenerare l'avatar",
+        "avatarRegenerateException": "Si è verificato un errore durante la rigenerazione dell'avatar",
+        "avatarUploadSuccess": "Immagine del profilo caricata con successo",
+        "avatarUploadError": "Impossibile caricare l'immagine del profilo",
+        "avatarUploadException": "Si è verificato un errore durante il caricamento",
+        "avatarRemoveSuccess": "Immagine del profilo rimossa con successo",
+        "avatarRemoveError": "Impossibile rimuovere l'immagine del profilo",
+        "avatarRemoveException": "Errore durante la rimozione",
+        "deleteConfirmationMissing": "Digita \"{phrase}\" per confermare",
+        "deleteError": "Impossibile eliminare l'account",
+        "deleteException": "Si è verificato un errore durante l'eliminazione dell'account",
+        "syncLoading": "Le impostazioni sono ancora in caricamento. Si prega di attendere un momento.",
+        "syncEnabled": "Sincronizzazione impostazioni abilitata. Le impostazioni verranno ora sincronizzate tra i dispositivi.",
+        "syncDisabled": "Sincronizzazione impostazioni disabilitata. Le impostazioni sono ora memorizzate solo localmente.",
+        "syncError": "Impossibile attivare la sincronizzazione delle impostazioni",
+        "syncException": "Si è verificato un errore durante la sincronizzazione delle impostazioni",
+        "sessionOutdated": "La sessione è obsoleta. Si prega di uscire e accedere di nuovo per continuare."
       },
       "profilePicture": {
-        "title": "Profile Picture",
-        "alternativeTitle": "Alternative Options",
-        "alternativeDescription": "Don't have a photo? You can use a generated avatar instead.",
-        "generateButton": "Generate New Avatar"
+        "title": "Immagine Del Profilo",
+        "alternativeTitle": "Opzioni Alternative",
+        "alternativeDescription": "Non hai una foto? Puoi usare un avatar generato.",
+        "generateButton": "Genera Un Nuovo Avatar"
       },
       "emailSection": {
-        "title": "Email Address",
+        "title": "Indirizzo Email",
         "label": "Email",
-        "placeholder": "Enter your email",
-        "button": "Update Email"
+        "placeholder": "Inserisci la tua email",
+        "button": "Aggiorna Email"
       },
       "nameSection": {
-        "title": "Display Name",
-        "label": "Name",
-        "description": "This is the name that will be displayed publicly on your profile.",
-        "placeholder": "Enter your display name",
-        "button": "Update Name"
+        "title": "Nome Visualizzato",
+        "label": "Nome",
+        "description": "Questo è il nome che verrà visualizzato pubblicamente sul tuo profilo.",
+        "placeholder": "Inserisci il nome del tuo display",
+        "button": "Aggiorna Nome"
       },
       "usernameSection": {
         "title": "Username",
         "label": "Username",
-        "description": "Your unique username will be displayed as @{username} under your name.",
+        "description": "Il tuo nome utente univoco verrà visualizzato come @{username} sotto il tuo nome.",
         "placeholder": "username",
-        "button": "Update Username"
+        "button": "Aggiorna Nome Utente"
       },
       "passwordSection": {
-        "title": "Change Password",
-        "currentLabel": "Current Password",
-        "currentPlaceholder": "Enter current password",
-        "newLabel": "New Password",
-        "newPlaceholder": "Enter new password",
-        "confirmLabel": "Confirm New Password",
-        "confirmPlaceholder": "Confirm new password",
-        "button": "Change Password"
+        "title": "Cambia Password",
+        "currentLabel": "Password Attuale",
+        "currentPlaceholder": "Inserisci la password corrente",
+        "newLabel": "Nuova Password",
+        "newPlaceholder": "Inserisci una nuova password",
+        "confirmLabel": "Conferma Nuova Password",
+        "confirmPlaceholder": "Conferma la nuova password",
+        "button": "Cambia Password"
       },
       "syncSection": {
-        "title": "Settings Sync",
-        "description": "Enable settings sync to keep your search preferences, AI options, theme, and other settings synchronized across all your devices.",
-        "cardTitle": "Sync Settings",
-        "statusEnabled": "Your settings are synced across devices",
-        "statusDisabled": "Settings are stored locally only",
-        "syncedList": "<strong>Synced settings include:</strong> Search engine preferences, AI model choices, weather settings, theme, autocomplete provider, search regions, and SafeSearch settings."
+        "title": "Sincronizzazione Impostazioni",
+        "description": "Abilita la sincronizzazione delle impostazioni per mantenere sincronizzate le preferenze di ricerca, le opzioni AI, il tema e altre impostazioni su tutti i tuoi dispositivi.",
+        "cardTitle": "Impostazioni Di Sincronizzazione",
+        "statusEnabled": "Le tue impostazioni sono sincronizzate tra dispositivi",
+        "statusDisabled": "Le impostazioni sono memorizzate solo localmente",
+        "syncedList": "Le impostazioni <strong>sincronizzate includono:</strong> Preferenze del motore di ricerca, scelte del modello AI, impostazioni meteo, tema, provider di completamento automatico, regioni di ricerca e impostazioni di SafeSearch."
       },
       "dangerZone": {
-        "title": "Danger Zone",
-        "description": "Once you delete your account, there is no going back. This action cannot be undone.",
-        "deleteButton": "Delete Account",
-        "confirmButton": "Confirm Delete",
-        "confirmPrompt": "Please type <strong>\"{phrase}\"</strong> to confirm account deletion:",
-        "placeholder": "Type: {phrase}",
-        "confirmPhrase": "DELETE MY ACCOUNT"
+        "title": "Zona Pericolosa",
+        "description": "Una volta eliminato il tuo account, non c'è nessun ritorno. Questa azione non può essere annullata.",
+        "deleteButton": "Elimina Account",
+        "confirmButton": "Conferma Eliminazione",
+        "confirmPrompt": "Digita <strong>\"{phrase}\"</strong> per confermare l'eliminazione dell'account:",
+        "placeholder": "Tipo: {phrase}",
+        "confirmPhrase": "ELIMINA IL MIO ACCOUNT"
       }
     },
     "privacyPage": {
-      "metaTitle": "Privacy Settings",
+      "metaTitle": "Impostazioni Privacy",
       "mobileNav": {
-        "back": "Back to Search",
-        "account": "Account Settings"
+        "back": "Torna alla ricerca",
+        "account": "Impostazioni Account"
       },
-      "pageTitle": "Privacy Settings",
-      "pageDescription": "Review what we store and manage your search preferences export/import.",
+      "pageTitle": "Impostazioni Privacy",
+      "pageDescription": "Controlla cosa memorizziamo e gestiamo le tue preferenze di ricerca esportare/importare.",
       "messages": {
-        "exportSuccess": "Preferences exported to {file}",
-        "exportError": "Failed to export settings",
-        "importSuccess": "Preferences imported successfully",
-        "importInvalidKind": "Invalid file format: expected tekir.settings file",
-        "importInvalidPreferences": "Invalid file format: missing or invalid preferences",
-        "importParseError": "Failed to parse import file"
+        "exportSuccess": "Preferenze esportate in {file}",
+        "exportError": "Impossibile esportare le impostazioni",
+        "importSuccess": "Preferenze importate correttamente",
+        "importInvalidKind": "Formato file non valido: atteso file tekir.settings",
+        "importInvalidPreferences": "Formato file non valido: preferenze mancanti o non valide",
+        "importParseError": "Analisi del file di importazione non riuscita"
       },
       "sections": {
         "serverOverview": {
-          "title": "Your Data on Tekir Servers",
-          "signInPrompt": "Sign in to view your server-stored data overview.",
+          "title": "I tuoi dati sui server Tekir",
+          "signInPrompt": "Accedi per visualizzare la panoramica dei dati memorizzati sul server.",
           "fields": {
             "email": "Email:",
-            "name": "Name:",
-            "username": "Username:",
-            "settingsSync": "Settings Sync:",
-            "serverPreferences": "Server Preferences:",
-            "lastUpdated": "Last Updated:"
+            "name": "Nome:",
+            "username": "Utente:",
+            "settingsSync": "Impostazioni Di Sincronizzazione:",
+            "serverPreferences": "Preferenze Server:",
+            "lastUpdated": "Ultimo Aggiornamento:"
           },
           "values": {
-            "enabled": "Enabled",
-            "disabled": "Disabled",
-            "present": "Present",
-            "none": "None"
+            "enabled": "Abilitato",
+            "disabled": "Disabilitato",
+            "present": "Presente",
+            "none": "Nessuno"
           },
-          "privacyNote": "We store only what’s needed to provide your experience. No analytics, no tracking. Account details aren’t included in export/import; only search preferences are. Your privacy is our priority."
+          "privacyNote": "Conserviamo solo ciò che è necessario per fornire la tua esperienza. Nessuna analisi, nessun monitoraggio. I dettagli dell'account non sono inclusi nell'esportazione/importazione; solo le preferenze di ricerca sono. La tua privacy è la nostra priorità."
         },
         "serverJson": {
-          "title": "Server-stored Preferences (JSON)",
-          "copyButton": "Copy",
-          "copyButtonCopied": "Copied",
-          "copyAria": "Copy JSON"
+          "title": "Preferenze Salvate Nel Server (JSON)",
+          "copyButton": "Copia",
+          "copyButtonCopied": "Copiato",
+          "copyAria": "Copia JSON"
         },
         "transfer": {
-          "title": "Export / Import Preferences",
+          "title": "Esporta / Importa Preferenze",
           "export": {
-            "title": "Export",
-            "description": "Download your current search preferences as {file}.",
-            "button": "Export preferences",
-            "ariaLabel": "Export preferences"
+            "title": "Esporta",
+            "description": "Scarica le tue preferenze di ricerca attuali in {file}.",
+            "button": "Esporta preferenze",
+            "ariaLabel": "Esporta preferenze"
           },
           "import": {
-            "title": "Import",
-            "description": "Import preferences from a {file} file. This won’t change your account details.",
-            "button": "Import from file",
-            "ariaLabel": "Import preferences"
+            "title": "Importa",
+            "description": "Importa le preferenze da un file {file} . Questo non cambierà i dettagli del tuo account.",
+            "button": "Importa da file",
+            "ariaLabel": "Importa preferenze"
           },
-          "hint": "Supported file: {file} (kind: tekir.settings, version: 1). Only search preferences are applied."
+          "hint": "File supportato: {file} (kind: tekir.settings, versione: 1). Vengono applicate solo le preferenze di ricerca."
         }
       }
     },
     "searchPage": {
-      "metaTitle": "Search Settings",
+      "metaTitle": "Impostazioni Di Ricerca",
       "mobileNav": {
-        "back": "Back to Search",
-        "chat": "AI Chat",
-        "privacy": "Privacy Policy"
+        "back": "Torna alla ricerca",
+        "chat": "Chat AI",
+        "privacy": "Politica Sulla Privacy"
       },
-      "pageTitle": "Search Settings",
-      "pageDescription": "Customize your search experience and AI preferences.",
+      "pageTitle": "Impostazioni Di Ricerca",
+      "pageDescription": "Personalizza la tua esperienza di ricerca e le preferenze di IA.",
       "sections": {
         "aiFeatures": {
-          "title": "AI Features",
-          "description": "Configure AI-powered search and response features.",
-          "karakulakTitle": "Karakulak AI Mode",
-          "karakulakDescription": "Enable AI-powered responses for your search queries",
-          "karakulakAria": "Karakulak AI Mode",
-          "modelTitle": "AI Model",
-          "modelDescription": "Select your preferred AI model for responses",
-          "modelMenuLabel": "AI model options",
+          "title": "Funzionalità AI",
+          "description": "Configura le funzionalità di ricerca e risposta basate su AI.",
+          "karakulakTitle": "Modalità Ai Di Karakulak",
+          "karakulakDescription": "Abilita le risposte AI-powered per le tue query di ricerca",
+          "karakulakAria": "Modalità Ai Di Karakulak",
+          "modelTitle": "Modello AI",
+          "modelDescription": "Seleziona il tuo modello AI preferito per le risposte",
+          "modelMenuLabel": "Opzioni del modello AI",
           "options": {
             "llama": {
               "name": "Llama 4",
-              "description": "A powerful and open-source model by Meta"
+              "description": "Un modello potente e open-source di Meta"
             },
             "gemini": {
               "name": "Gemini 2.5",
-              "description": "A fast and intelligent model by Google"
+              "description": "Un modello veloce e intelligente di Google"
             },
             "claude": {
               "name": "Claude 4.5",
-              "description": "Latest and fastest model from Anthropic"
+              "description": "Ultimo e più veloce modello da Anthropic"
             },
             "chatgpt": {
               "name": "ChatGPT 5",
-              "description": "Powerful, efficient model by OpenAI"
+              "description": "Modello potente ed efficiente di OpenAI"
             },
             "mistral": {
               "name": "Mistral Mini",
-              "description": "A lightweight model by Mistral AI"
+              "description": "Un modello leggero di Mistral AI"
             },
             "grok": {
               "name": "Grok 4",
-              "description": "An intelligent model from xAI"
+              "description": "Un modello intelligente da xAI"
             }
           }
         },
         "uiLanguage": {
-          "title": "UI & Language",
-          "description": "Customize your interface and language preferences.",
-          "languageTitle": "Language",
-          "languageDescription": "Choose your preferred language for the interface",
-          "languageMenuLabel": "Language options"
+          "title": "Interfaccia Utente E Lingua",
+          "description": "Personalizza le preferenze dell'interfaccia e della lingua.",
+          "languageTitle": "Lingua",
+          "languageDescription": "Scegli la lingua preferita per l'interfaccia",
+          "languageMenuLabel": "Opzioni lingua"
         },
         "externalServices": {
-          "title": "External Services",
-          "description": "Configure integrations with external services.",
-          "clim8Title": "Clim8 Weather Service",
-          "clim8Description": "Enable weather data from Clim8 based on your IP location",
-          "clim8Aria": "Clim8 Weather",
-          "customWeatherTitle": "Custom Weather Location",
-          "customWeatherDescription": "Set a preferred location for weather reports instead of using your IP location",
-          "locationPlaceholder": "Search for a city...",
-          "clearLocation": "Clear location",
-          "suggestionsLabel": "Location suggestions",
-          "selectedLabel": "Selected: {location}",
-          "weatherUnitsTitle": "Weather Units",
-          "weatherUnitsDescription": "Choose between metric (°C, km/h) or imperial (°F, mph) units",
-          "weatherUnitsMenuLabel": "Weather unit options",
+          "title": "Servizi Esterni",
+          "description": "Configurare le integrazioni con servizi esterni.",
+          "clim8Title": "Clim8 Servizio Meteo",
+          "clim8Description": "Abilita i dati meteo da Clim8 in base alla tua posizione IP",
+          "clim8Aria": "Clim8 Meteo",
+          "customWeatherTitle": "Posizione Meteo Personalizzata",
+          "customWeatherDescription": "Imposta una posizione preferita per le previsioni meteorologiche invece di utilizzare la tua posizione IP",
+          "locationPlaceholder": "Cerca una città...",
+          "clearLocation": "Pulisci posizione",
+          "suggestionsLabel": "Suggerimenti posizione",
+          "selectedLabel": "Selezionato: {location}",
+          "weatherUnitsTitle": "Unità Meteo",
+          "weatherUnitsDescription": "Scegli tra unità metriche (°C, km/h) o imperiali (°F, mph)",
+          "weatherUnitsMenuLabel": "Opzioni unità meteo",
           "weatherUnits": {
             "metric": {
-              "label": "Metric",
+              "label": "Metrico",
               "subtitle": "°C, km/h, mm"
             },
             "imperial": {
-              "label": "Imperial",
+              "label": "Imperiale",
               "subtitle": "°F, mph, in"
             }
           },
-          "weatherPlacementTitle": "Weather Placement",
-          "weatherPlacementDescription": "Choose where to show the Clim8 widget on the homepage",
-          "weatherPlacementMenuLabel": "Weather placement options",
+          "weatherPlacementTitle": "Posizione Meteo",
+          "weatherPlacementDescription": "Scegli dove mostrare il widget Clim8 nella homepage",
+          "weatherPlacementMenuLabel": "Opzioni di posizionamento meteo",
           "weatherPlacement": {
             "hero": {
-              "label": "Under search bar",
-              "description": "Show weather chip beneath the main search box"
+              "label": "Sotto la barra di ricerca",
+              "description": "Mostra chip meteo sotto la casella di ricerca principale"
             },
             "topRight": {
-              "label": "Next to profile",
-              "description": "Show under the welcome text near your avatar"
+              "label": "Accanto al profilo",
+              "description": "Mostra sotto il testo di benvenuto vicino al tuo avatar"
             }
           }
         },
         "searchOptions": {
-          "title": "Search Options",
-          "description": "Configure your search provider and filtering preferences.",
-          "enchantedTitle": "Enchanted Results",
-          "enchantedDescription": "Toggle News and Videos widgets in search results",
-          "enchantedAria": "Enchanted Results",
-          "wikipediaTitle": "Wikipedia Results",
-          "wikipediaDescription": "Show Wikipedia summaries and information in search results",
-          "wikipediaAria": "Wikipedia Results",
-          "faviconsTitle": "Favicons in Results",
-          "faviconsDescription": "Show site icons next to result links",
-          "faviconsAria": "Show favicons in results",
-          "recommendationsTitle": "Homepage Recommendations",
-          "recommendationsDescription": "Show daily recommended searches under the search bar on the homepage",
-          "recommendationsAria": "Show recommendations under search bar",
-          "searchProviderTitle": "Search Provider",
-          "searchProviderDescription": "Choose your search engine for web results",
-          "searchProviderMenuLabel": "Search providers",
-          "searchProviderSigninNotice": "Sign in to unlock {provider} results.",
+          "title": "Opzioni Di Ricerca",
+          "description": "Configura il tuo provider di ricerca e le preferenze di filtraggio.",
+          "enchantedTitle": "Risultati Incantati",
+          "enchantedDescription": "Attiva/Disattiva widget News e Video nei risultati di ricerca",
+          "enchantedAria": "Risultati Incantati",
+          "wikipediaTitle": "Risultati Wikipedia",
+          "wikipediaDescription": "Mostra sommari e informazioni su Wikipedia nei risultati della ricerca",
+          "wikipediaAria": "Risultati Wikipedia",
+          "faviconsTitle": "Favicons nei risultati",
+          "faviconsDescription": "Mostra le icone del sito accanto ai link risultanti",
+          "faviconsAria": "Mostra le favicons nei risultati",
+          "recommendationsTitle": "Raccomandazioni Homepage",
+          "recommendationsDescription": "Mostra le ricerche raccomandate quotidianamente sotto la barra di ricerca nella homepage",
+          "recommendationsAria": "Mostra raccomandazioni nella barra di ricerca",
+          "searchProviderTitle": "Provider Di Ricerca",
+          "searchProviderDescription": "Scegli il tuo motore di ricerca per i risultati web",
+          "searchProviderMenuLabel": "Provider di ricerca",
+          "searchProviderSigninNotice": "Accedi per sbloccare i risultati {provider}.",
           "searchProviderOptions": {
             "brave": {
-              "label": "Brave",
-              "description": "Privacy-focused results with video and news options"
+              "label": "Coraggio",
+              "description": "Risultati incentrati sulla privacy con opzioni di video e news"
             },
             "you": {
               "label": "You.com",
-              "description": "Search engine optimized for AI-assisted results"
+              "description": "Motore di ricerca ottimizzato per i risultati assistiti dall'IA"
             },
             "google": {
               "label": "Google",
-              "description": "The most popular and accurate search engine worldwide"
+              "description": "Il motore di ricerca più popolare e preciso in tutto il mondo"
             }
           },
-          "autocompleteTitle": "Autocomplete Provider",
-          "autocompleteDescription": "Choose your search suggestion provider",
-          "autocompleteMenuLabel": "Autocomplete providers",
+          "autocompleteTitle": "Autocompletamento Provider",
+          "autocompleteDescription": "Scegli il tuo provider di suggerimenti di ricerca",
+          "autocompleteMenuLabel": "Provider di completamento automatico",
           "autocompleteOptions": {
-            "brave": "Brave",
+            "brave": "Coraggio",
             "duck": "DuckDuckGo"
           },
-          "searchRegionTitle": "Search Region",
-          "searchRegionDescription": "Choose your preferred search region for localized results",
-          "searchRegionMenuLabel": "Search regions",
+          "searchRegionTitle": "Cerca Regione",
+          "searchRegionDescription": "Scegli la tua regione di ricerca preferita per i risultati localizzati",
+          "searchRegionMenuLabel": "Cerca regioni",
           "safeSearchTitle": "SafeSearch",
-          "safeSearchDescription": "Filter explicit content from your search results",
-          "safeSearchMenuLabel": "SafeSearch levels",
+          "safeSearchDescription": "Filtra contenuti espliciti dai risultati della ricerca",
+          "safeSearchMenuLabel": "Livelli di SafeSearch",
           "safeSearchLevels": {
             "off": {
               "label": "Off",
-              "description": "Show all results"
+              "description": "Mostra tutti i risultati"
             },
             "moderate": {
-              "label": "Moderate",
-              "description": "Filter explicit content"
+              "label": "Moderato",
+              "description": "Filtra contenuto esplicito"
             },
             "strict": {
               "label": "Strict",
-              "description": "Maximum filtering"
+              "description": "Filtro massimo"
             }
           },
           "capabilities": {
-            "Search": "Search",
-            "Images": "Images",
-            "News": "News",
-            "Videos": "Videos"
+            "Search": "Cerca",
+            "Images": "Immagini",
+            "News": "Notizie",
+            "Videos": "Video"
           }
         },
         "cache": {
           "title": "Cache",
-          "description": "Tekir saves some data in your device's cache to serve faster responses. You can clear it anytime.",
-          "clearTitle": "Clear search cache",
-          "clearDescription": "Removes cached search, images, news, videos, AI, Dive, Wikipedia, and autocomplete entries stored locally.",
-          "buttonDefault": "Clear search cache",
-          "buttonCleared": "Cleared!"
+          "description": "Tekir salva alcuni dati nella cache del dispositivo per fornire risposte più veloci. Puoi cancellarli in qualsiasi momento.",
+          "clearTitle": "Cancella cache di ricerca",
+          "clearDescription": "Rimuove la ricerca in cache, immagini, notizie, video, AI, Dive, Wikipedia e le voci autocomplete memorizzate localmente.",
+          "buttonDefault": "Cancella cache di ricerca",
+          "buttonCleared": "Cancellato!"
         }
       },
       "syncStatus": {
-        "syncing": "Syncing settings to server...",
-        "synced": "Settings are automatically saved and synced across devices.",
-        "localOnly": "Settings are automatically saved to your local storage."
+        "syncing": "Sincronizzazione impostazioni sul server...",
+        "synced": "Le impostazioni vengono automaticamente salvate e sincronizzate tra i dispositivi.",
+        "localOnly": "Le impostazioni vengono automaticamente salvate nella memoria locale."
       }
     }
   },
   "auth": {
-    "signIn": "Sign In",
-    "signUp": "Sign Up",
-    "signOut": "Sign Out",
+    "signIn": "Accedi",
+    "signUp": "Registrati",
+    "signOut": "Esci",
     "email": "Email",
     "password": "Password",
-    "confirmPassword": "Confirm Password",
-    "forgotPassword": "Forgot password?",
-    "dontHaveAccount": "Don't have an account?",
-    "alreadyHaveAccount": "Already have an account?",
-    "emailRequired": "Email is required",
-    "passwordRequired": "Password is required",
-    "invalidEmail": "Invalid email address",
-    "passwordTooShort": "Password must be at least 8 characters",
-    "passwordsMustMatch": "Passwords must match"
+    "confirmPassword": "Conferma Password",
+    "forgotPassword": "Password dimenticata?",
+    "dontHaveAccount": "Non hai un account?",
+    "alreadyHaveAccount": "Hai già un account?",
+    "emailRequired": "L'email è obbligatoria",
+    "passwordRequired": "La password è obbligatoria",
+    "invalidEmail": "Indirizzo email non valido",
+    "passwordTooShort": "La password deve contenere almeno 8 caratteri",
+    "passwordsMustMatch": "Le password devono corrispondere"
   },
   "userMenu": {
-    "guest": "Guest",
-    "guestSubtitle": "Not signed in",
-    "loading": "Loading user profile",
-    "guestAria": "Guest user profile",
-    "profileAria": "{name} profile",
-    "usageTooltip": "This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.",
-    "usageIndicatorAria": "Usage indicator",
+    "guest": "Ospite",
+    "guestSubtitle": "Accesso non effettuato",
+    "loading": "Caricamento profilo utente",
+    "guestAria": "Profilo utente ospite",
+    "profileAria": "Profilo {name}",
+    "usageTooltip": "Questa è la quantità di richieste rimanenti per il giorno. Una ricerca costa generalmente circa 6 richieste.",
+    "usageIndicatorAria": "Indicatore di utilizzo",
     "dashboard": "Dashboard"
   },
   "wikipedia": {
-    "readMore": "Read more",
-    "on": "on",
-    "facts": "Facts",
-    "loading": "Loading Wikipedia...",
-    "error": "Failed to load Wikipedia article"
+    "readMore": "Leggi di più",
+    "on": "il",
+    "facts": "Fatti",
+    "loading": "Caricamento Wikipedia...",
+    "error": "Impossibile caricare l'articolo di Wikipedia"
   },
   "images": {
-    "viewImage": "View image",
-    "openInNewTab": "Open in new tab",
-    "imageFrom": "Image from {source}",
+    "viewImage": "Visualizza immagine",
+    "openInNewTab": "Apri in una nuova scheda",
+    "imageFrom": "Immagine da {source}",
     "dimensions": "{width} × {height}",
-    "noImagesFound": "No images found for \"{query}\""
+    "noImagesFound": "Nessuna immagine trovata per \"{query}\""
   },
   "videos": {
-    "watchOn": "Watch on {platform}",
-    "duration": "Duration",
+    "watchOn": "Guarda su {platform}",
+    "duration": "Durata",
     "views": "{count, plural, one {# view} other {# views}}",
-    "noVideosFound": "No videos found for \"{query}\""
+    "noVideosFound": "Nessun video trovato per \"{query}\""
   },
   "news": {
-    "readArticle": "Read article",
-    "publishedOn": "Published on {date}",
-    "source": "Source",
-    "noNewsFound": "No news found for \"{query}\""
+    "readArticle": "Leggi articolo",
+    "publishedOn": "Pubblicato su {date}",
+    "source": "Fonte",
+    "noNewsFound": "Nessuna notizia trovata per \"{query}\""
   },
   "ai": {
-    "askQuestion": "Ask a question...",
-    "thinking": "Thinking...",
-    "regenerate": "Regenerate",
-    "copy": "Copy",
-    "copied": "Copied!",
-    "modelSelect": "Select AI model",
+    "askQuestion": "Fai una domanda...",
+    "thinking": "Pensando...",
+    "regenerate": "Rigenera",
+    "copy": "Copia",
+    "copied": "Copiato!",
+    "modelSelect": "Seleziona modello AI",
     "models": {
       "gpt": "GPT",
       "gemini": "Gemini",
@@ -465,125 +465,125 @@
   },
   "feedback": {
     "title": "Feedback",
-    "helpful": "Was this helpful?",
-    "yes": "Yes",
+    "helpful": "Questo è stato utile?",
+    "yes": "Sì",
     "no": "No",
-    "comment": "Add a comment (optional)",
-    "submit": "Submit",
-    "thankYou": "Thank you for your feedback!",
-    "error": "Failed to submit feedback",
-    "searchHelpful": "Was this search helpful?",
-    "placeholder": "Add more information...",
-    "sending": "Sending...",
-    "sent": "Feedback sent",
-    "openButtonTitle": "Send feedback"
+    "comment": "Aggiungi un commento (opzionale)",
+    "submit": "Invia",
+    "thankYou": "Grazie per il tuo feedback!",
+    "error": "Impossibile inviare il feedback",
+    "searchHelpful": "Questa ricerca è stata utile?",
+    "placeholder": "Aggiungi ulteriori informazioni...",
+    "sending": "Invio...",
+    "sent": "Feedback inviato",
+    "openButtonTitle": "Invia feedback"
   },
   "errors": {
-    "notFound": "Page not found",
-    "unauthorized": "You are not authorized",
-    "forbidden": "Access forbidden",
-    "serverError": "Server error",
-    "networkError": "Network error",
-    "tryAgainLater": "Please try again later",
-    "sessionExpired": "Session expired",
-    "loginRequired": "Please sign in to continue"
+    "notFound": "Pagina non trovata",
+    "unauthorized": "Non sei autorizzato",
+    "forbidden": "Accesso vietato",
+    "serverError": "Errore del server",
+    "networkError": "Errore di rete",
+    "tryAgainLater": "Riprova più tardi",
+    "sessionExpired": "Sessione scaduta",
+    "loginRequired": "Per favore accedi per continuare"
   },
   "footer": {
-    "about": "About",
+    "about": "Informazioni",
     "privacy": "Privacy",
-    "terms": "Terms",
-    "contact": "Contact",
-    "links": "Links",
-    "settings": "Settings",
-    "privacyPromise": "Your searches are always private",
-    "builtBy": "Tekir, built by {author}.",
-    "tagline": "Tekir is a privacy-friendly search engine that serves the best search experience.",
-    "discoverService": "Discover the service",
-    "productsTitle": "Products",
-    "search": "Search",
-    "aiChat": "AI Chat",
-    "aboutTitle": "About Tekir",
-    "aboutUs": "About us",
-    "followUs": "Follow us",
+    "terms": "Termini",
+    "contact": "Contatto",
+    "links": "Collegamenti",
+    "settings": "Impostazioni",
+    "privacyPromise": "Le tue ricerche sono sempre private",
+    "builtBy": "Tekir, costruito da {author}.",
+    "tagline": "Tekir è un motore di ricerca rispettoso della privacy che serve la migliore esperienza di ricerca.",
+    "discoverService": "Scopri il servizio",
+    "productsTitle": "Prodotti",
+    "search": "Cerca",
+    "aiChat": "Chat AI",
+    "aboutTitle": "Informazioni Su Tekir",
+    "aboutUs": "Chi siamo",
+    "followUs": "Seguici su",
     "instagram": "Instagram",
     "bluesky": "Bluesky",
-    "instagramAria": "Follow us on Instagram",
-    "githubAria": "View our GitHub",
-    "statusLoading": "Loading status...",
-    "shareFeedback": "Share your feedback",
+    "instagramAria": "Seguici su Instagram",
+    "githubAria": "Guarda il nostro GitHub",
+    "statusLoading": "Caricamento stato...",
+    "shareFeedback": "Condividi il tuo feedback",
     "feedback": "Feedback",
-    "termsOfService": "Terms of Service",
-    "rightsReserved": "All rights reserved.",
-    "copyright": "© {year} Tekir. All rights reserved."
+    "termsOfService": "Termini di servizio",
+    "rightsReserved": "Tutti i diritti riservati.",
+    "copyright": "©️ {year} Tekir. Tutti i diritti riservati."
   },
   "home": {
-    "metaTitle": "Tekir - The capable search engine",
-    "welcomePrefix": "Welcome,",
-    "defaultUser": "User",
-    "searchPlaceholder": "What's on your mind?",
+    "metaTitle": "Tekir - Il motore di ricerca capace",
+    "welcomePrefix": "Benvenuto,",
+    "defaultUser": "Utente",
+    "searchPlaceholder": "Che cos'è in mente?",
     "quickLinks": {
-      "privateSearches": "Your searches, private.",
-      "aiChat": "AI Chat"
+      "privateSearches": "Le tue ricerche, private.",
+      "aiChat": "Chat AI"
     },
     "recommendations": {
-      "title": "Recommendations",
-      "loading": "Fetching today's picks…",
-      "refresh": "Refresh recommendations",
-      "refreshing": "Refreshing…"
+      "title": "Raccomandazioni",
+      "loading": "Recupero delle scelte di oggi…",
+      "refresh": "Aggiorna raccomandazioni",
+      "refreshing": "Aggiornamento…"
     }
   },
   "about": {
-    "metaTitle": "About Us | Tekir",
+    "metaTitle": "Chi Siamo <unk> Tekir",
     "heading": {
-      "title": "The Search Engine That Respects You",
-      "subtitleLine1": "Discover why others choose Tekir for their daily searches.",
-      "subtitleLine2": "Privacy-focused, lightning-fast, and packed with intelligent features."
+      "title": "Il Motore Di Ricerca Che Vi Rispetta",
+      "subtitleLine1": "Scopri perché altri scelgono Tekir per le loro ricerche quotidiane.",
+      "subtitleLine2": "Privacy-focalizzato, fulmine-veloce e ricco di caratteristiche intelligenti."
     },
     "cards": {
       "privacy": {
         "title": "Privacy by Design",
-        "description": "No tracking, no data collection, no profile building. Your searches remain completely private and are never stored or shared with third parties."
+        "description": "Nessun tracciamento, nessuna raccolta di dati, nessuna costruzione di profilo. Le tue ricerche rimangono completamente private e non vengono mai memorizzate o condivise con terze parti."
       },
       "speed": {
         "title": "Lightning Fast",
-        "description": "Get results in milliseconds with our optimized search infrastructure. Never wait around for answers."
+        "description": "Ottenere risultati in millisecondi con la nostra infrastruttura di ricerca ottimizzata. Non aspettare mai per le risposte."
       },
       "aiChat": {
-        "title": "AI-Powered Chat",
-        "description1": "Get instant answers with our integrated AI chat powered by advanced language models.",
-        "description2": "Experience seamless conversations and get the information you need, when you need it. Use our AI chat to dive deeper into topics and ask follow-up questions."
+        "title": "Chat Ai-Powered",
+        "description1": "Ottieni risposte istantanee con la nostra chat AI integrata basata su modelli linguistici avanzati.",
+        "description2": "Sperimenta conversazioni senza soluzione di continuità e ottieni le informazioni di cui hai bisogno, quando ne hai bisogno. Utilizzare la nostra chat AI per immergersi più in profondità in argomenti e porre domande di follow-up."
       },
       "bangs": {
-        "title": "Bang Commands",
-        "description": "Search directly on your favorite sites with bang commands. Type !g for Google, !w for Wikipedia, and hundreds more.",
-        "more": "More bangs →"
+        "title": "Comandi Bang",
+        "description": "Cerca direttamente sui tuoi siti preferiti con comandi bang. Digita !g per Google, !w per Wikipedia e centinaia di altri.",
+        "more": "Più sbattimenti →"
       },
       "autocomplete": {
-        "title": "Smart Autocomplete",
-        "description": "Intelligent suggestions that learn from global search patterns while keeping your data private."
+        "title": "Autocompletamento Intelligente",
+        "description": "Suggerimenti intelligenti che imparano dai modelli di ricerca globali mantenendo i tuoi dati privati."
       },
       "weather": {
-        "title": "Weather at a Glance",
-        "description": "Get current weather conditions right on your search homepage."
+        "title": "Il tempo a colpo d'occhio",
+        "description": "Ottieni le condizioni meteo attuali direttamente sulla tua homepage di ricerca."
       },
       "openSource": {
         "title": "Open Source",
-        "description": "Transparent, auditable code that you can inspect and contribute to."
+        "description": "Codice trasparente e verificabile a cui puoi ispezionare e contribuire."
       },
       "providers": {
-        "title": "Multiple Search Providers",
-        "description": "Choose from multiple search engines and sources to get the most comprehensive results. Switch between providers to find exactly what you're looking for."
+        "title": "Provider Di Ricerca Multipli",
+        "description": "Scegli tra più motori di ricerca e fonti per ottenere i risultati più completi. Passa tra i provider per trovare esattamente quello che stai cercando."
       },
       "inclusive": {
-        "title": "Made for Everyone",
-        "description": "Accessible, inclusive, and designed to work for all users regardless of their background or abilities."
+        "title": "Fatto per tutti",
+        "description": "Accessibile, inclusivo e progettato per funzionare per tutti gli utenti, indipendentemente dal loro background o abilità."
       }
     },
     "cta": {
-      "title": "Ready to experience better search?",
-      "subtitle": "Start searching with Tekir today and discover the difference privacy makes.",
-      "primary": "Try Tekir Now",
-      "secondary": "Settings"
+      "title": "Pronto a sperimentare una ricerca migliore?",
+      "subtitle": "Inizia a cercare con Tekir oggi e scopri la differenza fa privacy.",
+      "primary": "Prova Tekir Ora",
+      "secondary": "Impostazioni"
     }
   }
 }
