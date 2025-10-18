@@ -417,13 +417,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       }
       const googleRes = await getGoogle(query, country, safesearch, lang);
       results = googleRes.results;
-      totalResultsCount = googleRes.totalResults || results.length;
+      totalResultsCount = results.length;
       break;
     }
     case 'you': {
       const youRes = await getYou(query, country, safesearch);
       results = youRes.results;
-      totalResultsCount = youRes.totalResults || results.length;
+      totalResultsCount = results.length;
       break;
     }
     default:
