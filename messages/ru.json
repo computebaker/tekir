@@ -49,7 +49,7 @@
     "karakulakName": "Karakulak",
     "betaLabel": "БЕТА",
     "imageAlt": "Изображение",
-    "logoAlt": "Tekir",
+    "logoAlt": "Текир",
     "imageFallback": "Изображение",
     "videoFallback": "Видео",
     "diveDisclaimer": "Сгенерировано из веб-источников. Может содержать неточности.",
@@ -256,7 +256,7 @@
         "sourceCodeLink": "здесь",
         "sourceCodeUrl": "https://github.com/computebaker/tekir",
         "description2": "Полностью построено, размещено и поддерживается computebaker, защищено ribaunt",
-        "computebakerLink": "computebaker",
+        "computebakerLink": "компьютерная пекалка",
         "computebakerUrl": "https://computebaker.com",
         "ribauntLink": "ribaunt",
         "ribauntUrl": "https://ribaunt.com"
