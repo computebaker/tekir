@@ -70,6 +70,7 @@
     "search": "Search",
     "privacy": "Privacy",
     "account": "Account",
+    "about": "About",
     "language": "Language",
     "theme": "Theme",
     "searchEngine": "Search Engine",
@@ -235,6 +236,30 @@
           },
           "hint": "Supported file: {file} (kind: tekir.settings, version: 1). Only search preferences are applied."
         }
+      }
+    },
+    "aboutPage": {
+      "metaTitle": "Tekir Haqqında",
+      "mobileNav": {
+        "back": "Axtarışa Qayıt"
+      },
+      "pageTitle": "Tekir Haqqında",
+      "pageDescription": "Tekir və onun arxasındakı komanda haqqında məlumat alın.",
+      "translate": {
+        "title": "Tərcümə Et",
+        "description": "Tətbiqin öz dilinizə tərcüməsini edin.",
+        "link": "translate.tekir.co"
+      },
+      "acknowledgements": {
+        "title": "Təşəkkürlər",
+        "description1": "Tekir, pulsuz və açıq mənbə proqramıdır. Burada mənbə kodunu görmək ola bilərsiniz.",
+        "sourceCodeLink": "burada",
+        "sourceCodeUrl": "https://github.com/computebaker/tekir",
+        "description2": "Tamamilə computebaker tərəfindən tikilmiş, yerləşdirilmiş və dəstəklənmiş, ribaunt tərəfindən təhlükəsizləşdirilmiş",
+        "computebakerLink": "computebaker",
+        "computebakerUrl": "https://computebaker.com",
+        "ribauntLink": "ribaunt",
+        "ribauntUrl": "https://ribaunt.com"
       }
     },
     "searchPage": {

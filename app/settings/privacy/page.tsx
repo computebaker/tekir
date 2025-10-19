@@ -13,6 +13,7 @@ import {
   AlertCircle,
   CheckCircle2,
   ClipboardCopy,
+  Info,
 } from "lucide-react";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
 import { useSettings, type UserSettings } from "@/lib/settings";
@@ -86,6 +87,7 @@ export default function PrivacySettingsPage() {
     { href: "/settings/search", icon: Search, label: tSettings("search") },
     { href: "/settings/account", icon: User, label: tSettings("account") },
     { href: "/settings/privacy", icon: Shield, label: tSettings("privacy"), active: true },
+    { href: "/settings/about", icon: Info, label: tSettings("about") },
   ];
 
   // Build export payload from current settings (search preferences only)

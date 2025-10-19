@@ -70,6 +70,7 @@
     "search": "Search",
     "privacy": "Privacy",
     "account": "Account",
+    "about": "About",
     "language": "Language",
     "theme": "Theme",
     "searchEngine": "Search Engine",
@@ -235,6 +236,30 @@
           },
           "hint": "Supported file: {file} (kind: tekir.settings, version: 1). Only search preferences are applied."
         }
+      }
+    },
+    "aboutPage": {
+      "metaTitle": "About Tekir",
+      "mobileNav": {
+        "back": "Back to Search"
+      },
+      "pageTitle": "About Tekir",
+      "pageDescription": "Learn about Tekir and the team behind it.",
+      "translate": {
+        "title": "Translate",
+        "description": "Translate the app into your own language.",
+        "link": "translate.tekir.co"
+      },
+      "acknowledgements": {
+        "title": "Acknowledgements",
+        "description1": "Tekir is free and open source software. You can view the source code",
+        "sourceCodeLink": "here",
+        "sourceCodeUrl": "https://github.com/computebaker/tekir",
+        "description2": "Fully built, hosted and supported by computebaker, secured by ribaunt",
+        "computebakerLink": "computebaker",
+        "computebakerUrl": "https://computebaker.com",
+        "ribauntLink": "ribaunt",
+        "ribauntUrl": "https://ribaunt.com"
       }
     },
     "searchPage": {

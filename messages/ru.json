@@ -70,6 +70,7 @@
     "search": "Искать",
     "privacy": "Приватность",
     "account": "Аккаунт",
+    "about": "О программе",
     "language": "Язык",
     "theme": "Тема",
     "searchEngine": "Поисковая система",
@@ -237,8 +238,32 @@
         }
       }
     },
+    "aboutPage": {
+      "metaTitle": "О Tekir",
+      "mobileNav": {
+        "back": "Вернуться к поиску"
+      },
+      "pageTitle": "О Tekir",
+      "pageDescription": "Узнайте о Tekir и команде позади нее.",
+      "translate": {
+        "title": "Перевод",
+        "description": "Переведите приложение на свой язык.",
+        "link": "translate.tekir.co"
+      },
+      "acknowledgements": {
+        "title": "Благодарности",
+        "description1": "Tekir - это бесплатное программное обеспечение с открытым исходным кодом. Вы можете просмотреть исходный код",
+        "sourceCodeLink": "здесь",
+        "sourceCodeUrl": "https://github.com/computebaker/tekir",
+        "description2": "Полностью построено, размещено и поддерживается computebaker, защищено ribaunt",
+        "computebakerLink": "computebaker",
+        "computebakerUrl": "https://computebaker.com",
+        "ribauntLink": "ribaunt",
+        "ribauntUrl": "https://ribaunt.com"
+      }
+    },
     "searchPage": {
-      "metaTitle": "Настройки поиска",
+      "metaTitle": "Параметры Поиска",
       "mobileNav": {
         "back": "Вернуться к поиску",
         "chat": "AI Чат",
