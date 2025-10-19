@@ -35,11 +35,26 @@
       "pastYear": "Past year"
     },
     "noResults": "No results found for \"{query}\"",
+    "enterSearchTerm": "Enter a search term to see results",
     "searchError": "Failed to fetch search results",
     "tryAgain": "Please try again",
     "resultsCount": "{count, plural, one {# result} other {# results}}",
     "showMore": "Show more results",
-    "relatedSearches": "Related searches"
+    "relatedSearches": "Related searches",
+    "newsClusterDescription": "News articles about your search query.",
+    "videosClusterDescription": "Videos about your search query.",
+    "karakulakError": "Karakulak couldn't load a response due to an error.",
+    "fetchingWebSources": "Fetching web sources...",
+    "processingRequest": "Processing request...",
+        "karakulakName": "Karakulak",
+    "betaLabel": "BETA",
+    "imageAlt": "Şəkil",
+    "logoAlt": "Tekir",
+    "imageFallback": "Şəkil",
+    "videoFallback": "Video",
+    "diveDisclaimer": "Veb mənbələrindən yaradılmışdır. Yanlışlıqlar ola bilər.",
+    "aiDisclaimer": "AI biliyinə əsasən avtomatik yaradılmışdır. Yanlışlıqlar ola bilər.",
+    "wikipediaHeader": "Vikipediyadan ({language}): {title}"
   },
   "navigation": {
     "about": "About Tekir",

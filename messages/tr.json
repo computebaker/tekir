@@ -35,11 +35,26 @@
       "pastYear": "Son yıl"
     },
     "noResults": "\"{query}\" için sonuç bulunamadı",
+    "enterSearchTerm": "Sonuçları görmek için bir arama terimi girin",
     "searchError": "Arama sonuçları alınamadı",
     "tryAgain": "Lütfen tekrar deneyin",
     "resultsCount": "{count, plural, one {# sonuç} other {# sonuç}}",
     "showMore": "Daha fazla sonuç göster",
-    "relatedSearches": "İlgili aramalar"
+    "relatedSearches": "İlgili aramalar",
+    "newsClusterDescription": "Arama sorgunuzla ilgili haber makaleleri.",
+    "videosClusterDescription": "Arama sorgunuzla ilgili videolar.",
+    "karakulakError": "Karakulak bir hata nedeniyle yanıt yükleyemedi.",
+    "fetchingWebSources": "Web kaynakları getiriliyor...",
+    "processingRequest": "İstek işleniyor...",
+    "karakulakName": "Karakulak",
+    "betaLabel": "BETA",
+    "imageAlt": "Görsel",
+    "logoAlt": "Tekir",
+    "imageFallback": "Görsel",
+    "videoFallback": "Video",
+    "diveDisclaimer": "Web kaynaklarından oluşturulmuştur. Yanlışlıklar içerebilir.",
+    "aiDisclaimer": "AI bilgisine dayalı olarak otomatik oluşturulmuştur. Yanlışlıklar içerebilir.",
+    "wikipediaHeader": "Vikipedi'den ({language}): {title}"
   },
   "navigation": {
     "about": "Tekir Hakkında",

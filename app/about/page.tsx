@@ -11,23 +11,32 @@ import { BadgeChip } from "@/components/shared/badge-chip";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { buttonVariants } from "@/components/ui/button";
 import { storeRedirectUrl } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import { TopNavSimple } from "@/components/layout/top-nav-simple";
 
 export default function AboutPage() {
+  const t = useTranslations();
   useEffect(() => {
-    document.title = "About Us | Tekir";
-  }, []);
+    document.title = t('about.metaTitle');
+  }, [t]);
 
   return (
     <div className="min-h-screen flex flex-col">
+      <TopNavSimple
+        backHref="/"
+        backLabel={t('navigation.home')}
+        showThemeToggle={true}
+      />
+
       <main className="flex-grow">
         {/* Features Section with Bento Grid */}
         <section className="py-20 px-4 bg-gradient-to-br from-gray-50/30 via-slate-50/25 to-neutral-50/30 dark:from-gray-950/10 dark:via-slate-950/8 dark:to-neutral-950/10">
           <div className="max-w-7xl mx-auto">
             <SectionHeading
-              title="The Search Engine That Respects You"
+              title={t('about.heading.title')}
               subtitle={<>
-                Discover why others choose Tekir for their daily searches. <br className="hidden sm:block" />
-                Privacy-focused, lightning-fast, and packed with intelligent features.
+                {t('about.heading.subtitleLine1')} <br className="hidden sm:block" />
+                {t('about.heading.subtitleLine2')}
               </>}
             />
 
@@ -40,10 +49,9 @@ export default function AboutPage() {
                     <div className="w-16 h-16 bg-gray-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-gray-500/30 transition-colors">
                       <Lock className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Privacy by Design</h3>
+                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">{t('about.cards.privacy.title')}</h3>
                     <p className="text-muted-foreground text-lg leading-relaxed">
-                      No tracking, no data collection, no profile building. Your searches remain completely private
-                      and are never stored or shared with third parties.
+                      {t('about.cards.privacy.description')}
                     </p>
                   </div>
                 </div>
@@ -56,9 +64,9 @@ export default function AboutPage() {
                   <div className="w-12 h-12 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4">
                     <div className="w-6 h-6 bg-muted-foreground rounded-full animate-pulse"></div>
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-3">Lightning Fast</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-3">{t('about.cards.speed.title')}</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Get results in milliseconds with our optimized search infrastructure. Never stay waiting for answers.
+                    {t('about.cards.speed.description')}
                   </p>
                 </div>
               </div>
@@ -71,13 +79,13 @@ export default function AboutPage() {
                     <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
                       <MessageCircleMore className="w-6 h-6 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">AI-Powered Chat</h3>
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">{t('about.cards.aiChat.title')}</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Get instant answers with our integrated AI chat powered by advanced language models.
+                      {t('about.cards.aiChat.description1')}
                     </p>
                     <br />
                     <p className="text-muted-foreground leading-relaxed">
-                      Experience seamless conversations and get the information you need, when you need it. Use our AI chat to dive deeper into topics and ask follow-up questions.
+                      {t('about.cards.aiChat.description2')}
                     </p>
                   </div>
                 </div>
@@ -91,10 +99,9 @@ export default function AboutPage() {
                     <div className="w-16 h-16 bg-slate-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-500/30 transition-colors">
                       <div className="text-2xl font-bold text-muted-foreground">!</div>
                     </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Bang Commands</h3>
+                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">{t('about.cards.bangs.title')}</h3>
                     <p className="text-muted-foreground text-lg leading-relaxed mb-4">
-                      Search directly on your favorite sites with bang commands. Type <code className="bg-muted px-2 py-1 rounded">!g</code> for Google,
-                      <code className="bg-muted px-2 py-1 rounded ml-2">!w</code> for Wikipedia, and hundreds more.
+                      {t('about.cards.bangs.description')}
                     </p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       <BadgeChip color="slate">!g Google</BadgeChip>
@@ -103,7 +110,7 @@ export default function AboutPage() {
                       <BadgeChip color="slate">!yt YouTube</BadgeChip>
                     </div>
                     <div className="inline-flex items-center text-muted-foreground group-hover:text-foreground font-medium transition-colors">
-                      More bangs →
+                      {t('about.cards.bangs.more')}
                     </div>
                   </div>
                 </div>
@@ -117,9 +124,9 @@ export default function AboutPage() {
                     <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
                       <Search className="w-6 h-6 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Smart Autocomplete</h3>
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">{t('about.cards.autocomplete.title')}</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Intelligent suggestions that learn from global search patterns while keeping your data private.
+                      {t('about.cards.autocomplete.description')}
                     </p>
                   </div>
                 </div>
@@ -135,9 +142,9 @@ export default function AboutPage() {
                         <div className="absolute inset-1 bg-yellow-400 rounded-full"></div>
                       </div>
                     </div>
-                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Weather at a Glance</h3>
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">{t('about.cards.weather.title')}</h3>
                     <p className="text-muted-foreground leading-relaxed mb-4">
-                      Get current weather conditions right on your search homepage.
+                      {t('about.cards.weather.description')}
                     </p>
                   </div>
                 </div>
@@ -151,9 +158,9 @@ export default function AboutPage() {
                     <div className="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-500/30 transition-colors">
                       <Github className="w-6 h-6 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Open Source</h3>
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">{t('about.cards.openSource.title')}</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Transparent, auditable code that you can inspect and contribute to.
+                      {t('about.cards.openSource.description')}
                     </p>
                   </div>
                 </div>
@@ -172,10 +179,9 @@ export default function AboutPage() {
                         <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">Multiple Search Providers</h3>
+                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-muted-foreground transition-colors">{t('about.cards.providers.title')}</h3>
                     <p className="text-muted-foreground text-lg leading-relaxed mb-4">
-                      Choose from multiple search engines and sources to get the most comprehensive results.
-                      Switch between providers to find exactly what you&apos;re looking for.
+                      {t('about.cards.providers.description')}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <BadgeChip color="gray">Google</BadgeChip>
@@ -194,9 +200,9 @@ export default function AboutPage() {
                   <div className="w-12 h-12 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-slate-500/30 transition-colors">
                     <Heart className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">Made for Everyone</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-muted-foreground transition-colors">{t('about.cards.inclusive.title')}</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Accessible, inclusive, and designed to work for all users regardless of their background or abilities. Does not discriminate based on location, language, or device. Made for all, by all.
+                    {t('about.cards.inclusive.description')}
                   </p>
                 </div>
               </div>
@@ -205,17 +211,17 @@ export default function AboutPage() {
             {/* CTA Section */}
             <div className="text-center mt-16">
               <h3 className="text-2xl font-bold text-foreground mb-4">
-                Ready to experience better search?
+                {t('about.cta.title')}
               </h3>
               <p className="text-muted-foreground mb-8">
-                Start searching with Tekir today and discover the difference privacy makes.
+                {t('about.cta.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/" className={buttonVariants({ variant: "default", size: "lg" }) + " rounded-full px-8"}>
-                  Try Tekir Now
+                  {t('about.cta.primary')}
                 </Link>
                 <Link href="/settings/search" className={buttonVariants({ variant: "secondary", size: "lg" }) + " rounded-full px-8"} onClick={() => storeRedirectUrl(window.location.href)}>
-                  Settings
+                  {t('about.cta.secondary')}
                 </Link>
               </div>
             </div>

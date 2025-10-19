@@ -1393,7 +1393,7 @@ function SearchPageContent() {
                       <ChevronDown className={`ml-2 transform transition-transform duration-200 ${isNewsInlineOpen ? 'rotate-180' : 'rotate-0'}`} />
                     </button>
                     {!isNewsInlineOpen && (
-                      <p className="text-xs text-muted-foreground mt-2">News articles about your search query.</p>
+                      <p className="text-xs text-muted-foreground mt-2">{t('search.newsClusterDescription')}</p>
                     )}
                     {isNewsInlineOpen && (
                       <div className="relative mt-4 mb-4 blurry-outline cluster-enter">
@@ -1440,7 +1440,7 @@ function SearchPageContent() {
                       <ChevronDown className={`ml-2 transform transition-transform duration-200 ${isVideosInlineOpen ? 'rotate-180' : 'rotate-0'}`} />
                     </button>
                     {!isVideosInlineOpen && (
-                      <p className="text-xs text-muted-foreground mt-2">Videos about your search query.</p>
+                      <p className="text-xs text-muted-foreground mt-2">{t('search.videosClusterDescription')}</p>
                     )}
                     {isVideosInlineOpen && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4 cluster-enter">
@@ -1448,7 +1448,7 @@ function SearchPageContent() {
                           <a key={`video-${idx}`} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                             <div className="w-32 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                               {resolveImageSrc(v.thumbnail) ? (
-                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || 'Video'} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
+                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <Search className="w-6 h-6" />
@@ -1485,7 +1485,7 @@ function SearchPageContent() {
                   <ChevronDown className={`ml-2 transform transition-transform duration-200 ${isNewsBottomOpen ? 'rotate-180' : 'rotate-0'}`} />
                 </button>
                 {!isNewsBottomOpen && (
-                  <p className="text-xs text-muted-foreground mt-2">News articles about your search query.</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t('search.newsClusterDescription')}</p>
                 )}
                 {isNewsBottomOpen && (
                   <div className="relative mt-4 mb-4 blurry-outline cluster-enter">
@@ -1535,7 +1535,7 @@ function SearchPageContent() {
                   <ChevronDown className={`ml-2 transform transition-transform duration-200 ${isVideosBottomOpen ? 'rotate-180' : 'rotate-0'}`} />
                 </button>
                 {!isVideosBottomOpen && (
-                  <p className="text-xs text-muted-foreground mt-2">Videos about your search query.</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t('search.videosClusterDescription')}</p>
                 )}
                 {isVideosBottomOpen && (
                   <div className="relative mt-4 mb-4 cluster-enter">
@@ -1549,7 +1549,7 @@ function SearchPageContent() {
                           <a key={`video-bottom-${idx}`} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                             <div className="w-32 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                               {resolveImageSrc(v.thumbnail) ? (
-                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || 'Video'} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
+                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <Search className="w-6 h-6" />
@@ -1576,9 +1576,9 @@ function SearchPageContent() {
 
       // no results case
       if (query) {
-        return <div className="text-center text-muted-foreground">No results found for your search</div>;
+        return <div className="text-center text-muted-foreground">{t('search.noResults', { query })}</div>;
       }
-      return <div className="text-center text-muted-foreground">Enter a search term to see results</div>;
+      return <div className="text-center text-muted-foreground">{t('search.enterSearchTerm')}</div>;
     }
 
   if (searchType === 'images') {
@@ -1602,9 +1602,9 @@ function SearchPageContent() {
             {imageResults.map((image, index) => (
               <a key={index} href={image.url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden blurry-outline">
                 <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-muted mb-3">
-                  <Image src={image.thumbnail.src} alt={image.title || "Image"} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" placeholder="blur" blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNFNkU2RTYiLz48L3N2Zz4="} />
+                  <Image src={image.thumbnail.src} alt={image.title || t('search.imageAlt')} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" placeholder="blur" blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNFNkU2RTYiLz48L3N2Zz4="} />
                 </div>
-                <p className="text-sm font-medium truncate">{image.title || "Image"}</p>
+                <p className="text-sm font-medium truncate">{image.title || t('search.imageFallback')}</p>
                 <p className="text-xs text-muted-foreground truncate">{image.source}</p>
               </a>
             ))}
@@ -1612,7 +1612,7 @@ function SearchPageContent() {
         );
       }
 
-      return <div className="text-center text-muted-foreground">No images found for your search</div>;
+      return <div className="text-center text-muted-foreground">{t('images.noImagesFound', { query })}</div>;
     }
 
     if (searchType === 'news') {
@@ -1697,7 +1697,7 @@ function SearchPageContent() {
         );
       }
 
-      return <div className="text-center text-muted-foreground">No news articles found for your search</div>;
+      return <div className="text-center text-muted-foreground">{t('news.noNewsFound', { query })}</div>;
     }
 
     if (searchType === 'videos') {
@@ -1725,7 +1725,7 @@ function SearchPageContent() {
               <a key={index} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="group overflow-hidden blurry-outline border border-border rounded-lg p-2 bg-card hover:shadow-lg transition-all">
                 <div className="relative w-full h-48 bg-muted rounded-md overflow-hidden mb-3">
                   {resolveImageSrc(v.thumbnail) ? (
-                    <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || 'Video'} fill className="object-cover group-hover:scale-105 transition-transform" />
+                    <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       <Search className="w-6 h-6" />
@@ -1741,7 +1741,7 @@ function SearchPageContent() {
         );
       }
 
-      return <div className="text-center text-muted-foreground">No videos found for your search</div>;
+      return <div className="text-center text-muted-foreground">{t('videos.noVideosFound', { query })}</div>;
     }
 
     return null;
@@ -1761,7 +1761,7 @@ function SearchPageContent() {
       >
         <div className="container mx-auto flex items-center gap-4 h-14 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/tekir-outlined.png" alt="Tekir" width={36} height={12} priority style={{ transform: `scale(1)`, transition: "transform 150ms ease-out" }} />
+            <Image src="/tekir-outlined.png" alt={t('search.logoAlt')} width={36} height={12} priority style={{ transform: `scale(1)`, transition: "transform 150ms ease-out" }} />
             <span className="sr-only">Tekir</span>
           </Link>
 
@@ -1898,7 +1898,7 @@ function SearchPageContent() {
                   className="mb-4 p-3 rounded-md border border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300 text-sm flex items-center gap-2"
                 >
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  <span>Karakulak couldn&apos;t load a response due to an error.</span>
+                  <span>{t('search.karakulakError')}</span>
                   <button 
                   onClick={() => {
                     setAiError(false);
@@ -1917,9 +1917,9 @@ function SearchPageContent() {
                     <div className="flex items-center">
                       <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                        Karakulak
+                        {t('search.karakulakName')}
                         <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
-                          BETA
+                          {t('search.betaLabel')}
                         </span>
                       </span>
                     </div>
@@ -1956,7 +1956,7 @@ function SearchPageContent() {
                     <div className="animate-pulse space-y-2">
                       <div className="flex items-center gap-2 text-xs text-blue-600/70 dark:text-blue-300/70">
                         <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                        <span>{aiDiveEnabled ? "Fetching web sources..." : "Processing request..."}</span>
+                        <span>{aiDiveEnabled ? t('search.fetchingWebSources') : t('search.processingRequest')}</span>
                       </div>
                       <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
                       <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2 mb-3"></div>

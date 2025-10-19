@@ -35,11 +35,26 @@
       "pastYear": "Anno passato"
     },
     "noResults": "Nessun risultato trovato per \"{query}\"",
+    "enterSearchTerm": "Inserisci un termine di ricerca per vedere i risultati",
     "searchError": "Recupero dei risultati della ricerca non riuscito",
     "tryAgain": "Per favore riprova",
     "resultsCount": "{count, plural, one {# risultato} other {# risultati}}",
     "showMore": "Mostra altri risultati",
-    "relatedSearches": "Ricerche correlate"
+    "relatedSearches": "Ricerche correlate",
+    "newsClusterDescription": "Articoli di notizie sulla tua query di ricerca.",
+    "videosClusterDescription": "Video sulla tua query di ricerca.",
+    "karakulakError": "Karakulak non è riuscito a caricare una risposta a causa di un errore.",
+    "fetchingWebSources": "Recupero fonti web...",
+    "processingRequest": "Elaborazione richiesta...",
+    "karakulakName": "Karakulak",
+    "betaLabel": "BETA",
+    "imageAlt": "Immagine",
+    "logoAlt": "Tekir",
+    "imageFallback": "Immagine",
+    "videoFallback": "Video",
+    "diveDisclaimer": "Generato da fonti web. Potrebbe contenere imprecisioni.",
+    "aiDisclaimer": "Generato automaticamente sulla base della conoscenza AI. Potrebbe contenere imprecisioni.",
+    "wikipediaHeader": "Da Wikipedia ({language}): {title}"
   },
   "navigation": {
     "about": "Informazioni Su Tekir",

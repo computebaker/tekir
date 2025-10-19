@@ -35,11 +35,26 @@
       "pastYear": "Прошлый год"
     },
     "noResults": "Ничего не найдено для \"{query}\"",
+    "enterSearchTerm": "Введите поисковый запрос, чтобы увидеть результаты",
     "searchError": "Не удалось получить результаты поиска",
     "tryAgain": "Пожалуйста, попробуйте еще раз",
     "resultsCount": "{count, plural, one {# результат} other {# результаты}}",
     "showMore": "Показать больше результатов",
-    "relatedSearches": "Связанные поиски"
+    "relatedSearches": "Связанные поиски",
+    "newsClusterDescription": "Новости о вашем поисковом запросе.",
+    "videosClusterDescription": "Видео о вашем поисковом запросе.",
+    "karakulakError": "Karakulak не смог загрузить ответ из-за ошибки.",
+    "fetchingWebSources": "Получение веб-источников...",
+    "processingRequest": "Обработка запроса...",
+    "karakulakName": "Karakulak",
+    "betaLabel": "БЕТА",
+    "imageAlt": "Изображение",
+    "logoAlt": "Tekir",
+    "imageFallback": "Изображение",
+    "videoFallback": "Видео",
+    "diveDisclaimer": "Сгенерировано из веб-источников. Может содержать неточности.",
+    "aiDisclaimer": "Автоматически сгенерировано на основе знаний ИИ. Может содержать неточности.",
+    "wikipediaHeader": "Из Википедии ({language}): {title}"
   },
   "navigation": {
     "about": "О Tekir",
