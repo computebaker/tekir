@@ -5,6 +5,18 @@ const USER_AGENT = 'Tekir/1.0 (https://tekir.co/)';
 
 const cache = new Map<string, any>();
 
+// Allowlist of supported language codes to prevent SSRF attacks via lang parameter
+const SUPPORTED_LANGUAGES = new Set([
+  'en', 'de', 'fr', 'it', 'es', 'pt', 'ru', 'ja', 'zh', 'ko', 'ar', 'hi', 'pl', 
+  'nl', 'sv', 'no', 'da', 'fi', 'cs', 'hu', 'ro', 'tr', 'el', 'he', 'uk', 'vi', 'th'
+]);
+
+function validateLanguage(lang: string | null): string {
+  // Default to 'en' if lang is not provided or invalid
+  const normalized = String(lang || 'en').toLowerCase().trim();
+  return SUPPORTED_LANGUAGES.has(normalized) ? normalized : 'en';
+}
+
 async function fetchJson(url: string, opts: RequestInit = {}) {
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, ...opts });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} (${url})`);
@@ -102,7 +114,7 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const title = String(url.searchParams.get('title') || url.searchParams.get('q') || '');
-    const lang = String(url.searchParams.get('lang') || 'en');
+    const lang = validateLanguage(url.searchParams.get('lang'));
     if (!title) return NextResponse.json({ error: 'missing title' }, { status: 400 });
 
     const summary = await getSummary(title, lang).catch(() => null);
