@@ -41,9 +41,9 @@
     "resultsCount": "{count, plural, one {# risultato} other {# risultati}}",
     "showMore": "Mostra altri risultati",
     "relatedSearches": "Ricerche correlate",
-    "newsClusterDescription": "Articoli di notizie sulla tua query di ricerca.",
-    "videosClusterDescription": "Video sulla tua query di ricerca.",
-    "karakulakError": "Karakulak non è riuscito a caricare una risposta a causa di un errore.",
+    "newsClusterDescription": "Notizie articoli sulla tua interrogazione di ricerca.",
+    "videosClusterDescription": "Video sulla tua interrogazione di ricerca.",
+    "karakulakError": "Karakulak non ha potuto caricare una risposta a causa di un errore.",
     "fetchingWebSources": "Recupero fonti web...",
     "processingRequest": "Elaborazione richiesta...",
     "karakulakName": "Karakulak",
@@ -52,8 +52,8 @@
     "logoAlt": "Tekir",
     "imageFallback": "Immagine",
     "videoFallback": "Video",
-    "diveDisclaimer": "Generato da fonti web. Potrebbe contenere imprecisioni.",
-    "aiDisclaimer": "Generato automaticamente sulla base della conoscenza AI. Potrebbe contenere imprecisioni.",
+    "diveDisclaimer": "Generato da fonti web. Può contenere imprecisioni.",
+    "aiDisclaimer": "Auto-generato in base alla conoscenza di IA. Può contenere imprecisioni.",
     "wikipediaHeader": "Da Wikipedia ({language}): {title}"
   },
   "navigation": {

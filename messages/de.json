@@ -35,11 +35,26 @@
       "pastYear": "Letztes Jahr"
     },
     "noResults": "Keine Ergebnisse für \"{query} \" gefunden",
+    "enterSearchTerm": "Suchbegriff eingeben, um Ergebnisse zu sehen",
     "searchError": "Fehler beim Abrufen der Suchergebnisse",
     "tryAgain": "Bitte erneut versuchen",
     "resultsCount": "{count, plural, one {# Ergebnis} other {# Ergebnisse}}",
     "showMore": "Weitere Ergebnisse anzeigen",
-    "relatedSearches": "Ähnliche Suchen"
+    "relatedSearches": "Ähnliche Suchen",
+    "newsClusterDescription": "News Artikel über Ihre Suchabfrage.",
+    "videosClusterDescription": "Videos über Ihre Suchanfrage.",
+    "karakulakError": "Karakulak konnte aufgrund eines Fehlers keine Antwort laden.",
+    "fetchingWebSources": "Web-Quellen werden abgerufen...",
+    "processingRequest": "Anfrage wird verarbeitet...",
+    "karakulakName": "Karakulak",
+    "betaLabel": "BETA",
+    "imageAlt": "Bild",
+    "logoAlt": "Tekir",
+    "imageFallback": "Bild",
+    "videoFallback": "Video",
+    "diveDisclaimer": "Aus Web-Quellen generiert. Kann Ungenauigkeiten enthalten.",
+    "aiDisclaimer": "Automatisch erzeugt, basierend auf KI-Kenntnissen. Kann Ungenauigkeiten enthalten.",
+    "wikipediaHeader": "Von Wikipedia ({language}): {title}"
   },
   "navigation": {
     "about": "Über Tekir",
@@ -55,6 +70,7 @@
     "search": "Suchen",
     "privacy": "Privatsphäre",
     "account": "Konto",
+    "about": "Über",
     "language": "Sprache",
     "theme": "Thema",
     "searchEngine": "Suchmaschine",
@@ -220,6 +236,30 @@
           },
           "hint": "Unterstützte Datei: {file} (Typ: tekir.settings, Version: 1). Es werden nur Sucheinstellungen angewendet."
         }
+      }
+    },
+    "aboutPage": {
+      "metaTitle": "Über Tekir",
+      "mobileNav": {
+        "back": "Zurück zur Suche"
+      },
+      "pageTitle": "Über Tekir",
+      "pageDescription": "Erfahren Sie mehr über Tekir und das dahinterstehende Team.",
+      "translate": {
+        "title": "Übersetzen",
+        "description": "Übersetze die App in deine eigene Sprache.",
+        "link": "translate.tekir.co"
+      },
+      "acknowledgements": {
+        "title": "Danksagungen",
+        "description1": "Tekir ist freie und Open-Source-Software. Sie können den Quellcode ansehen",
+        "sourceCodeLink": "hier",
+        "sourceCodeUrl": "https://github.com/computebaker/tekir",
+        "description2": "Voll gebaut, gehostet und unterstützt von computebaker, gesichert durch ribaunt",
+        "computebakerLink": "computebaker",
+        "computebakerUrl": "https://computebaker.com",
+        "ribauntLink": "ribaunt",
+        "ribauntUrl": "https://ribaunt.com"
       }
     },
     "searchPage": {
