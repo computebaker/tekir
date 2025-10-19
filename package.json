@@ -38,7 +38,7 @@
     "@types/node": "20.6.2",
     "@types/react": "18.2.22",
     "@types/react-dom": "18.2.7",
-    "ai": "^4.1.74",
+    "ai": "^5.0.76",
     "babel-loader": "^10.0.0",
     "bcryptjs": "^3.0.2",
     "cheerio": "^1.0.0",
