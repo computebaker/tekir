@@ -3,24 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { verify } from 'crypto';
 
-// Type definition for the Ribaunt widget custom element in JSX
-declare module 'react' {
-  namespace JSX {
-    interface IntrinsicElements {
-      'ribaunt-widget': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          id?: string;
-          'challenge-endpoint'?: string;
-          'verify-endpoint'?: string;
-          'show-warning'?: string;
-          'warning-message'?: string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
-
 // Type definition for the Ribaunt widget element
 interface RibauntWidgetElement extends HTMLElement {
   reset(): void;
