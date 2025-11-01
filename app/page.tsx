@@ -624,8 +624,8 @@ export default function Home() {
                 alt="Tekir logo" 
                 width={200} 
                 height={66} 
-                loading="eager" 
-                priority 
+                priority
+                fetchPriority="high"
               />
             </div>
           </div>

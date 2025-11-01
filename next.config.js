@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: { 
     remotePatterns: [
       {
@@ -28,19 +25,15 @@ const nextConfig = {
   },
   transpilePackages: ['undici'],
   
+  experimental: {
+    turbopackUseBuiltinBabel: true,
+  },
+  
   async rewrites() {
     console.log('Convex proxy disabled - using direct connections');
     return [];
   },
 
-  turbopack: {
-    rules: {
-      '**/node_modules/undici/**/*.{js,mjs}': {
-        loaders: ['babel-loader'],
-        as: '*.js',
-      },
-    },
-  },
   webpack: (config, { isServer }) => {
     config.module.rules.push({
       test: /\.m?js$/,
