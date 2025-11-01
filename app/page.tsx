@@ -224,20 +224,37 @@ export default function Home() {
 
   useEffect(() => {
     const handler = (ev: Event) => {
-      if (!isMobile || !isFocusLocked) return;
+      if (!isMobile) return;
       const target = ev.target as Node | null;
       const insideSuggestions = suggestionsRef.current?.contains(target as Node) ?? false;
       const insideForm = heroFormRef.current?.contains(target as Node) ?? false;
+      
       if (!insideForm && !insideSuggestions) {
-        unlockingRef.current = true;
-        setIsFocusLocked(false);
-        setIsHeroInputFocused(false);
-        try { searchInputRef.current?.blur(); } catch {}
-        if (pushedStateRef.current) {
-          try { history.back(); } catch {}
-          pushedStateRef.current = false;
+        // Handle focus lock cleanup if active
+        if (isFocusLocked) {
+          // Set unlocking flag FIRST to prevent onBlur from refocusing
+          unlockingRef.current = true;
+          setIsFocusLocked(false);
+          setIsHeroInputFocused(false);
+          if (pushedStateRef.current) {
+            try { history.back(); } catch {}
+            pushedStateRef.current = false;
+          }
+          // Blur after state updates to ensure onBlur sees the correct state
+          window.setTimeout(() => {
+            try { searchInputRef.current?.blur(); } catch {}
+            window.setTimeout(() => { unlockingRef.current = false; }, 80);
+          }, 10);
+        } else if (isHeroInputFocused) {
+          // Handle regular unfocus if no lock
+          setIsHeroInputFocused(false);
+          try { searchInputRef.current?.blur(); } catch {}
         }
-        window.setTimeout(() => { unlockingRef.current = false; }, 80);
+        
+        // Always hide suggestions when clicking outside
+        if (showSuggestions) {
+          setShowSuggestions(false);
+        }
       }
     };
     document.addEventListener('touchstart', handler, { passive: true });
@@ -246,7 +263,7 @@ export default function Home() {
       document.removeEventListener('touchstart', handler as any);
       document.removeEventListener('mousedown', handler as any);
     };
-  }, [isMobile, isFocusLocked]);
+  }, [isMobile, isFocusLocked, isHeroInputFocused, showSuggestions]);
 
   // Track mobile viewport and virtual keyboard visibility
   useEffect(() => {
@@ -474,8 +491,21 @@ export default function Home() {
           e.preventDefault();
           const selected = visibleSuggestions[selectedIndex];
           setSearchQuery(selected.query);
-          router.push(`/search?q=${encodeURIComponent(selected.query)}`);
           setShowSuggestions(false);
+          
+          // Clean up mobile focus lock state before navigation
+          if (isMobile && isFocusLocked) {
+            unlockingRef.current = true;
+            setIsFocusLocked(false);
+            setIsHeroInputFocused(false);
+            if (pushedStateRef.current) {
+              pushedStateRef.current = false;
+            }
+            setTimeout(() => { unlockingRef.current = false; }, 80);
+          }
+          
+          // Navigate to search
+          router.push(`/search?q=${encodeURIComponent(selected.query)}`);
         } else {
           // Even if no suggestion is selected, hide the dropdown on Enter
           setShowSuggestions(false);
@@ -492,7 +522,7 @@ export default function Home() {
     document.title = tHome("metaTitle");
   }, [tHome]);
 
-  // Click outside handler for suggestions
+  // Click outside handler for suggestions and input focus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -500,8 +530,14 @@ export default function Home() {
       const clickedInsideInput = searchInputRef.current?.contains(target);
       const clickedInsideForm = heroFormRef.current?.contains(target);
       
-      if (!clickedInsideSuggestions && !clickedInsideInput && !clickedInsideForm && showSuggestions) {
-        setShowSuggestions(false);
+      if (!clickedInsideSuggestions && !clickedInsideInput && !clickedInsideForm) {
+        if (showSuggestions) {
+          setShowSuggestions(false);
+        }
+        if (isHeroInputFocused) {
+          setIsHeroInputFocused(false);
+          try { searchInputRef.current?.blur(); } catch {}
+        }
       }
     };
 
@@ -512,7 +548,7 @@ export default function Home() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showSuggestions]);
+  }, [showSuggestions, isHeroInputFocused]);
 
   // Global keydown listener to auto-focus search input and capture typing
   useEffect(() => {
@@ -759,9 +795,23 @@ export default function Home() {
                       key={`${suggestion.type}-${suggestion.query}`}
                       onMouseDown={(e) => {
                         e.preventDefault(); // Prevent input blur
+                        e.stopPropagation(); // Prevent mobile unlock handler
                         setSearchQuery(suggestion.query);
-                        router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
                         setShowSuggestions(false);
+                        
+                        // Clean up mobile focus lock state before navigation
+                        if (isMobile && isFocusLocked) {
+                          unlockingRef.current = true;
+                          setIsFocusLocked(false);
+                          setIsHeroInputFocused(false);
+                          if (pushedStateRef.current) {
+                            pushedStateRef.current = false;
+                          }
+                          setTimeout(() => { unlockingRef.current = false; }, 80);
+                        }
+                        
+                        // Navigate to search
+                        router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
                       }}
                       className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
                         index === selectedIndex ? 'bg-muted' : ''
