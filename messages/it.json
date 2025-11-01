@@ -313,7 +313,9 @@
           "description": "Personalizza le preferenze dell'interfaccia e della lingua.",
           "languageTitle": "Lingua",
           "languageDescription": "Scegli la lingua preferita per l'interfaccia",
-          "languageMenuLabel": "Opzioni lingua"
+          "languageMenuLabel": "Opzioni lingua",
+          "logoTitle": "Logo",
+          "logoDescription": "Scegli il logo del gatto da visualizzare sulla homepage"
         },
         "externalServices": {
           "title": "Servizi Esterni",

@@ -313,7 +313,9 @@
           "description": "Customize your interface and language preferences.",
           "languageTitle": "Language",
           "languageDescription": "Choose your preferred language for the interface",
-          "languageMenuLabel": "Language options"
+          "languageMenuLabel": "Language options",
+          "logoTitle": "Logo",
+          "logoDescription": "Choose which cat logo to display on the homepage"
         },
         "externalServices": {
           "title": "External Services",

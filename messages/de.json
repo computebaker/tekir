@@ -313,7 +313,9 @@
           "description": "Passen Sie Ihre Schnittstellen und Spracheinstellungen an.",
           "languageTitle": "Sprache",
           "languageDescription": "Wählen Sie Ihre bevorzugte Sprache für die Schnittstelle",
-          "languageMenuLabel": "Sprachoptionen"
+          "languageMenuLabel": "Sprachoptionen",
+          "logoTitle": "Logo",
+          "logoDescription": "Wählen Sie das Katzenlogo für die Startseite"
         },
         "externalServices": {
           "title": "Externe Dienste",

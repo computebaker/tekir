@@ -50,6 +50,9 @@ export interface UserSettings {
   // i18n: User's preferred language (ISO 639-1 code)
   // @see /.github/instructions/i18n.instructions.md
   language?: string;
+
+  // Logo preference
+  selectedLogo?: 'tekir' | 'duman' | 'pamuk';
 }
 
 // Default settings values
@@ -75,6 +78,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   karakulakEnabled_mistral: true,
   karakulakEnabled_grok: true,
   language: "en", // Default language: English
+  selectedLogo: "tekir", // Default logo: Tekir
 };
 
 class ConvexSettingsManager {

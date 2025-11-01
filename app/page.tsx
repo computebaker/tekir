@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import UserProfile from "@/components/user-profile";
 import { useAuth } from "@/components/auth-provider";
 import { useSettings } from "@/lib/settings";
+import { getLogoMetadata } from "@/components/settings/logo-selector";
 import { fetchWithSessionRefreshAndCache } from "@/lib/cache";
 import WeatherWidget from "@/components/weather-widget";
 import { SearchInput } from "@/components/ui/input";
@@ -62,7 +63,6 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [isLogoHovered, setIsLogoHovered] = useState(false);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [autocompleteSource] = useState(() =>
@@ -614,19 +614,20 @@ export default function Home() {
               keyboardAware ? "opacity-0 -translate-y-2 max-h-0" : "opacity-100 translate-y-0 max-h-[120px]"
             )}
           >
-            <div 
-              onMouseEnter={() => setIsLogoHovered(true)}
-              onMouseLeave={() => setIsLogoHovered(false)}
-              className="cursor-pointer"
-            >
-              <Image 
-                src={isLogoHovered ? "/head-animated.gif" : "/tekir-outlined.png"} 
-                alt="Tekir logo" 
-                width={200} 
-                height={66} 
-                priority
-                fetchPriority="high"
-              />
+            <div>
+              {(() => {
+                const logoMetadata = getLogoMetadata(settings.selectedLogo || 'tekir');
+                return (
+                  <Image 
+                    src={logoMetadata.path} 
+                    alt={`${logoMetadata.name} logo`}
+                    width={logoMetadata.width} 
+                    height={logoMetadata.height} 
+                    priority
+                    fetchPriority="high"
+                  />
+                );
+              })()}
             </div>
           </div>
 

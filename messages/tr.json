@@ -313,7 +313,9 @@
           "description": "Arayüzünü ve dil tercihlerini özelleştir.",
           "languageTitle": "Dil",
           "languageDescription": "Arayüz için tercih ettiğin dili seç",
-          "languageMenuLabel": "Dil seçenekleri"
+          "languageMenuLabel": "Dil seçenekleri",
+          "logoTitle": "Logo",
+          "logoDescription": "Ana sayfada görüntülenecek kedi logosunu seç"
         },
         "externalServices": {
           "title": "Harici Servisler",

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
 import { useAuth } from "@/components/auth-provider";
+import { LogoSelector, type LogoOption } from "@/components/settings/logo-selector";
 
 interface LocationData {
   lat: number;
@@ -340,6 +341,10 @@ export default function SearchSettingsPage() {
     setLanguageDropdownOpen(false);
   };
 
+  const handleLogoChange = (logo: LogoOption) => {
+    void updateSetting("selectedLogo", logo);
+  };
+
   const handleSearchProviderChange = (engine: string) => {
     const option = SEARCH_PROVIDER_OPTIONS.find((opt) => opt.value === engine);
     if (!option) {
@@ -609,6 +614,24 @@ export default function SearchSettingsPage() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Logo Selection */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="text-lg font-medium">{tSearchPage('sections.uiLanguage.logoTitle')}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {tSearchPage('sections.uiLanguage.logoDescription')}
+                      </p>
+                    </div>
+                    <div className="w-full sm:w-auto">
+                      <LogoSelector 
+                        selectedLogo={settings.selectedLogo || 'tekir'}
+                        onLogoChange={handleLogoChange}
+                      />
                     </div>
                   </div>
                 </div>

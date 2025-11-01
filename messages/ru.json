@@ -313,7 +313,9 @@
           "description": "Настройте свой интерфейс и языковые настройки.",
           "languageTitle": "Язык",
           "languageDescription": "Выберите предпочитаемый язык интерфейса",
-          "languageMenuLabel": "Языковые настройки"
+          "languageMenuLabel": "Языковые настройки",
+          "logoTitle": "Логотип",
+          "logoDescription": "Выберите логотип кота для домашней страницы"
         },
         "externalServices": {
           "title": "Внешние сервисы",

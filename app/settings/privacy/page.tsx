@@ -50,6 +50,7 @@ type ExportPayload = {
     | "karakulakEnabled_chatgpt"
     | "karakulakEnabled_mistral"
     | "karakulakEnabled_grok"
+    | "selectedLogo"
   >;
 };
 
@@ -113,6 +114,7 @@ export default function PrivacySettingsPage() {
       karakulakEnabled_chatgpt: settings.karakulakEnabled_chatgpt,
       karakulakEnabled_mistral: settings.karakulakEnabled_mistral,
       karakulakEnabled_grok: settings.karakulakEnabled_grok,
+      selectedLogo: settings.selectedLogo,
     } satisfies ExportPayload["preferences"];
 
     return {
