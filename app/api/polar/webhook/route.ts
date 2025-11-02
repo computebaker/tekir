@@ -212,13 +212,13 @@ async function handleCheckoutCreated(data: any) {
  * Handle successful checkout completion
  */
 async function handleCheckoutSuccess(data: any) {
-  const customerId = data.customer_id;
-  const customerEmail = data.customer_email;
+  const customerId = data.customer_id || data.customer?.id;
+  const customerEmail = data.customer_email || data.customer?.email;
   
   console.log(`Checkout success for customer ${customerId}, email: ${customerEmail}`);
 
   // Try to find user by customer ID first
-  let userId = await findUserByCustomerId(customerId);
+  let userId = customerId ? await findUserByCustomerId(customerId) : null;
   
   // If not found and we have an email, try to find by email
   if (!userId && customerEmail) {
@@ -248,11 +248,11 @@ async function handleCheckoutSuccess(data: any) {
  * Handle new subscription creation
  */
 async function handleSubscriptionCreated(data: any) {
-  const customerId = data.customer_id;
+  const customerId = data.customer_id || data.customer?.id;
   const status = data.status;
   
   // Try multiple ways to find the user
-  let userId = await findUserByCustomerId(customerId);
+  let userId = customerId ? await findUserByCustomerId(customerId) : null;
   
   if (!userId) {
     console.warn('Could not find user for subscription creation');
@@ -320,8 +320,8 @@ async function handleSubscriptionRevoked(data: any) {
  */
 async function handleSubscriptionUpdated(data: any) {
   const status = data.status;
-  const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const customerId = data.customer_id || data.customer?.id;
+  const userId = customerId ? (data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId)) : null;
 
   if (!userId) {
     console.warn('Could not find user for subscription update');
@@ -345,8 +345,8 @@ async function handleSubscriptionUpdated(data: any) {
  * Handle subscription cancellation
  */
 async function handleSubscriptionCanceled(data: any) {
-  const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const customerId = data.customer_id || data.customer?.id;
+  const userId = customerId ? (data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId)) : null;
 
   if (!userId) {
     console.warn('Could not find user for subscription cancellation');
@@ -361,13 +361,16 @@ async function handleSubscriptionCanceled(data: any) {
  * Handle one-time order creation (order.created event fires when payment succeeds)
  */
 async function handleOrderCreated(data: any) {
-  const customerId = data.customer_id;
+  // Log the full data structure to debug
+  console.log('[order.created] Full data:', JSON.stringify(data, null, 2));
+  
+  const customerId = data.customer_id || data.customer?.id;
   const customerEmail = data.customer?.email || data.user?.email;
   
   console.log(`Order created for customer ${customerId}, email: ${customerEmail}`);
   
   // First, try to find user by customer ID
-  let userId = await findUserByCustomerId(customerId);
+  let userId = customerId ? await findUserByCustomerId(customerId) : null;
   
   // If not found and we have an email, try to find by email
   if (!userId && customerEmail) {

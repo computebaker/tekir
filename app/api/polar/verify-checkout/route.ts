@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
         if (customersList.length > 0) {
           const customer = customersList[0];
-          customerId = customer.id || customer.customerId;
+          customerId = customer.id;
           console.log('Found customer ID:', customerId);
           
           // Update user with the found customer ID
