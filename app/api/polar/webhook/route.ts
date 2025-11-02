@@ -212,11 +212,22 @@ async function handleCheckoutCreated(data: any) {
  * Handle successful checkout completion
  */
 async function handleCheckoutSuccess(data: any) {
-  const userId = data.custom_field_data?.userId || data.metadata?.userId;
   const customerId = data.customer_id;
+  const customerEmail = data.customer_email;
+  
+  console.log(`Checkout success for customer ${customerId}, email: ${customerEmail}`);
+
+  // Try to find user by customer ID first
+  let userId = await findUserByCustomerId(customerId);
+  
+  // If not found and we have an email, try to find by email
+  if (!userId && customerEmail) {
+    console.log(`User not found by customer ID, searching by email: ${customerEmail}`);
+    userId = await findUserByEmail(customerEmail);
+  }
 
   if (!userId) {
-    console.warn('No userId in checkout custom_field_data or metadata');
+    console.warn('No userId found for checkout - cannot update polarCustomerId');
     return;
   }
 
@@ -239,8 +250,10 @@ async function handleCheckoutSuccess(data: any) {
 async function handleSubscriptionCreated(data: any) {
   const customerId = data.customer_id;
   const status = data.status;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
-
+  
+  // Try multiple ways to find the user
+  let userId = await findUserByCustomerId(customerId);
+  
   if (!userId) {
     console.warn('Could not find user for subscription creation');
     return;
@@ -349,18 +362,58 @@ async function handleSubscriptionCanceled(data: any) {
  */
 async function handleOrderCreated(data: any) {
   const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const customerEmail = data.customer?.email || data.user?.email;
+  
+  console.log(`Order created for customer ${customerId}, email: ${customerEmail}`);
+  
+  // First, try to find user by customer ID
+  let userId = await findUserByCustomerId(customerId);
+  
+  // If not found and we have an email, try to find by email
+  if (!userId && customerEmail) {
+    console.log(`User not found by customer ID, searching by email: ${customerEmail}`);
+    userId = await findUserByEmail(customerEmail);
+    
+    // If found, update the user with the Polar customer ID
+    if (userId) {
+      console.log(`Found user by email, updating with Polar customer ID`);
+      try {
+        await convex.mutation(api.users.updateUser, {
+          id: userId as Id<'users'>,
+          polarCustomerId: customerId,
+        });
+        console.log(`Updated user ${userId} with Polar customer ID: ${customerId}`);
+      } catch (error) {
+        console.error('Failed to update user with customer ID:', error);
+      }
+    }
+  }
 
   if (!userId) {
-    console.warn('Could not find user for order');
+    console.warn('Could not find user for order - no matching customer ID or email');
     return;
   }
 
   console.log(`Order created for user ${userId}`);
   
-  // For one-time purchases, grant paid role
-  // Note: You might want to track expiration separately for lifetime purchases
+  // For one-time purchases and subscriptions, grant paid role
   await grantPaidRole(userId);
+}
+
+/**
+ * Find user by email address
+ */
+async function findUserByEmail(email: string): Promise<string | null> {
+  try {
+    const user = await convex.query(api.users.getUserByEmail, {
+      email: email,
+    });
+
+    return user?._id || null;
+  } catch (error) {
+    console.error('Failed to find user by email:', error);
+    return null;
+  }
 }
 
 /**
