@@ -3,7 +3,7 @@ import { polarConfig } from '@/lib/polar';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { createHmac } from 'crypto';
+import { validateEvent } from '@polar-sh/sdk/webhooks';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -52,25 +52,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, duplicate: true }, { headers });
     }
 
-    // Verify webhook signature
-    const signature = req.headers.get('webhook-signature');
-    const timestamp = req.headers.get('webhook-timestamp');
+    // Verify webhook signature using Polar's SDK
+    const webhookSecret = polarConfig.webhookSecret;
     
-    if (!signature || !timestamp) {
-      console.error('Missing webhook signature or timestamp');
-      return NextResponse.json(
-        { error: 'Missing signature' },
-        { status: 401, headers }
-      );
-    }
-
-    // Verify signature with HMAC SHA256
-    if (!verifyWebhookSignature(rawBody, signature, timestamp)) {
-      console.error('Invalid webhook signature');
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 401, headers }
-      );
+    if (!webhookSecret) {
+      console.warn('POLAR_WEBHOOK_SECRET not configured');
+      if (process.env.NODE_ENV !== 'development') {
+        return NextResponse.json(
+          { error: 'Webhook secret not configured' },
+          { status: 500, headers }
+        );
+      }
+    } else {
+      try {
+        // Use Polar's validateEvent to verify the webhook
+        const webhookPayload = validateEvent(rawBody, req.headers as any, webhookSecret);
+        
+        console.log(`[Webhook ${webhookId}] Signature verified successfully`);
+        
+        // Override body with validated payload
+        Object.assign(body, webhookPayload);
+      } catch (error) {
+        console.error('Webhook signature validation failed:', error);
+        
+        // In development, log but allow the webhook through
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Development mode: Processing webhook despite validation failure');
+        } else {
+          return NextResponse.json(
+            { error: 'Invalid webhook signature' },
+            { status: 401, headers }
+          );
+        }
+      }
     }
 
     console.log(`[Webhook ${webhookId}] Received event: ${event}`);
@@ -149,36 +163,6 @@ export async function POST(req: NextRequest) {
       },
       { status: 500, headers }
     );
-  }
-}
-
-/**
- * Verify webhook signature using HMAC SHA256
- */
-function verifyWebhookSignature(
-  payload: string,
-  signature: string,
-  timestamp: string
-): boolean {
-  try {
-    const secret = polarConfig.webhookSecret;
-    
-    if (!secret) {
-      console.warn('POLAR_WEBHOOK_SECRET not configured, skipping signature verification');
-      return true; // Allow in development
-    }
-
-    // Polar webhook signature format: timestamp.payload
-    const signedPayload = `${timestamp}.${payload}`;
-    const expectedSignature = createHmac('sha256', secret)
-      .update(signedPayload)
-      .digest('hex');
-
-    // Constant-time comparison to prevent timing attacks
-    return signature === expectedSignature;
-  } catch (error) {
-    console.error('Signature verification error:', error);
-    return false;
   }
 }
 
