@@ -14,6 +14,7 @@ interface User {
   isEmailVerified: boolean;
   roles?: string[];
   settings?: any;
+  polarCustomerId?: string;
 }
 
 interface AuthContextType {

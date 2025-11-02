@@ -63,12 +63,14 @@ export default defineSchema({
     roles: v.optional(v.array(v.string())),
     settingsSync: v.boolean(),
     settings: v.optional(v.any()), // JSON settings
+    polarCustomerId: v.optional(v.string()), // Polar.sh customer ID for subscription management
     createdAt: v.number(), // Unix timestamp
     updatedAt: v.number(), // Unix timestamp
   })
     .index("by_email", ["email"])
     .index("by_username", ["username"])
-    .index("by_emailVerificationToken", ["emailVerificationToken"]),
+    .index("by_emailVerificationToken", ["emailVerificationToken"])
+    .index("by_polarCustomerId", ["polarCustomerId"]),
 
 
   // Session tracking for rate limiting (replaces Redis)
