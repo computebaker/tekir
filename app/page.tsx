@@ -83,6 +83,11 @@ export default function Home() {
   const [isFocusLocked, setIsFocusLocked] = useState(false);
   const unlockingRef = useRef(false);
   const pushedStateRef = useRef(false);
+  
+  // Logo chooser state - load from localStorage on mount
+  const [selectedLogoState, setSelectedLogoState] = useState<'tekir' | 'duman' | 'pamuk' | null>(null);
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  
   // Tri-state: null = unknown (no explicit local value) | true | false
   // If user has an explicit local preference in localStorage, use it immediately.
   // Otherwise keep null and wait for server settings (isInitialized) before rendering.
@@ -95,6 +100,26 @@ export default function Home() {
     return null;
   });
   const showHeroWeather = (settings.clim8Enabled ?? true) && ((settings.weatherPlacement || 'topRight') === 'hero');
+
+  // Load logo from localStorage on mount (client-side only)
+  useEffect(() => {
+    const stored = localStorage.getItem('selectedLogo');
+    if (stored === 'tekir' || stored === 'duman' || stored === 'pamuk') {
+      setSelectedLogoState(stored);
+    } else {
+      setSelectedLogoState('tekir');
+    }
+    setLogoLoaded(true);
+  }, []);
+
+  // Update logo state when settings change
+  useEffect(() => {
+    if (settings.selectedLogo && settings.selectedLogo !== selectedLogoState) {
+      setSelectedLogoState(settings.selectedLogo);
+      // Ensure it's saved to localStorage for next load
+      localStorage.setItem('selectedLogo', settings.selectedLogo);
+    }
+  }, [settings.selectedLogo, selectedLogoState]);
 
   // Determine effective preference: true/false when known, null when still unresolved
   const effectiveShowRecs: boolean | null = localShowRecs !== null ? localShowRecs : (isInitialized ? (settings.showRecommendations ?? false) : null);
@@ -651,19 +676,25 @@ export default function Home() {
             )}
           >
             <div>
-              {(() => {
-                const logoMetadata = getLogoMetadata(settings.selectedLogo || 'tekir');
-                return (
-                  <Image 
-                    src={logoMetadata.path} 
-                    alt={`${logoMetadata.name} logo`}
-                    width={logoMetadata.width} 
-                    height={logoMetadata.height} 
-                    priority
-                    fetchPriority="high"
-                  />
-                );
-              })()}
+              {logoLoaded && selectedLogoState ? (
+                (() => {
+                  const logoMetadata = getLogoMetadata(selectedLogoState);
+                  return (
+                    <Image 
+                      key={logoMetadata.path}
+                      src={logoMetadata.path} 
+                      alt={`${logoMetadata.name} logo`}
+                      width={logoMetadata.width} 
+                      height={logoMetadata.height} 
+                      priority
+                      fetchPriority="high"
+                      suppressHydrationWarning
+                    />
+                  );
+                })()
+              ) : (
+                <div style={{ width: 200, height: 66 }} className="bg-transparent" />
+              )}
             </div>
           </div>
 

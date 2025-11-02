@@ -1335,8 +1335,32 @@ function SearchPageContent() {
     return tokens.some((t) => words.has(t));
   })();
 
-  // Get the selected logo metadata from settings
-  const logoMetadata = getLogoMetadata(settings.selectedLogo || 'tekir');
+  // Get the selected logo from localStorage immediately (before any React rendering)
+  // This ensures the correct logo loads without flashing the default
+  const [selectedLogoState, setSelectedLogoState] = useState<'tekir' | 'duman' | 'pamuk' | null>(null);
+  const [logoLoaded, setLogoLoaded] = useState(false);
+
+  // Load logo from localStorage on mount (client-side only)
+  useEffect(() => {
+    const stored = localStorage.getItem('selectedLogo');
+    if (stored === 'tekir' || stored === 'duman' || stored === 'pamuk') {
+      setSelectedLogoState(stored);
+    } else {
+      setSelectedLogoState('tekir');
+    }
+    setLogoLoaded(true);
+  }, []);
+
+  // Update logo state when settings change
+  useEffect(() => {
+    if (settings.selectedLogo && settings.selectedLogo !== selectedLogoState) {
+      setSelectedLogoState(settings.selectedLogo);
+      // Ensure it's saved to localStorage for next load
+      localStorage.setItem('selectedLogo', settings.selectedLogo);
+    }
+  }, [settings.selectedLogo, selectedLogoState]);
+
+  const logoMetadata = selectedLogoState ? getLogoMetadata(selectedLogoState) : getLogoMetadata('tekir');
 
   // Helper to normalize thumbnail values which may be a string or an object
   const resolveImageSrc = (t: any): string | null => {
@@ -1765,7 +1789,11 @@ function SearchPageContent() {
       >
         <div className="container mx-auto flex items-center gap-4 h-14 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src={logoMetadata.path} alt={t('search.logoAlt')} width={36} height={12} priority style={{ transform: `scale(1)`, transition: "transform 150ms ease-out" }} />
+            {logoLoaded ? (
+              <Image key={logoMetadata.path} src={logoMetadata.path} alt={t('search.logoAlt')} width={36} height={12} style={{ transform: `scale(1)`, transition: "transform 150ms ease-out" }} suppressHydrationWarning />
+            ) : (
+              <div style={{ width: 36, height: 12 }} className="bg-transparent" />
+            )}
             <span className="sr-only">Tekir</span>
           </Link>
 
@@ -1825,7 +1853,11 @@ function SearchPageContent() {
         <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 md:mr-8 mb-8 relative">
           <form onSubmit={handleSearch} className="flex items-center w-full space-x-2 md:space-x-4">
             <Link href="/">
-              <Image src={logoMetadata.path} alt="Tekir Logo" width={40} height={40} />
+              {logoLoaded ? (
+                <Image key={logoMetadata.path} src={logoMetadata.path} alt="Tekir Logo" width={40} height={40} priority suppressHydrationWarning />
+              ) : (
+                <div style={{ width: 40, height: 40 }} className="bg-transparent" />
+              )}
             </Link>
             <div className="relative flex-1 min-w-0">
               <div className="flex items-center w-full relative">
