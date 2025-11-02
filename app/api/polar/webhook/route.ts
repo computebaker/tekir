@@ -3,9 +3,12 @@ import { polarConfig } from '@/lib/polar';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { validateEvent } from '@polar-sh/sdk/webhooks';
+import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+// Disable body parsing for webhook route
+export const runtime = 'nodejs';
 
 // Store processed webhook IDs to prevent duplicate processing (in-memory cache)
 // In production, use Redis or database for distributed systems
@@ -37,60 +40,58 @@ export async function POST(req: NextRequest) {
   let webhookId: string | undefined;
 
   try {
-    // Get raw body for signature verification
+    // Get raw body as Buffer for signature verification
     const rawBody = await req.text();
-    const body = JSON.parse(rawBody);
-
-    // Extract webhook metadata
-    const event = body.event;
-    const data = body.data;
-    webhookId = body.id || `${event}_${Date.now()}`;
-
-    // Check for duplicate webhook processing (idempotency)
-    if (webhookId && processedWebhooks.has(webhookId)) {
-      console.log(`Webhook ${webhookId} already processed, skipping`);
-      return NextResponse.json({ received: true, duplicate: true }, { headers });
-    }
+    
+    console.log('[Webhook] Received webhook request');
+    console.log('[Webhook] Headers:', Object.fromEntries(req.headers.entries()));
 
     // Verify webhook signature using Polar's SDK
     const webhookSecret = polarConfig.webhookSecret;
     
     if (!webhookSecret) {
-      console.warn('POLAR_WEBHOOK_SECRET not configured');
-      if (process.env.NODE_ENV !== 'development') {
-        return NextResponse.json(
-          { error: 'Webhook secret not configured' },
-          { status: 500, headers }
-        );
-      }
-    } else {
-      try {
-        // Use Polar's validateEvent to verify the webhook
-        const webhookPayload = validateEvent(rawBody, req.headers as any, webhookSecret);
-        
-        console.log(`[Webhook ${webhookId}] Signature verified successfully`);
-        
-        // Override body with validated payload
-        Object.assign(body, webhookPayload);
-      } catch (error) {
-        console.error('Webhook signature validation failed:', error);
-        
-        // In development, log but allow the webhook through
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Development mode: Processing webhook despite validation failure');
-        } else {
-          return NextResponse.json(
-            { error: 'Invalid webhook signature' },
-            { status: 401, headers }
-          );
-        }
-      }
+      console.error('[Webhook] POLAR_WEBHOOK_SECRET not configured');
+      return NextResponse.json(
+        { error: 'Webhook secret not configured' },
+        { status: 500, headers }
+      );
     }
 
-    console.log(`[Webhook ${webhookId}] Received event: ${event}`);
+    let event: any;
+    try {
+      // Use Polar's validateEvent to verify the webhook
+      // This function expects the raw body, headers, and secret
+      event = validateEvent(rawBody, req.headers as any, webhookSecret);
+      
+      console.log('[Webhook] Signature verified successfully');
+    } catch (error) {
+      console.error('[Webhook] Signature validation failed:', error);
+      
+      if (error instanceof WebhookVerificationError) {
+        return NextResponse.json(
+          { error: 'Invalid webhook signature' },
+          { status: 403, headers }
+        );
+      }
+      
+      throw error;
+    }
+
+    // Extract webhook metadata from validated event
+    const eventType = event.type;
+    const data = event.data;
+    webhookId = event.id || `${eventType}_${Date.now()}`;
+
+    console.log(`[Webhook ${webhookId}] Received event: ${eventType}`);
+
+    // Check for duplicate webhook processing (idempotency)
+    if (webhookId && processedWebhooks.has(webhookId)) {
+      console.log(`[Webhook ${webhookId}] Already processed, skipping`);
+      return NextResponse.json({ received: true, duplicate: true }, { headers });
+    }
 
     // Handle different event types
-    switch (event) {
+    switch (eventType) {
       case 'checkout.created':
         console.log(`[${webhookId}] Checkout created:`, data.id);
         await handleCheckoutCreated(data);
