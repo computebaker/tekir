@@ -46,6 +46,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if user already has paid role - if so, they're all set
+    const currentRoles = Array.isArray(convexUser.roles) ? convexUser.roles : [];
+    const alreadyHasPaidRole = currentRoles.some(role => role.toLowerCase() === 'paid');
+
+    if (alreadyHasPaidRole) {
+      console.log('User already has paid role, verification complete');
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Your subscription is already active!',
+          alreadyActive: true,
+          subscription: {
+            status: 'active',
+          },
+        },
+        { headers }
+      );
+    }
+
     let customerId = convexUser.polarCustomerId;
 
     // If no polarCustomerId, try to find it by searching Polar customers by email
