@@ -40,11 +40,18 @@ export async function POST(req: NextRequest) {
   let webhookId: string | undefined;
 
   try {
-    // Get raw body as Buffer for signature verification
+    // Get raw body as string for signature verification
     const rawBody = await req.text();
     
     console.log('[Webhook] Received webhook request');
-    console.log('[Webhook] Headers:', Object.fromEntries(req.headers.entries()));
+    
+    // Convert Next.js headers to a plain object
+    const headersObj: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      headersObj[key.toLowerCase()] = value;
+    });
+    
+    console.log('[Webhook] Headers:', headersObj);
 
     // Verify webhook signature using Polar's SDK
     const webhookSecret = polarConfig.webhookSecret;
@@ -60,21 +67,42 @@ export async function POST(req: NextRequest) {
     let event: any;
     try {
       // Use Polar's validateEvent to verify the webhook
-      // This function expects the raw body, headers, and secret
-      event = validateEvent(rawBody, req.headers as any, webhookSecret);
+      // Pass the headers object directly - the SDK will look for webhook-signature and webhook-timestamp
+      event = validateEvent(rawBody, headersObj, webhookSecret);
       
       console.log('[Webhook] Signature verified successfully');
     } catch (error) {
       console.error('[Webhook] Signature validation failed:', error);
+      console.error('[Webhook] Error details:', error instanceof Error ? error.message : String(error));
       
       if (error instanceof WebhookVerificationError) {
-        return NextResponse.json(
-          { error: 'Invalid webhook signature' },
-          { status: 403, headers }
-        );
+        // Log for debugging
+        console.error('[Webhook] WebhookVerificationError - check your POLAR_WEBHOOK_SECRET');
+        console.error('[Webhook] Expected secret format: polar_whs_...');
+        console.error('[Webhook] Secret configured:', webhookSecret ? `Yes (length: ${webhookSecret.length})` : 'No');
+        
+        // TEMPORARY: Parse body anyway for debugging (REMOVE IN PRODUCTION)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[Webhook] DEV MODE: Processing despite signature failure');
+          try {
+            event = JSON.parse(rawBody);
+            console.log('[Webhook] DEV MODE: Parsed event type:', event.type);
+          } catch (parseError) {
+            console.error('[Webhook] DEV MODE: Failed to parse body:', parseError);
+            return NextResponse.json(
+              { error: 'Invalid webhook signature and unable to parse body' },
+              { status: 403, headers }
+            );
+          }
+        } else {
+          return NextResponse.json(
+            { error: 'Invalid webhook signature' },
+            { status: 403, headers }
+          );
+        }
+      } else {
+        throw error;
       }
-      
-      throw error;
     }
 
     // Extract webhook metadata from validated event
