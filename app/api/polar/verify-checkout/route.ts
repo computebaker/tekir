@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCustomerSubscriptions } from '@/lib/polar';
+import { getCustomerSubscriptions, polar } from '@/lib/polar';
 import { getJWTUser } from '@/lib/jwt-auth';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
@@ -46,9 +46,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user has polarCustomerId (set by webhook)
-    if (!convexUser.polarCustomerId) {
-      // Webhook might not have processed yet, retry after a short delay
+    let customerId = convexUser.polarCustomerId;
+
+    // If no polarCustomerId, try to find it by searching Polar customers by email
+    if (!customerId && convexUser.email) {
+      try {
+        console.log('Looking up customer by email:', convexUser.email);
+        
+        // Search for customer by email
+        const customersResult = await polar.customers.list({
+          email: convexUser.email,
+          limit: 1,
+        });
+
+        // Get first customer from the result
+        const customersList: any[] = [];
+        for await (const customer of customersResult) {
+          customersList.push(customer);
+        }
+
+        if (customersList.length > 0) {
+          const customer = customersList[0];
+          customerId = customer.id || customer.customerId;
+          console.log('Found customer ID:', customerId);
+          
+          // Update user with the found customer ID
+          await convex.mutation(api.users.updateUser, {
+            id: user.userId as Id<'users'>,
+            polarCustomerId: customerId,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to search for customer:', error);
+      }
+    }
+
+    // If still no customer ID found, return retry message
+    if (!customerId) {
       return NextResponse.json(
         {
           success: false,
@@ -60,7 +94,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get customer's subscriptions from Polar
-    const subscriptionsResult = await getCustomerSubscriptions(convexUser.polarCustomerId);
+    const subscriptionsResult = await getCustomerSubscriptions(customerId);
 
     if (!subscriptionsResult.success) {
       return NextResponse.json(
@@ -83,6 +117,8 @@ export async function POST(req: NextRequest) {
           id: user.userId as Id<'users'>,
           roles: updatedRoles,
         });
+        
+        console.log('Granted paid role to user:', user.userId);
       }
 
       return NextResponse.json(
@@ -98,10 +134,13 @@ export async function POST(req: NextRequest) {
         { headers }
       );
     } else {
+      // No active subscription found, but customer exists
+      // This might mean payment is still processing
       return NextResponse.json(
         {
           success: false,
-          message: 'No active subscription found. Please contact support if you believe this is an error.',
+          message: 'No active subscription found yet. Your payment may still be processing.',
+          needsRetry: true,
         },
         { headers }
       );
