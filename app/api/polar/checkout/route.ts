@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create checkout session
-    const successUrl = `${req.nextUrl.origin}/settings/account?upgrade=success`;
+    const successUrl = `${req.nextUrl.origin}/plus/callback`;
     
     const result = await createCheckoutSession({
       productId,

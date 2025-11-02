@@ -87,6 +87,28 @@ export async function getCustomerSubscriptions(customerId: string) {
 }
 
 /**
+ * Get a checkout by ID to verify completion
+ */
+export async function getCheckout(checkoutId: string) {
+  try {
+    const checkout = await polar.checkouts.get({
+      id: checkoutId,
+    });
+
+    return {
+      success: true,
+      checkout,
+    };
+  } catch (error) {
+    console.error('Failed to get checkout:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
  * Cancel a subscription
  */
 export async function cancelSubscription(subscriptionId: string) {
