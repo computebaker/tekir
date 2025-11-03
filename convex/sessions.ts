@@ -6,7 +6,7 @@ import { yyyymmdd } from "./usage";
 const RATE_LIMITS = {
   ANONYMOUS_DAILY_LIMIT: 150,
   AUTHENTICATED_DAILY_LIMIT: 300,
-  PLUS_DAILY_LIMIT: 2000, // Tekir Plus members get significantly higher limits
+  PLUS_DAILY_LIMIT: 600, // Tekir Plus members get significantly higher limits
   SESSION_EXPIRATION_SECONDS: 24 * 60 * 60, // 24 hours
   RESET_INTERVAL_MS: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 } as const;
