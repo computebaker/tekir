@@ -627,5 +627,46 @@
       "primary": "Tekir jetzt testen",
       "secondary": "Einstellungen"
     }
+  },
+  "subscription": {
+    "title": "Tekir Plus",
+    "price": "$5/Monat",
+    "proMember": "Pro-Mitglied",
+    "plusMember": "Plus-Mitglied",
+    "activeSubscription": "Aktives Abonnement",
+    "description": "Unterstützen Sie die Entwicklung und schalten Sie Premium-Funktionen frei",
+    "descriptionBetter": "Unterstützen Sie die Entwicklung und schalten Sie bessere Funktionen frei",
+    "features": {
+      "increasedLimits": "Erhöhte Limits",
+      "moreSearchOptions": "Mehr Suchoptionen",
+      "prioritySupport": "Prioritätsunterstützung",
+      "prioritizedFeedback": "Priorisiertes Feedback"
+    },
+    "status": {
+      "title": "Status",
+      "active": "Aktiv",
+      "loading": "Abonnementdetails werden geladen..."
+    },
+    "billing": {
+      "cycle": "Abrechnungszyklus",
+      "monthly": "Monatlich",
+      "nextInvoice": "Nächste Rechnung"
+    },
+    "actions": {
+      "upgrade": "Auf Plus upgraden",
+      "upgradeToPro": "Auf Pro upgraden",
+      "manage": "Abonnement verwalten",
+      "loading": "Laden...",
+      "signInRequired": "Bitte melden Sie sich an, um ein Upgrade durchzuführen"
+    },
+    "errors": {
+      "checkoutFailed": "Checkout konnte nicht erstellt werden",
+      "upgradeFailed": "Upgrade-Prozess konnte nicht gestartet werden"
+    },
+    "info": {
+      "includedFeatures": "Enthaltene Funktionen:",
+      "hasAccess": "Sie haben Zugriff auf alle Premium-Funktionen",
+      "manageInfo": "Sie können Ihre Zahlungsmethode aktualisieren, Rechnungen einsehen oder Ihr Abonnement im Kundenportal kündigen."
+    }
   }
 }
