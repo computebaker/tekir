@@ -20,7 +20,8 @@ import trMessages from '@/messages/tr.json';
 
 const MESSAGE_CACHE_PREFIX = 'tekir:i18n:messages';
 const LAST_LOCALE_KEY = 'tekir:i18n:lastLocale';
-const CACHE_VERSION = 'v1';
+
+const CACHE_VERSION =  `v${Date.now()}`;
 
 const STATIC_MESSAGES: Partial<Record<Locale, Record<string, any>>> = {
   en: defaultMessages,
@@ -28,6 +29,28 @@ const STATIC_MESSAGES: Partial<Record<Locale, Record<string, any>>> = {
 };
 
 const buildCacheKey = (locale: Locale) => `${MESSAGE_CACHE_PREFIX}:${CACHE_VERSION}:${locale}`;
+
+/**
+ * Clean up old cached messages from previous versions
+ */
+const cleanupOldCache = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(MESSAGE_CACHE_PREFIX) && !key.includes(CACHE_VERSION)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    if (keysToRemove.length > 0) {
+      console.log(`[i18n] Cleaned up ${keysToRemove.length} old cache entries`);
+    }
+  } catch (error) {
+    console.warn('[i18n] Failed to cleanup old cache:', error);
+  }
+};
 
 const readCachedMessages = (locale: Locale): Record<string, any> | null => {
   if (typeof window === 'undefined') return null;
@@ -79,7 +102,11 @@ interface I18nProviderProps {
 
 export default function I18nProvider({ children }: I18nProviderProps) {
   const { settings, isInitialized } = useSettings();
-  const [bootLocale] = useState<Locale>(() => getStoredLocale());
+  const [bootLocale] = useState<Locale>(() => {
+    // Clean up old cached translations on mount
+    cleanupOldCache();
+    return getStoredLocale();
+  });
   const [messages, setMessages] = useState<Record<string, any>>(() => {
     const cached = readCachedMessages(bootLocale);
     if (cached) {
