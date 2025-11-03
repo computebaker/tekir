@@ -5,6 +5,7 @@ import { useAuth } from '@/components/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Loader2, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface SubscriptionCardProps {
   productId?: string;
@@ -16,20 +17,27 @@ interface SubscriptionCardProps {
 
 export default function SubscriptionCard({
   productId = process.env.NEXT_PUBLIC_POLAR_PRODUCT_ID || '',
-  title = 'Tekir Plus',
-  description = 'Support development and unlock better features',
-  price = '$5/month',
-  features = [
-    'Increased limits',
-    'More search options',
-    'Priority support'
-  ],
+  title,
+  description,
+  price,
+  features,
 }: SubscriptionCardProps) {
   const { user } = useAuth();
+  const t = useTranslations('subscription');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isPaid = user?.roles?.some((role: string) => role.toLowerCase() === 'paid');
+
+  // Use translations with fallback to props
+  const cardTitle = title || t('title');
+  const cardDescription = description || t('descriptionBetter');
+  const cardPrice = price || t('price');
+  const cardFeatures = features || [
+    t('features.increasedLimits'),
+    t('features.moreSearchOptions'),
+    t('features.prioritySupport')
+  ];
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -49,14 +57,14 @@ export default function SubscriptionCard({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout');
+        throw new Error(data.error || t('errors.checkoutFailed'));
       }
 
       // Redirect to Polar checkout
       window.location.href = data.checkoutUrl;
     } catch (err) {
       console.error('Upgrade error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start upgrade process');
+      setError(err instanceof Error ? err.message : t('errors.upgradeFailed'));
       setLoading(false);
     }
   };
@@ -67,15 +75,15 @@ export default function SubscriptionCard({
         <CardHeader>
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            <CardTitle>Pro Member</CardTitle>
+            <CardTitle>{t('proMember')}</CardTitle>
           </div>
           <CardDescription>
-            You have access to all premium features
+            {t('info.hasAccess')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {features.map((feature, index) => (
+            {cardFeatures.map((feature, index) => (
               <div key={index} className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-primary flex-shrink-0" />
                 <span className="text-sm">{feature}</span>
@@ -85,7 +93,7 @@ export default function SubscriptionCard({
         </CardContent>
         <CardFooter>
           <div className="w-full px-4 py-2 bg-secondary/50 text-secondary-foreground rounded-md text-center text-sm font-medium">
-            Active Subscription
+            {t('activeSubscription')}
           </div>
         </CardFooter>
       </Card>
@@ -96,16 +104,16 @@ export default function SubscriptionCard({
     <Card className="border-2 border-border hover:border-primary/50 transition-colors">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>{title}</CardTitle>
+          <CardTitle>{cardTitle}</CardTitle>
           <div className="text-lg font-bold px-3 py-1 border rounded-md">
-            {price}
+            {cardPrice}
           </div>
         </div>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription>{cardDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {features.map((feature, index) => (
+          {cardFeatures.map((feature, index) => (
             <div key={index} className="flex items-center gap-2">
               <Check className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <span className="text-sm">{feature}</span>
@@ -128,18 +136,18 @@ export default function SubscriptionCard({
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Loading...
+              {t('actions.loading')}
             </>
           ) : (
             <>
               <Sparkles className="w-4 h-4 mr-2" />
-              Upgrade to Pro
+              {t('actions.upgradeToPro')}
             </>
           )}
         </Button>
         {!user && (
           <p className="text-xs text-muted-foreground text-center">
-            Please sign in to upgrade
+            {t('actions.signInRequired')}
           </p>
         )}
       </CardFooter>

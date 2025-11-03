@@ -5,6 +5,7 @@ import { useAuth } from '@/components/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Loader2, Sparkles, CreditCard, Calendar, XCircle, ExternalLink, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface SubscriptionManagerProps {
   productId?: string;
@@ -35,6 +36,7 @@ export default function SubscriptionManager({
   organizationName = process.env.NEXT_PUBLIC_POLAR_ORGANIZATION || 'tekir',
 }: SubscriptionManagerProps) {
   const { user } = useAuth();
+  const t = useTranslations('subscription');
   const [loading, setLoading] = useState(false);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,10 +46,10 @@ export default function SubscriptionManager({
 
   // Features list
   const features = [
-    'Increased limits',
-    'More search options',
-    'Priority support',
-    'Prioritized feedback'
+    t('features.increasedLimits'),
+    t('features.moreSearchOptions'),
+    t('features.prioritySupport'),
+    t('features.prioritizedFeedback')
   ];
 
   // Check for active subscription when user is paid
@@ -97,14 +99,14 @@ export default function SubscriptionManager({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout');
+        throw new Error(data.error || t('errors.checkoutFailed'));
       }
 
       // Redirect to Polar checkout
       window.location.href = data.checkoutUrl;
     } catch (err) {
       console.error('Upgrade error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start upgrade process');
+      setError(err instanceof Error ? err.message : t('errors.upgradeFailed'));
       setLoading(false);
     }
   };
@@ -132,14 +134,14 @@ export default function SubscriptionManager({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-primary" />
-              <CardTitle>Tekir Plus</CardTitle>
+              <CardTitle>{t('title')}</CardTitle>
             </div>
             <div className="text-lg font-bold px-3 py-1 border rounded-md bg-primary/5">
-              $5/month
+              {t('price')}
             </div>
           </div>
           <CardDescription>
-            Support development and unlock premium features
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -168,18 +170,18 @@ export default function SubscriptionManager({
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Loading...
+                {t('actions.loading')}
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                Upgrade to Plus
+                {t('actions.upgrade')}
               </>
             )}
           </Button>
           {!user && (
             <p className="text-xs text-muted-foreground text-center">
-              Please sign in to upgrade
+              {t('actions.signInRequired')}
             </p>
           )}
         </CardFooter>
@@ -194,7 +196,7 @@ export default function SubscriptionManager({
         <CardContent className="pt-6">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="ml-2 text-sm text-muted-foreground">Loading subscription details...</span>
+            <span className="ml-2 text-sm text-muted-foreground">{t('status.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -209,9 +211,9 @@ export default function SubscriptionManager({
             <Sparkles className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <CardTitle>Tekir Plus</CardTitle>
+            <CardTitle>{t('title')}</CardTitle>
             <CardDescription className="text-primary/80 font-medium">
-              Active Subscription
+              {t('activeSubscription')}
             </CardDescription>
           </div>
         </div>
@@ -222,10 +224,10 @@ export default function SubscriptionManager({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium">Status: Active</span>
+              <span className="text-sm font-medium">{t('status.title')}: {t('status.active')}</span>
             </div>
             <div className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-              Plus Member
+              {t('plusMember')}
             </div>
           </div>
           
@@ -234,15 +236,15 @@ export default function SubscriptionManager({
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <CreditCard className="w-4 h-4" />
-                <span>Billing cycle</span>
+                <span>{t('billing.cycle')}</span>
               </div>
-              <span className="font-medium">Monthly</span>
+              <span className="font-medium">{t('billing.monthly')}</span>
             </div>
             
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="w-4 h-4" />
-                <span>Next invoice</span>
+                <span>{t('billing.nextInvoice')}</span>
               </div>
               <span className="font-medium">
                 {subscription?.currentPeriodEnd 
@@ -260,7 +262,7 @@ export default function SubscriptionManager({
 
         {/* Features Included */}
         <div>
-          <h4 className="text-sm font-medium mb-3">Included features:</h4>
+          <h4 className="text-sm font-medium mb-3">{t('info.includedFeatures')}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {features.slice(0, 4).map((feature, index) => (
               <div key={index} className="flex items-center gap-2 text-sm">
@@ -280,13 +282,13 @@ export default function SubscriptionManager({
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-background hover:bg-muted transition-colors rounded-lg border border-border text-sm font-medium"
         >
           <CreditCard className="w-4 h-4" />
-          Manage Subscription
+          {t('actions.manage')}
           <ExternalLink className="w-3 h-3" />
         </a>
 
         {/* Additional Info */}
         <p className="text-xs text-muted-foreground text-center">
-          You can update payment method, view invoices, or cancel your subscription in the customer portal.
+          {t('info.manageInfo')}
         </p>
       </CardFooter>
     </Card>

@@ -627,5 +627,46 @@
       "primary": "Prova Tekir Ora",
       "secondary": "Impostazioni"
     }
+  },
+  "subscription": {
+    "title": "Tekir Plus",
+    "price": "$5/mese",
+    "proMember": "Membro Pro",
+    "plusMember": "Membro Plus",
+    "activeSubscription": "Abbonamento Attivo",
+    "description": "Sostieni lo sviluppo e sblocca funzionalità premium",
+    "descriptionBetter": "Sostieni lo sviluppo e sblocca funzionalità migliori",
+    "features": {
+      "increasedLimits": "Limiti aumentati",
+      "moreSearchOptions": "Più opzioni di ricerca",
+      "prioritySupport": "Supporto prioritario",
+      "prioritizedFeedback": "Feedback prioritario"
+    },
+    "status": {
+      "title": "Stato",
+      "active": "Attivo",
+      "loading": "Caricamento dettagli abbonamento..."
+    },
+    "billing": {
+      "cycle": "Ciclo di fatturazione",
+      "monthly": "Mensile",
+      "nextInvoice": "Prossima fattura"
+    },
+    "actions": {
+      "upgrade": "Passa a Plus",
+      "upgradeToPro": "Passa a Pro",
+      "manage": "Gestisci Abbonamento",
+      "loading": "Caricamento...",
+      "signInRequired": "Accedi per eseguire l'aggiornamento"
+    },
+    "errors": {
+      "checkoutFailed": "Impossibile creare il checkout",
+      "upgradeFailed": "Impossibile avviare il processo di aggiornamento"
+    },
+    "info": {
+      "includedFeatures": "Funzionalità incluse:",
+      "hasAccess": "Hai accesso a tutte le funzionalità premium",
+      "manageInfo": "Puoi aggiornare il metodo di pagamento, visualizzare le fatture o annullare l'abbonamento nel portale clienti."
+    }
   }
 }

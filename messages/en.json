@@ -627,5 +627,46 @@
       "primary": "Try Tekir Now",
       "secondary": "Settings"
     }
+  },
+  "subscription": {
+    "title": "Tekir Plus",
+    "price": "$5/month",
+    "proMember": "Pro Member",
+    "plusMember": "Plus Member",
+    "activeSubscription": "Active Subscription",
+    "description": "Support development and unlock premium features",
+    "descriptionBetter": "Support development and unlock better features",
+    "features": {
+      "increasedLimits": "Increased limits",
+      "moreSearchOptions": "More search options",
+      "prioritySupport": "Priority support",
+      "prioritizedFeedback": "Prioritized feedback"
+    },
+    "status": {
+      "title": "Status",
+      "active": "Active",
+      "loading": "Loading subscription details..."
+    },
+    "billing": {
+      "cycle": "Billing cycle",
+      "monthly": "Monthly",
+      "nextInvoice": "Next invoice"
+    },
+    "actions": {
+      "upgrade": "Upgrade to Plus",
+      "upgradeToPro": "Upgrade to Pro",
+      "manage": "Manage Subscription",
+      "loading": "Loading...",
+      "signInRequired": "Please sign in to upgrade"
+    },
+    "errors": {
+      "checkoutFailed": "Failed to create checkout",
+      "upgradeFailed": "Failed to start upgrade process"
+    },
+    "info": {
+      "includedFeatures": "Included features:",
+      "hasAccess": "You have access to all premium features",
+      "manageInfo": "You can update payment method, view invoices, or cancel your subscription in the customer portal."
+    }
   }
 }

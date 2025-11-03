@@ -627,5 +627,46 @@
       "primary": "Try Tekir Now",
       "secondary": "Settings"
     }
+  },
+  "subscription": {
+    "title": "Tekir Plus",
+    "price": "$5/ay",
+    "proMember": "Pro Üzv",
+    "plusMember": "Plus Üzv",
+    "activeSubscription": "Aktiv Abunəlik",
+    "description": "İnkişafı dəstəkləyin və premium funksiyaların kilidini açın",
+    "descriptionBetter": "İnkişafı dəstəkləyin və daha yaxşı funksiyaların kilidini açın",
+    "features": {
+      "increasedLimits": "Artırılmış limitlər",
+      "moreSearchOptions": "Daha çox axtarış seçimləri",
+      "prioritySupport": "Prioritet dəstəyi",
+      "prioritizedFeedback": "Prioritet rəy"
+    },
+    "status": {
+      "title": "Status",
+      "active": "Aktiv",
+      "loading": "Abunəlik təfərrüatları yüklənir..."
+    },
+    "billing": {
+      "cycle": "Ödəniş dövrü",
+      "monthly": "Aylıq",
+      "nextInvoice": "Növbəti faktura"
+    },
+    "actions": {
+      "upgrade": "Plus-a yüksəlt",
+      "upgradeToPro": "Pro-ya yüksəlt",
+      "manage": "Abunəliyi İdarə Et",
+      "loading": "Yüklənir...",
+      "signInRequired": "Yüksəltmək üçün zəhmət olmasa daxil olun"
+    },
+    "errors": {
+      "checkoutFailed": "Ödəniş səhifəsi yaradıla bilmədi",
+      "upgradeFailed": "Yüksəltmə prosesi başladıla bilmədi"
+    },
+    "info": {
+      "includedFeatures": "Daxil edilmiş funksiyalar:",
+      "hasAccess": "Bütün premium funksiyalara girişiniz var",
+      "manageInfo": "Müştəri portalında ödəniş metodunuzu yeniləyə, fakturaları görə və ya abunəliyinizi ləğv edə bilərsiniz."
+    }
   }
 }
