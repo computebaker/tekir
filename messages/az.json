@@ -1,51 +1,51 @@
 {
   "common": {
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "retry": "Retry",
-    "cancel": "Cancel",
-    "save": "Save",
-    "delete": "Delete",
-    "edit": "Edit",
-    "close": "Close",
-    "back": "Back",
-    "next": "Next",
-    "more": "More",
-    "less": "Less"
+    "loading": "Yüklənir...",
+    "error": "Xəta baş verdi",
+    "retry": "Yenidən cəhd et",
+    "cancel": "Ləğv et",
+    "save": "Yadda saxla",
+    "delete": "Sil",
+    "edit": "Redaktə et",
+    "close": "Bağla",
+    "back": "Geri",
+    "next": "İrəli",
+    "more": "Daha çox",
+    "less": "Daha az"
   },
   "search": {
-    "placeholder": "Search the web...",
-    "searchButton": "Search",
+    "placeholder": "Vebdə axtar...",
+    "searchButton": "Axtar",
     "tabs": {
-      "web": "Search",
-      "images": "Images",
-      "videos": "Videos",
-      "news": "News",
+      "web": "Veb",
+      "images": "Şəkillər",
+      "videos": "Videolar",
+      "news": "Xəbərlər",
       "ai": "AI",
       "dive": "Dive"
     },
     "filters": {
-      "country": "Country",
-      "safeSearch": "Safe Search",
-      "time": "Time",
-      "all": "All",
-      "pastDay": "Past 24 hours",
-      "pastWeek": "Past week",
-      "pastMonth": "Past month",
-      "pastYear": "Past year"
+      "country": "Ölkə",
+      "safeSearch": "Təhlükəsiz axtarış",
+      "time": "Zaman",
+      "all": "Hamısı",
+      "pastDay": "Son 24 saat",
+      "pastWeek": "Son həftə",
+      "pastMonth": "Son ay",
+      "pastYear": "Son il"
     },
-    "noResults": "No results found for \"{query}\"",
-    "enterSearchTerm": "Enter a search term to see results",
-    "searchError": "Failed to fetch search results",
-    "tryAgain": "Please try again",
-    "resultsCount": "{count, plural, one {# result} other {# results}}",
-    "showMore": "Show more results",
-    "relatedSearches": "Related searches",
-    "newsClusterDescription": "News articles about your search query.",
-    "videosClusterDescription": "Videos about your search query.",
-    "karakulakError": "Karakulak couldn't load a response due to an error.",
-    "fetchingWebSources": "Fetching web sources...",
-    "processingRequest": "Processing request...",
+    "noResults": "\"{query}\" üçün nəticə tapılmadı",
+    "enterSearchTerm": "Nəticələri görmək üçün axtarış terminini daxil edin",
+    "searchError": "Axtarış nəticələrini əldə etmək mümkün olmadı",
+    "tryAgain": "Zəhmət olmasa yenidən cəhd edin",
+    "resultsCount": "{count, plural, one {# nəticə} other {# nəticə}}",
+    "showMore": "Daha çox nəticə göstər",
+    "relatedSearches": "Əlaqəli axtarışlar",
+    "newsClusterDescription": "Sizin axtarış sorğunuzla bağlı xəbər məqalələri.",
+    "videosClusterDescription": "Sizin axtarış sorğunuzla bağlı videolar.",
+    "karakulakError": "Karakulak cavabı yükləyə bilmədi.",
+    "fetchingWebSources": "Veb mənbələri gətirilir...",
+    "processingRequest": "Sorğunuz işlənir...",
     "karakulakName": "Karakulak",
     "betaLabel": "BETA",
     "imageAlt": "Şəkil",
@@ -57,197 +57,197 @@
     "wikipediaHeader": "Vikipediyadan ({language}): {title}"
   },
   "navigation": {
-    "about": "About Tekir",
-    "aiChat": "AI Chat",
-    "settings": "Settings",
-    "privacy": "Privacy",
-    "terms": "Terms",
-    "home": "Home",
-    "bangs": "Bangs"
+    "about": "Tekir haqqında",
+    "aiChat": "AI Çat",
+    "settings": "Ayarlar",
+    "privacy": "Gizlilik",
+    "terms": "Şərtlər",
+    "home": "Ana səhifə",
+    "bangs": "Bang əmrləri"
   },
   "settings": {
-    "title": "Settings",
-    "search": "Search",
-    "privacy": "Privacy",
-    "account": "Account",
-    "about": "About",
-    "language": "Language",
-    "theme": "Theme",
-    "searchEngine": "Search Engine",
-    "country": "Country",
-    "safesearch": "Safe Search",
-    "appearance": "Appearance",
-    "general": "General",
-    "saveChanges": "Save changes",
-    "changesSaved": "Changes saved successfully",
+  "title": "Ayarlar",
+  "search": "Axtarış",
+  "privacy": "Gizlilik",
+  "account": "Hesab",
+  "about": "Haqqında",
+  "language": "Dil",
+  "theme": "Mövzu",
+  "searchEngine": "Axtarış mühərriki",
+  "country": "Ölkə",
+  "safesearch": "Təhlükəsiz axtarış",
+  "appearance": "Görünüş",
+  "general": "Ümumi",
+  "saveChanges": "Dəyişiklikləri yadda saxla",
+  "changesSaved": "Dəyişikliklər uğurla yadda saxlandı",
     "accountPage": {
-      "metaTitle": "Account Settings",
+  "metaTitle": "Hesab Ayarları",
       "mobileNav": {
-        "back": "Back to Search",
-        "chat": "AI Chat",
-        "privacy": "Privacy Policy"
+        "back": "Axtarışa qayıt",
+        "chat": "AI Çat",
+        "privacy": "Gizlilik Siyasəti"
       },
-      "pageTitle": "Account Settings",
-      "pageDescription": "Manage your account information, security, and preferences.",
+      "pageTitle": "Hesab Ayarları",
+      "pageDescription": "Hesab məlumatlarınızı, təhlükəsizliyi və seçimləri idarə edin.",
       "accessDenied": {
-        "title": "Access Denied",
-        "description": "Please sign in to access account settings.",
-        "backButton": "Back to settings"
+        "title": "Giriş icazəsi yoxdur",
+        "description": "Hesab ayarlarına daxil olmaq üçün zəhmət olmasa daxil olun.",
+        "backButton": "Ayarlara qayıt"
       },
       "messages": {
-        "requiredField": "{field} cannot be empty",
-        "updateSuccess": "{field} updated successfully",
-        "updateError": "Failed to update {field}",
-        "updateException": "An error occurred while updating {field}",
-        "passwordRequired": "All password fields are required",
-        "passwordMismatch": "New passwords do not match",
-        "passwordLength": "New password must be at least 8 characters long",
-        "passwordSuccess": "Password changed successfully",
-        "passwordError": "Failed to change password",
-        "passwordException": "An error occurred while changing password",
-        "avatarRegenerateSuccess": "Profile avatar regenerated successfully",
-        "avatarRegenerateError": "Failed to regenerate avatar",
-        "avatarRegenerateException": "An error occurred while regenerating avatar",
-        "avatarUploadSuccess": "Profile picture uploaded successfully",
-        "avatarUploadError": "Failed to upload profile picture",
-        "avatarUploadException": "An error occurred while uploading",
-        "avatarRemoveSuccess": "Profile picture removed successfully",
-        "avatarRemoveError": "Failed to remove profile picture",
-        "avatarRemoveException": "An error occurred while removing",
-        "deleteConfirmationMissing": "Please type \"{phrase}\" to confirm",
-        "deleteError": "Failed to delete account",
-        "deleteException": "An error occurred while deleting account",
-        "syncLoading": "Settings are still loading. Please wait a moment.",
-        "syncEnabled": "Settings sync enabled. Your settings will now be synced across devices.",
-        "syncDisabled": "Settings sync disabled. Your settings are now stored locally only.",
-        "syncError": "Failed to toggle settings sync",
-        "syncException": "An error occurred while toggling settings sync",
-        "sessionOutdated": "Your session is outdated. Please sign out and sign in again to continue."
+        "requiredField": "{field} boş ola bilməz",
+        "updateSuccess": "{field} uğurla yeniləndi",
+        "updateError": "{field} yenilənmədi",
+        "updateException": "{field} yenilənərkən xəta baş verdi",
+        "passwordRequired": "Bütün şifrə sahələri tələb olunur",
+        "passwordMismatch": "Yeni şifrələr uyğun gəlmir",
+        "passwordLength": "Yeni şifrə ən azı 8 simvol olmalıdır",
+        "passwordSuccess": "Şifrə uğurla dəyişdirildi",
+        "passwordError": "Şifrə dəyişdirilə bilmədi",
+        "passwordException": "Şifrə dəyişdirilərkən xəta baş verdi",
+        "avatarRegenerateSuccess": "Profil avatarı uğurla yenidən yaradıldı",
+        "avatarRegenerateError": "Avatar yenidən yaradılmadı",
+        "avatarRegenerateException": "Avatar yenidən yaradılarkən xəta baş verdi",
+        "avatarUploadSuccess": "Profil şəkli uğurla yükləndi",
+        "avatarUploadError": "Profil şəkli yüklənə bilmədi",
+        "avatarUploadException": "Yükləmə zamanı xəta baş verdi",
+        "avatarRemoveSuccess": "Profil şəkli uğurla silindi",
+        "avatarRemoveError": "Profil şəkli silinə bilmədi",
+        "avatarRemoveException": "Silinərkən xəta baş verdi",
+        "deleteConfirmationMissing": "Təsdiqləmək üçün zəhmət olmasa \"{phrase}\" yazın",
+        "deleteError": "Hesab silinə bilmədi",
+        "deleteException": "Hesab silinərkən xəta baş verdi",
+        "syncLoading": "Ayarlar hələ yüklənir. Zəhmət olmasa bir az gözləyin.",
+        "syncEnabled": "Ayarların sinxronizasiyası aktiv edildi. Artıq ayarlarınız cihazlar arasında sinxronlaşdırılacaq.",
+        "syncDisabled": "Ayarların sinxronizasiyası deaktiv edildi. Ayarlarınız yalnız yerli olaraq saxlanılır.",
+        "syncError": "Ayar sinxronizasiyasını dəyişmək mümkün olmadı",
+        "syncException": "Ayar sinxronizasiyası zamanı xəta baş verdi",
+        "sessionOutdated": "Sessiyanız köhnəlib. Davam etmək üçün çıxış edib yenidən daxil olun."
       },
       "profilePicture": {
-        "title": "Profile Picture",
-        "alternativeTitle": "Alternative Options",
-        "alternativeDescription": "Don't have a photo? You can use a generated avatar instead.",
-        "generateButton": "Generate New Avatar"
+    "title": "Profil şəkli",
+    "alternativeTitle": "Alternativ variantlar",
+    "alternativeDescription": "Şəkiliniz yoxdursa? Bunun əvəzinə yaradılmış avatar istifadə edə bilərsiniz.",
+    "generateButton": "Yeni avatar yaradın"
       },
       "emailSection": {
-        "title": "Email Address",
-        "label": "Email",
-        "placeholder": "Enter your email",
-        "button": "Update Email"
+    "title": "E-poçt ünvanı",
+    "label": "E-poçt",
+    "placeholder": "E-poçtunuzu daxil edin",
+    "button": "E-poçtu yenilə"
       },
       "nameSection": {
-        "title": "Display Name",
-        "label": "Name",
-        "description": "This is the name that will be displayed publicly on your profile.",
-        "placeholder": "Enter your display name",
-        "button": "Update Name"
+    "title": "Göstərilən ad",
+    "label": "Ad",
+    "description": "Bu ad profilinizdə açıq şəkildə göstəriləcək.",
+    "placeholder": "Göstərilən adınızı daxil edin",
+    "button": "Adı yenilə"
       },
       "usernameSection": {
-        "title": "Username",
-        "label": "Username",
-        "description": "Your unique username will be displayed as @{username} under your name.",
-        "placeholder": "username",
-        "button": "Update Username"
+    "title": "İstifadəçi adı",
+    "label": "İstifadəçi adı",
+    "description": "Unikal istifadəçi adınız adınızın altında @{username} kimi göstəriləcək.",
+    "placeholder": "istifadəçi adı",
+    "button": "İstifadəçi adını yenilə"
       },
       "passwordSection": {
-        "title": "Change Password",
-        "currentLabel": "Current Password",
-        "currentPlaceholder": "Enter current password",
-        "newLabel": "New Password",
-        "newPlaceholder": "Enter new password",
-        "confirmLabel": "Confirm New Password",
-        "confirmPlaceholder": "Confirm new password",
-        "button": "Change Password"
+    "title": "Şifrəni dəyiş",
+    "currentLabel": "Cari şifrə",
+    "currentPlaceholder": "Cari şifrəni daxil edin",
+    "newLabel": "Yeni şifrə",
+    "newPlaceholder": "Yeni şifrəni daxil edin",
+    "confirmLabel": "Yeni şifrəni təsdiq edin",
+    "confirmPlaceholder": "Yeni şifrəni təsdiq edin",
+    "button": "Şifrəni dəyiş"
       },
       "syncSection": {
-        "title": "Settings Sync",
-        "description": "Enable settings sync to keep your search preferences, AI options, theme, and other settings synchronized across all your devices.",
-        "cardTitle": "Sync Settings",
-        "statusEnabled": "Your settings are synced across devices",
-        "statusDisabled": "Settings are stored locally only",
-        "syncedList": "<strong>Synced settings include:</strong> Search engine preferences, AI model choices, weather settings, theme, autocomplete provider, search regions, and SafeSearch settings."
+    "title": "Ayarların sinxronizasiyası",
+    "description": "Axtarış üstünlüklərinizi, AI seçimlərini, mövzunu və digər ayarları bütün cihazlarınızda sinxron saxlamaq üçün sinxronizasiyanı aktiv edin.",
+    "cardTitle": "Ayar sinxronizasiyası",
+    "statusEnabled": "Ayarlarınız cihazlar arasında sinxronlaşdırılıb",
+    "statusDisabled": "Ayarlar yalnız yerli saxlanılır",
+    "syncedList": "<strong>Sinxronlaşdırılan ayarlar:</strong> Axtarış mühərriki üstünlükləri, AI model seçimi, hava parametrləri, mövzu, avtomatik tamamlayıcı provayder, axtarış regionları və SafeSearch ayarları."
       },
       "dangerZone": {
-        "title": "Danger Zone",
-        "description": "Once you delete your account, there is no going back. This action cannot be undone.",
-        "deleteButton": "Delete Account",
-        "confirmButton": "Confirm Delete",
-        "confirmPrompt": "Please type <strong>\"{phrase}\"</strong> to confirm account deletion:",
-        "placeholder": "Type: {phrase}",
-        "confirmPhrase": "DELETE MY ACCOUNT"
+        "title": "Təhlükəli bölmə",
+        "description": "Hesabınızı sildikdən sonra geri dönüş yoxdur. Bu əməliyyat geri alına bilməz.",
+        "deleteButton": "Hesabı sil",
+        "confirmButton": "Silinməyi təsdiq et",
+        "confirmPrompt": "Hesabın silinməsini təsdiq etmək üçün zəhmət olmasa <strong>\"{phrase}\"</strong> yazın:",
+        "placeholder": "Yazın: {phrase}",
+        "confirmPhrase": "HESABIMI SİL"
       }
     },
     "privacyPage": {
-      "metaTitle": "Privacy Settings",
+  "metaTitle": "Gizlilik Ayarları",
       "mobileNav": {
-        "back": "Back to Search",
-        "account": "Account Settings"
+        "back": "Axtarışa qayıt",
+        "account": "Hesab Ayarları"
       },
-      "pageTitle": "Privacy Settings",
-      "pageDescription": "Review what we store and manage your search preferences export/import.",
+      "pageTitle": "Gizlilik Ayarları",
+      "pageDescription": "Saxladığımız məlumatları nəzərdən keçirin və axtarış üstünlüklərinizin ixrac/idxalını idarə edin.",
       "messages": {
-        "exportSuccess": "Preferences exported to {file}",
-        "exportError": "Failed to export settings",
-        "importSuccess": "Preferences imported successfully",
-        "importInvalidKind": "Invalid file format: expected tekir.settings file",
-        "importInvalidPreferences": "Invalid file format: missing or invalid preferences",
-        "importParseError": "Failed to parse import file"
+        "exportSuccess": "Üstünlüklər {file} kimi ixrac edildi",
+        "exportError": "Ayarlar ixrac edilə bilmədi",
+        "importSuccess": "Üstünlüklər uğurla idxal edildi",
+        "importInvalidKind": "Yanlış fayl formatı: gözlənilən tekir.settings faylı",
+        "importInvalidPreferences": "Yanlış fayl formatı: üstünlüklər çatışmır və ya səhvdir",
+        "importParseError": "Faylın təhlili mümkün olmadı"
       },
       "sections": {
         "serverOverview": {
-          "title": "Your Data on Tekir Servers",
-          "signInPrompt": "Sign in to view your server-stored data overview.",
+          "title": "Tekir serverlərindəki məlumatlarınız",
+          "signInPrompt": "Serverdə saxlanmış məlumatlarınızı görmək üçün daxil olun.",
           "fields": {
-            "email": "Email:",
-            "name": "Name:",
-            "username": "Username:",
-            "settingsSync": "Settings Sync:",
-            "serverPreferences": "Server Preferences:",
-            "lastUpdated": "Last Updated:"
+            "email": "E-poçt:",
+            "name": "Ad:",
+            "username": "İstifadəçi adı:",
+            "settingsSync": "Ayar sinxronizasiyası:",
+            "serverPreferences": "Serverdəki üstünlüklər:",
+            "lastUpdated": "Son yenilənmə:"
           },
           "values": {
-            "enabled": "Enabled",
-            "disabled": "Disabled",
-            "present": "Present",
-            "none": "None"
+            "enabled": "Aktiv",
+            "disabled": "Deaktiv",
+            "present": "Mövcud",
+            "none": "Yoxdur"
           },
-          "privacyNote": "We store only what’s needed to provide your experience. No analytics, no tracking. Account details aren’t included in export/import; only search preferences are. Your privacy is our priority."
+          "privacyNote": "Təcrübənizi təmin etmək üçün yalnız lazım olanları saxlayırıq. Heç bir analiz və ya izləmə yoxdur. Hesab detalları ixrac/idxala daxil edilmir; yalnız axtarış üstünlükləri. Məxfilik bizim prioritetimizdir."
         },
         "serverJson": {
-          "title": "Server-stored Preferences (JSON)",
-          "copyButton": "Copy",
-          "copyButtonCopied": "Copied",
-          "copyAria": "Copy JSON"
+          "title": "Serverdə saxlanmış üstünlüklər (JSON)",
+          "copyButton": "Kopyala",
+          "copyButtonCopied": "Kopyalandı",
+          "copyAria": "JSON-u kopyala"
         },
         "transfer": {
           "title": "Export / Import Preferences",
           "export": {
-            "title": "Export",
-            "description": "Download your current search preferences as {file}.",
-            "button": "Export preferences",
-            "ariaLabel": "Export preferences"
+            "title": "İxrac et",
+            "description": "Cari axtarış üstünlüklərinizi {file} kimi yükləyin.",
+            "button": "Üstünlükləri ixrac et",
+            "ariaLabel": "Üstünlükləri ixrac et"
           },
           "import": {
-            "title": "Import",
-            "description": "Import preferences from a {file} file. This won’t change your account details.",
-            "button": "Import from file",
-            "ariaLabel": "Import preferences"
+            "title": "İdxal",
+            "description": "Üstünlükləri {file} faylından idxal edin. Bu hesab məlumatlarınızı dəyişdirməyəcək.",
+            "button": "Fayldan idxal et",
+            "ariaLabel": "Üstünlükləri idxal et"
           },
-          "hint": "Supported file: {file} (kind: tekir.settings, version: 1). Only search preferences are applied."
+          "hint": "Dəstəklənən fayl: {file} (kind: tekir.settings, version: 1). Yalnız axtarış üstünlükləri tətbiq olunur."
         }
       }
     },
     "aboutPage": {
-      "metaTitle": "Tekir Haqqında",
+  "metaTitle": "Tekir Haqqında",
       "mobileNav": {
         "back": "Axtarışa Qayıt"
       },
       "pageTitle": "Tekir Haqqında",
       "pageDescription": "Tekir və onun arxasındakı komanda haqqında məlumat alın.",
       "translate": {
-        "title": "Tərcümə Et",
-        "description": "Tətbiqin öz dilinizə tərcüməsini edin.",
+        "title": "Tərcümə et",
+        "description": "Tətbiqi öz dilinizə tərcümə edin.",
         "link": "translate.tekir.co"
       },
       "acknowledgements": {
@@ -263,241 +263,241 @@
       }
     },
     "searchPage": {
-      "metaTitle": "Search Settings",
+    "metaTitle": "Axtarış Ayarları",
       "mobileNav": {
-        "back": "Back to Search",
-        "chat": "AI Chat",
-        "privacy": "Privacy Policy"
+        "back": "Axtarışa qayıt",
+        "chat": "AI Çat",
+        "privacy": "Gizlilik Siyasəti"
       },
-      "pageTitle": "Search Settings",
-      "pageDescription": "Customize your search experience and AI preferences.",
+      "pageTitle": "Axtarış Ayarları",
+      "pageDescription": "Axtarış təcrübənizi və AI seçimlərinizi tənzimləyin.",
       "sections": {
         "aiFeatures": {
-          "title": "AI Features",
-          "description": "Configure AI-powered search and response features.",
-          "karakulakTitle": "Karakulak AI Mode",
-          "karakulakDescription": "Enable AI-powered responses for your search queries",
-          "karakulakAria": "Karakulak AI Mode",
-          "modelTitle": "AI Model",
-          "modelDescription": "Select your preferred AI model for responses",
-          "modelMenuLabel": "AI model options",
+          "title": "AI xüsusiyyətləri",
+          "description": "AI ilə gücləndirilmiş axtarış və cavab xüsusiyyətlərini qurun.",
+          "karakulakTitle": "Karakulak AI rejimi",
+          "karakulakDescription": "Axtarış sorğularınız üçün AI cavablarını aktivləşdirin",
+          "karakulakAria": "Karakulak AI rejimi",
+          "modelTitle": "AI modeli",
+          "modelDescription": "Cavablar üçün üstünlük verdiyiniz AI modelini seçin",
+          "modelMenuLabel": "AI model seçimləri",
           "options": {
             "llama": {
               "name": "Llama 4",
-              "description": "A powerful and open-source model by Meta"
+              "description": "Güclü və açıq mənbə modeli (Meta)"
             },
             "gemini": {
               "name": "Gemini 2.5",
-              "description": "A fast and intelligent model by Google"
+              "description": "Sürətli və ağıllı model (Google)"
             },
             "claude": {
               "name": "Claude 4.5",
-              "description": "Latest and fastest model from Anthropic"
+              "description": "Anthropic tərəfindən ən son və sürətli model"
             },
             "chatgpt": {
               "name": "ChatGPT 5",
-              "description": "Powerful, efficient model by OpenAI"
+              "description": "OpenAI tərəfindən güclü və effektiv model"
             },
             "mistral": {
               "name": "Mistral Mini",
-              "description": "A lightweight model by Mistral AI"
+              "description": "Yüngül model (Mistral AI)"
             },
             "grok": {
               "name": "Grok 4",
-              "description": "An intelligent model from xAI"
+              "description": "xAI tərəfindən ağıllı model"
             }
           }
         },
         "uiLanguage": {
-          "title": "UI & Language",
-          "description": "Customize your interface and language preferences.",
-          "languageTitle": "Language",
-          "languageDescription": "Choose your preferred language for the interface",
-          "languageMenuLabel": "Language options",
-          "logoTitle": "Logo",
-          "logoDescription": "Choose which cat logo to display on the homepage"
+          "title": "İnterfeys və dil",
+          "description": "İnterfeys və dil seçimlərinizi tənzimləyin.",
+          "languageTitle": "Dil",
+          "languageDescription": "İnterfeys üçün üstünlük verdiyiniz dili seçin",
+          "languageMenuLabel": "Dil seçimləri",
+          "logoTitle": "Loqo",
+          "logoDescription": "Baş səhifədə hansı pişik loqosunun göstəriləcəyini seçin"
         },
         "externalServices": {
-          "title": "External Services",
-          "description": "Configure integrations with external services.",
-          "clim8Title": "Clim8 Weather Service",
-          "clim8Description": "Enable weather data from Clim8 based on your IP location",
-          "clim8Aria": "Clim8 Weather",
-          "customWeatherTitle": "Custom Weather Location",
-          "customWeatherDescription": "Set a preferred location for weather reports instead of using your IP location",
-          "locationPlaceholder": "Search for a city...",
-          "clearLocation": "Clear location",
-          "suggestionsLabel": "Location suggestions",
-          "selectedLabel": "Selected: {location}",
-          "weatherUnitsTitle": "Weather Units",
-          "weatherUnitsDescription": "Choose between metric (°C, km/h) or imperial (°F, mph) units",
-          "weatherUnitsMenuLabel": "Weather unit options",
+          "title": "Xarici xidmətlər",
+          "description": "Xarici xidmətlərlə inteqrasiyaları qurun.",
+          "clim8Title": "Clim8 Hava xidməti",
+          "clim8Description": "IP ünvanınıza əsaslanaraq Clim8-dən hava məlumatlarını aktivləşdirin",
+          "clim8Aria": "Clim8 Hava",
+          "customWeatherTitle": "Xüsusi hava yeri",
+          "customWeatherDescription": "Hava hesabatları üçün IP yeriniz əvəzinə üstünlük verdiyiniz yeri təyin edin",
+          "locationPlaceholder": "Şəhər axtarın...",
+          "clearLocation": "Yeri təmizlə",
+          "suggestionsLabel": "Yer təklifləri",
+          "selectedLabel": "Seçilmiş: {location}",
+          "weatherUnitsTitle": "Hava vahidləri",
+          "weatherUnitsDescription": "Metrik (°C, km/s) və ya İmperial (°F, mph) arasında seçin",
+          "weatherUnitsMenuLabel": "Hava vahidi seçimləri",
           "weatherUnits": {
             "metric": {
-              "label": "Metric",
-              "subtitle": "°C, km/h, mm"
+              "label": "Metrik",
+              "subtitle": "°C, km/s, mm"
             },
             "imperial": {
-              "label": "Imperial",
+              "label": "İmperial",
               "subtitle": "°F, mph, in"
             }
           },
-          "weatherPlacementTitle": "Weather Placement",
-          "weatherPlacementDescription": "Choose where to show the Clim8 widget on the homepage",
-          "weatherPlacementMenuLabel": "Weather placement options",
+          "weatherPlacementTitle": "Havanın yerləşdirilməsi",
+          "weatherPlacementDescription": "Clim8 vidcetini baş səhifədə harada göstərmək istədiyinizi seçin",
+          "weatherPlacementMenuLabel": "Hava yerləşdirilməsi seçimləri",
           "weatherPlacement": {
             "hero": {
-              "label": "Under search bar",
-              "description": "Show weather chip beneath the main search box"
+              "label": "Axtarış qutusunun altında",
+              "description": "Əsas axtarış qutusunun altında hava çipini göstər"
             },
             "topRight": {
-              "label": "Next to profile",
-              "description": "Show under the welcome text near your avatar"
+              "label": "Profilin yanında",
+              "description": "Salamlayıcı mətnin yanında göstərin"
             }
           }
         },
         "searchOptions": {
-          "title": "Search Options",
-          "description": "Configure your search provider and filtering preferences.",
-          "enchantedTitle": "Enchanted Results",
-          "enchantedDescription": "Toggle News and Videos widgets in search results",
-          "enchantedAria": "Enchanted Results",
-          "wikipediaTitle": "Wikipedia Results",
-          "wikipediaDescription": "Show Wikipedia summaries and information in search results",
-          "wikipediaAria": "Wikipedia Results",
-          "faviconsTitle": "Favicons in Results",
-          "faviconsDescription": "Show site icons next to result links",
-          "faviconsAria": "Show favicons in results",
-          "recommendationsTitle": "Homepage Recommendations",
-          "recommendationsDescription": "Show daily recommended searches under the search bar on the homepage",
-          "recommendationsAria": "Show recommendations under search bar",
-          "searchProviderTitle": "Search Provider",
-          "searchProviderDescription": "Choose your search engine for web results",
-          "searchProviderMenuLabel": "Search providers",
-          "searchProviderSigninNotice": "Sign in to unlock {provider} results.",
+          "title": "Axtarış Seçimləri",
+          "description": "Axtarış provayderinizi və filtrləmə seçimlərinizi qurun.",
+          "enchantedTitle": "Əlavə Nəticələr",
+          "enchantedDescription": "Axtarış nəticələrində Xəbərlər və Videolar vidcetlərini açın/bağlayın",
+          "enchantedAria": "Əlavə Nəticələr",
+          "wikipediaTitle": "Vikipediya nəticələri",
+          "wikipediaDescription": "Axtarış nəticələrində Vikipediya xülasələrini və məlumatlarını göstərin",
+          "wikipediaAria": "Vikipediya nəticələri",
+          "faviconsTitle": "Nəticələrdə sayt ikonları",
+          "faviconsDescription": "Nəticə linklərinin yanında sayt ikonlarını göstərin",
+          "faviconsAria": "Nəticələrdə favikonları göstər",
+          "recommendationsTitle": "Ana səhifə tövsiyələri",
+          "recommendationsDescription": "Ana səhifədə axtarış qutusunun altında gündəlik tövsiyələri göstərin",
+          "recommendationsAria": "Axtarış qutusunun altında tövsiyələri göstər",
+          "searchProviderTitle": "Axtarış provayderi",
+          "searchProviderDescription": "Veb nəticələri üçün axtarış mühərrikinizi seçin",
+          "searchProviderMenuLabel": "Axtarış provayderləri",
+          "searchProviderSigninNotice": "{provider} nəticələrini açmaq üçün daxil olun.",
           "searchProviderOptions": {
             "brave": {
               "label": "Brave",
-              "description": "Privacy-focused results with video and news options"
+              "description": "Video və xəbər seçimlərinə malik, məxfilik yönümlü nəticələr"
             },
             "you": {
               "label": "You.com",
-              "description": "Search engine optimized for AI-assisted results"
+              "description": "AI dəstəyi ilə optimallaşdırılmış axtarış mühərriki"
             },
             "google": {
               "label": "Google",
-              "description": "The most popular and accurate search engine worldwide"
+              "description": "Dünyada ən məşhur və dəqiq axtarış mühərriki"
             }
           },
-          "autocompleteTitle": "Autocomplete Provider",
-          "autocompleteDescription": "Choose your search suggestion provider",
-          "autocompleteMenuLabel": "Autocomplete providers",
+          "autocompleteTitle": "Avtomatik tamamlama provayderi",
+          "autocompleteDescription": "Axtarış təklifləri üçün provayder seçin",
+          "autocompleteMenuLabel": "Avtomatik tamamlama provayderləri",
           "autocompleteOptions": {
             "brave": "Brave",
             "duck": "DuckDuckGo"
           },
-          "searchRegionTitle": "Search Region",
-          "searchRegionDescription": "Choose your preferred search region for localized results",
-          "searchRegionMenuLabel": "Search regions",
-          "safeSearchTitle": "SafeSearch",
-          "safeSearchDescription": "Filter explicit content from your search results",
-          "safeSearchMenuLabel": "SafeSearch levels",
+          "searchRegionTitle": "Axtarış regionu",
+          "searchRegionDescription": "Yerli nəticələr üçün üstünlük verdiyiniz regionu seçin",
+          "searchRegionMenuLabel": "Axtarış regionları",
+          "safeSearchTitle": "Təhlükəsiz axtarış",
+          "safeSearchDescription": "Axtarış nəticələrindən açıq məzmunu süzün",
+          "safeSearchMenuLabel": "Təhlükəsiz axtarış səviyyələri",
           "safeSearchLevels": {
             "off": {
-              "label": "Off",
-              "description": "Show all results"
+              "label": "Söndürülüb",
+              "description": "Bütün nəticələri göstər"
             },
             "moderate": {
-              "label": "Moderate",
-              "description": "Filter explicit content"
+              "label": "Məhdud",
+              "description": "Açıq məzmunu süzün"
             },
             "strict": {
-              "label": "Strict",
-              "description": "Maximum filtering"
+              "label": "Sərt",
+              "description": "Maksimum filtrasiya"
             }
           },
           "capabilities": {
-            "Search": "Search",
-            "Images": "Images",
-            "News": "News",
-            "Videos": "Videos"
+            "Search": "Axtarış",
+            "Images": "Şəkillər",
+            "News": "Xəbərlər",
+            "Videos": "Videolar"
           }
         },
         "cache": {
-          "title": "Cache",
-          "description": "Tekir saves some data in your device's cache to serve faster responses. You can clear it anytime.",
-          "clearTitle": "Clear search cache",
-          "clearDescription": "Removes cached search, images, news, videos, AI, Dive, Wikipedia, and autocomplete entries stored locally.",
-          "buttonDefault": "Clear search cache",
-          "buttonCleared": "Cleared!"
+          "title": "Keş",
+          "description": "Tekir bəzi məlumatları cihazınızın keşində saxlayır ki, daha sürətli cavab verə bilək. İstənilən vaxt təmizləyə bilərsiniz.",
+          "clearTitle": "Axtarış keşini təmizlə",
+          "clearDescription": "Yerli saxlanmış axtarış, şəkillər, xəbər, video, AI, Dive, Vikipediya və avtomatik tamamlama qeydlərini silir.",
+          "buttonDefault": "Axtarış keşini təmizlə",
+          "buttonCleared": "Təmizləndi!"
         }
       },
       "syncStatus": {
-        "syncing": "Syncing settings to server...",
-        "synced": "Settings are automatically saved and synced across devices.",
-        "localOnly": "Settings are automatically saved to your local storage."
+        "syncing": "Ayarlar serverə sinxronlaşdırılır...",
+        "synced": "Ayarlar avtomatik olaraq saxlanılır və cihazlar arasında sinxronlaşdırılır.",
+        "localOnly": "Ayarlar avtomatik olaraq yalnız yerli yaddaşa saxlanılır."
       }
     }
   },
   "auth": {
-    "signIn": "Sign In",
-    "signUp": "Sign Up",
-    "signOut": "Sign Out",
-    "email": "Email",
-    "password": "Password",
-    "confirmPassword": "Confirm Password",
-    "forgotPassword": "Forgot password?",
-    "dontHaveAccount": "Don't have an account?",
-    "alreadyHaveAccount": "Already have an account?",
-    "emailRequired": "Email is required",
-    "passwordRequired": "Password is required",
-    "invalidEmail": "Invalid email address",
-    "passwordTooShort": "Password must be at least 8 characters",
-    "passwordsMustMatch": "Passwords must match"
+    "signIn": "Daxil ol",
+    "signUp": "Qeydiyyatdan keç",
+    "signOut": "Çıxış",
+    "email": "E-poçt",
+    "password": "Şifrə",
+    "confirmPassword": "Şifrəni təsdiq et",
+    "forgotPassword": "Şifrəni unutmusunuz?",
+    "dontHaveAccount": "Hesabınız yoxdur?",
+    "alreadyHaveAccount": "Artıq hesabınız var?",
+    "emailRequired": "E-poçt tələb olunur",
+    "passwordRequired": "Şifrə tələb olunur",
+    "invalidEmail": "Yanlış e-poçt ünvanı",
+    "passwordTooShort": "Şifrə ən azı 8 simvol olmalıdır",
+    "passwordsMustMatch": "Şifrələr uyğun gəlməlidir"
   },
   "userMenu": {
-    "guest": "Guest",
-    "guestSubtitle": "Not signed in",
-    "loading": "Loading user profile",
-    "guestAria": "Guest user profile",
-    "profileAria": "{name} profile",
-    "usageTooltip": "This is the amount of requests you have remaining for the day. A search typically costs around 6 requests.",
-    "usageIndicatorAria": "Usage indicator",
-    "dashboard": "Dashboard"
+    "guest": "Qonaq",
+    "guestSubtitle": "Daxil olunmayıb",
+    "loading": "İstifadəçi profili yüklənir",
+    "guestAria": "Qonaq istifadəçi profili",
+    "profileAria": "{name} profili",
+    "usageTooltip": "Bu gün üçün qalan sorğularınızın sayı. Bir axtarış adətən təxminən 6 sorğu tələb edir.",
+    "usageIndicatorAria": "İstifadə göstəricisi",
+    "dashboard": "Panel"
   },
   "wikipedia": {
-    "readMore": "Read more",
-    "on": "on",
-    "facts": "Facts",
-    "loading": "Loading Wikipedia...",
-    "error": "Failed to load Wikipedia article"
+    "readMore": "Daha çox oxu",
+    "on": "də",
+    "facts": "Faktlar",
+    "loading": "Vikipediya yüklənir...",
+    "error": "Vikipediya məqaləsi yüklənmədi"
   },
   "images": {
-    "viewImage": "View image",
-    "openInNewTab": "Open in new tab",
-    "imageFrom": "Image from {source}",
+    "viewImage": "Şəkli göstər",
+    "openInNewTab": "Yeni pəncərədə aç",
+    "imageFrom": "Şəkil mənbə: {source}",
     "dimensions": "{width} × {height}",
-    "noImagesFound": "No images found for \"{query}\""
+    "noImagesFound": "\"{query}\" üçün şəkil tapılmadı"
   },
   "videos": {
-    "watchOn": "Watch on {platform}",
-    "duration": "Duration",
-    "views": "{count, plural, one {# view} other {# views}}",
-    "noVideosFound": "No videos found for \"{query}\""
+    "watchOn": "İzləyin: {platform}",
+    "duration": "Müddət",
+    "views": "{count, plural, one {# baxış} other {# baxış}}",
+    "noVideosFound": "\"{query}\" üçün video tapılmadı"
   },
   "news": {
-    "readArticle": "Read article",
-    "publishedOn": "Published on {date}",
-    "source": "Source",
-    "noNewsFound": "No news found for \"{query}\""
+    "readArticle": "Məqaləni oxu",
+    "publishedOn": "Yayımlanıb: {date}",
+    "source": "Mənbə",
+    "noNewsFound": "\"{query}\" üçün xəbər tapılmadı"
   },
   "ai": {
-    "askQuestion": "Ask a question...",
-    "thinking": "Thinking...",
-    "regenerate": "Regenerate",
-    "copy": "Copy",
-    "copied": "Copied!",
-    "modelSelect": "Select AI model",
+    "askQuestion": "Sual ver...",
+    "thinking": "Düşünülür...",
+    "regenerate": "Yenidən yarat",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı!",
+    "modelSelect": "AI modelini seçin",
     "models": {
       "gpt": "GPT",
       "gemini": "Gemini",
@@ -506,126 +506,126 @@
     }
   },
   "feedback": {
-    "title": "Feedback",
-    "helpful": "Was this helpful?",
-    "yes": "Yes",
-    "no": "No",
-    "comment": "Add a comment (optional)",
-    "submit": "Submit",
-    "thankYou": "Thank you for your feedback!",
-    "error": "Failed to submit feedback",
-    "searchHelpful": "Was this search helpful?",
-    "placeholder": "Add more information...",
-    "sending": "Sending...",
-    "sent": "Feedback sent",
-    "openButtonTitle": "Send feedback"
+    "title": "Rəy",
+    "helpful": "Bu faydalı oldu?",
+    "yes": "Bəli",
+    "no": "Xeyr",
+    "comment": "Şərh əlavə et (istəyə bağlı)",
+    "submit": "Göndər",
+    "thankYou": "Rəy üçün təşəkkürlər!",
+    "error": "Rəy göndərilə bilmədi",
+    "searchHelpful": "Bu axtarış faydalı oldu?",
+    "placeholder": "Əlavə məlumat...",
+    "sending": "Göndərilir...",
+    "sent": "Rəy göndərildi",
+    "openButtonTitle": "Rəy göndər"
   },
   "errors": {
-    "notFound": "Page not found",
-    "unauthorized": "You are not authorized",
-    "forbidden": "Access forbidden",
-    "serverError": "Server error",
-    "networkError": "Network error",
-    "tryAgainLater": "Please try again later",
-    "sessionExpired": "Session expired",
-    "loginRequired": "Please sign in to continue"
+    "notFound": "Səhifə tapılmadı",
+    "unauthorized": "Səlahiyyətiniz yoxdur",
+    "forbidden": "Giriş qadağan edildi",
+    "serverError": "Server xətası",
+    "networkError": "Şəbəkə xətası",
+    "tryAgainLater": "Zəhmət olmasa sonra yenidən cəhd edin",
+    "sessionExpired": "Sessiya vaxtı bitib",
+    "loginRequired": "Davam etmək üçün daxil olun"
   },
   "footer": {
-    "about": "About",
-    "privacy": "Privacy",
-    "terms": "Terms",
-    "contact": "Contact",
-    "links": "Links",
-    "settings": "Settings",
-    "privacyPromise": "Your searches are always private",
-    "builtBy": "Tekir, built by {author}.",
-    "tagline": "Tekir is a privacy-friendly search engine that serves the best search experience.",
-    "discoverService": "Discover the service",
-    "productsTitle": "Products",
-    "search": "Search",
-    "aiChat": "AI Chat",
-    "aboutTitle": "About Tekir",
-    "aboutUs": "About us",
-    "followUs": "Follow us",
+    "about": "Haqqında",
+    "privacy": "Gizlilik",
+    "terms": "Şərtlər",
+    "contact": "Əlaqə",
+    "links": "Linklər",
+    "settings": "Ayarlar",
+    "privacyPromise": "Axtarışlarınız həmişə məxfi saxlanılır",
+    "builtBy": "Tekir, {author} tərəfindən hazırlanıb.",
+    "tagline": "Tekir məxfilik yönümlü axtarış mühərrikidir və ən yaxşı axtarış təcrübəsini təqdim edir.",
+    "discoverService": "Xidməti kəşf edin",
+    "productsTitle": "Məhsullar",
+    "search": "Axtarış",
+    "aiChat": "AI Çat",
+    "aboutTitle": "Tekir haqqında",
+    "aboutUs": "Haqqımızda",
+    "followUs": "Bizi izləyin",
     "instagram": "Instagram",
     "bluesky": "Bluesky",
-    "instagramAria": "Follow us on Instagram",
-    "githubAria": "View our GitHub",
-    "statusLoading": "Loading status...",
-    "shareFeedback": "Share your feedback",
-    "feedback": "Feedback",
-    "termsOfService": "Terms of Service",
-    "rightsReserved": "All rights reserved.",
-    "copyright": "© {year} Tekir. All rights reserved."
+    "instagramAria": "Instagramda bizi izləyin",
+    "githubAria": "GitHub-da bizim repoya baxın",
+    "statusLoading": "Status yüklənir...",
+    "shareFeedback": "Rəy paylaşın",
+    "feedback": "Rəy",
+    "termsOfService": "Xidmət şərtləri",
+    "rightsReserved": "Bütün hüquqlar qorunur.",
+    "copyright": "© {year} Tekir. Bütün hüquqlar qorunur."
   },
   "home": {
-    "metaTitle": "Tekir - The capable search engine",
-    "welcomePrefix": "Welcome,",
-    "defaultUser": "User",
-    "searchPlaceholder": "What's on your mind?",
+    "metaTitle": "Tekir - Qabiliyyətli axtarış mühərriki",
+    "welcomePrefix": "Xoş gəlmisiniz,",
+    "defaultUser": "İstifadəçi",
+    "searchPlaceholder": "Nə fikirdəsiniz?",
     "quickLinks": {
-      "privateSearches": "Your searches, private.",
-      "aiChat": "AI Chat"
+      "privateSearches": "Axtarışlarınız məxfi.",
+      "aiChat": "AI Çat"
     },
     "recommendations": {
-      "title": "Recommendations",
-      "loading": "Fetching today's picks…",
-      "refresh": "Refresh recommendations",
-      "refreshing": "Refreshing…"
+      "title": "Tövsiyələr",
+      "loading": "Bugünkü seçimlər gətirilir…",
+      "refresh": "Tövsiyələri yenilə",
+      "refreshing": "Yenilənir…"
     }
   },
   "about": {
-    "metaTitle": "About Us | Tekir",
+    "metaTitle": "Haqqımızda | Tekir",
     "heading": {
-      "title": "The Search Engine That Respects You",
-      "subtitleLine1": "Discover why others choose Tekir for their daily searches.",
-      "subtitleLine2": "Privacy-focused, lightning-fast, and packed with intelligent features."
+      "title": "Sizə hörmət edən axtarış mühərriki",
+      "subtitleLine1": "Niyə digərləri gündəlik axtarışlar üçün Tekiri seçdiyini kəşf edin.",
+      "subtitleLine2": "Məxfilik yönümlü, çox sürətli və ağıllı xüsusiyyətlərlə doludur."
     },
     "cards": {
       "privacy": {
-        "title": "Privacy by Design",
-        "description": "No tracking, no data collection, no profile building. Your searches remain completely private and are never stored or shared with third parties."
+        "title": "Məxfilik dizaynı ilə",
+        "description": "İzləmə yoxdur, məlumat yığımı yoxdur, profil yaradılmır. Axtarışlarınız tam məxfi qalır və üçüncü tərəflərlə paylaşılmır."
       },
       "speed": {
-        "title": "Lightning Fast",
-        "description": "Get results in milliseconds with our optimized search infrastructure. Never wait around for answers."
+        "title": "Çox sürətli",
+        "description": "Optimallaşdırılmış axtarış infrastrukturu ilə nəticələri millisekundlarda əldə edin. Cavab gözləməyin."
       },
       "aiChat": {
-        "title": "AI-Powered Chat",
-        "description1": "Get instant answers with our integrated AI chat powered by advanced language models.",
-        "description2": "Experience seamless conversations and get the information you need, when you need it. Use our AI chat to dive deeper into topics and ask follow-up questions."
+        "title": "AI ilə söhbət",
+        "description1": "İnteqrasiya olunmuş AI çatla anında cavablar alın.",
+        "description2": "Mövzularda daha dərinə getmək və əlavə suallar vermək üçün AI çatdan istifadə edin."
       },
       "bangs": {
-        "title": "Bang Commands",
-        "description": "Search directly on your favorite sites with bang commands. Type !g for Google, !w for Wikipedia, and hundreds more.",
-        "more": "More bangs →"
+        "title": "Bang əmrləri",
+        "description": "Seçilmiş saytlarınızda birbaşa axtarış edin. !g Google üçün, !w Vikipediya üçün və daha yüzlərlə.",
+        "more": "Daha çox bang →"
       },
       "autocomplete": {
-        "title": "Smart Autocomplete",
-        "description": "Intelligent suggestions that learn from global search patterns while keeping your data private."
+        "title": "Ağıllı avtomatik tamamlama",
+        "description": "Məlumatlarınızı məxfi saxlayaraq qlobal axtarış nümunələrindən öyrənən ağıllı təkliflər."
       },
       "weather": {
-        "title": "Weather at a Glance",
-        "description": "Get current weather conditions right on your search homepage."
+        "title": "Havaya bir baxış",
+        "description": "Axtarış ana səhifənizdə cari hava şəraitini əldə edin."
       },
       "openSource": {
-        "title": "Open Source",
-        "description": "Transparent, auditable code that you can inspect and contribute to."
+        "title": "Açıq mənbə",
+        "description": "Şəffaf, yoxlanıla bilən kod; düzəliş edə və töhfə verə bilərsiniz."
       },
       "providers": {
-        "title": "Multiple Search Providers",
-        "description": "Choose from multiple search engines and sources to get the most comprehensive results. Switch between providers to find exactly what you're looking for."
+        "title": "Çoxsaylı axtarış provayderləri",
+        "description": "Ən əhatəli nəticələr üçün bir neçə axtarış mühərriki və mənbədən seçim edin. Dəqiq nəticəni tapmaq üçün provayderləri dəyişdirin."
       },
       "inclusive": {
-        "title": "Made for Everyone",
-        "description": "Accessible, inclusive, and designed to work for all users regardless of their background or abilities."
+        "title": "Hər kəs üçün hazırlanmışdır",
+        "description": "Əlçatan, daxil edici və hər kəs üçün dizayn edilmişdir."
       }
     },
     "cta": {
-      "title": "Ready to experience better search?",
-      "subtitle": "Start searching with Tekir today and discover the difference privacy makes.",
-      "primary": "Try Tekir Now",
-      "secondary": "Settings"
+      "title": "Daha yaxşı axtarışı yaşamağa hazırsınız?",
+      "subtitle": "Bu gün Tekirlə axtarın və məxfiliyin fərqini kəşf edin.",
+      "primary": "İndi Tekiri sınayın",
+      "secondary": "Ayarlar"
     }
   },
   "subscription": {
