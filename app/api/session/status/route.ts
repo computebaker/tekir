@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
     }
 
-    // Use JWT auth status to determine limits, not session userId
-    const limit = getUserRateLimit(isActuallyAuthenticated);
+    // Use JWT auth status and roles to determine limits, not session userId
+    const limit = getUserRateLimit(isActuallyAuthenticated, jwtUser?.roles);
     const current = typeof s.currentCount === 'number' ? s.currentCount : 0;
     
     // Convex calculates remaining based on session's stored userId, which may be wrong for logged out users

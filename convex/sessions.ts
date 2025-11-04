@@ -6,9 +6,31 @@ import { yyyymmdd } from "./usage";
 const RATE_LIMITS = {
   ANONYMOUS_DAILY_LIMIT: 150,
   AUTHENTICATED_DAILY_LIMIT: 300,
+  PLUS_DAILY_LIMIT: 600, // Tekir Plus members get significantly higher limits
   SESSION_EXPIRATION_SECONDS: 24 * 60 * 60, // 24 hours
   RESET_INTERVAL_MS: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 } as const;
+
+// Helper to get user limit based on roles
+async function getUserLimit(ctx: any, userId: any): Promise<number> {
+  if (!userId) {
+    return RATE_LIMITS.ANONYMOUS_DAILY_LIMIT;
+  }
+  
+  try {
+    const user = await ctx.db.get(userId);
+    if (user && user.roles) {
+      const isPaid = user.roles.some((role: string) => role.toLowerCase() === 'paid');
+      if (isPaid) {
+        return RATE_LIMITS.PLUS_DAILY_LIMIT;
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching user for rate limit:', error);
+  }
+  
+  return RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT;
+}
 
 // Session tracking for rate limiting (replaces Redis functionality)
 
@@ -149,20 +171,21 @@ export const getRateLimitStatus = query({
 
     const isExpired = session.expiresAt <= Date.now();
     if (isExpired || !session.isActive) {
+      const limit = await getUserLimit(ctx, session.userId);
       return { 
         isValid: false, 
         currentCount: session.requestCount, 
-        limit: session.userId ? RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT : RATE_LIMITS.ANONYMOUS_DAILY_LIMIT,
+        limit,
         remaining: 0,
         isAuthenticated: !!session.userId 
       };
     }
 
-    const limit = session.userId ? RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT : RATE_LIMITS.ANONYMOUS_DAILY_LIMIT;
+    const limit = await getUserLimit(ctx, session.userId);
     const sessionRemaining = Math.max(0, limit - session.requestCount);
 
     // Enforce per-device daily cap across auth/anon
-    let deviceRemainingNum = Number(RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT); // device cap equals auth daily limit
+    let deviceRemainingNum = Number(limit); // Use user's limit as device cap
     const deviceKey = session.deviceId || session.hashedIp;
     if (deviceKey) {
       try {
@@ -172,7 +195,7 @@ export const getRateLimitStatus = query({
           .withIndex('by_day_deviceId', q => q.eq('day', day).eq('deviceId', deviceKey))
           .first();
         const deviceCount = du?.count ?? 0;
-        deviceRemainingNum = Math.max(0, Number(RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT) - deviceCount);
+        deviceRemainingNum = Math.max(0, Number(limit) - deviceCount);
       } catch {}
     }
 
@@ -206,8 +229,8 @@ export const incrementAndCheckRequestCount = mutation({
       return { allowed: false, currentCount: session.requestCount };
     }
 
-    const maxRequests = session.userId ? RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT : RATE_LIMITS.ANONYMOUS_DAILY_LIMIT;
-  const deviceCap: number = RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT; // hard cap per device per day
+    const maxRequests = await getUserLimit(ctx, session.userId);
+  const deviceCap: number = await getUserLimit(ctx, session.userId); // Use user's limit as device cap
 
     // Load device usage if we have a device key
     const deviceKey = session.deviceId || session.hashedIp;
@@ -359,10 +382,11 @@ export const getOrCreateSessionToken = mutation({
           }
         }
         
+        const limit = await getUserLimit(ctx, args.userId);
         return {
           sessionToken: existingUserSession.sessionToken,
           isExisting: true,
-          requestLimit: RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT,
+          requestLimit: limit,
         };
       }
 
@@ -379,10 +403,11 @@ export const getOrCreateSessionToken = mutation({
           isActive: true,
         });
 
+        const limit = await getUserLimit(ctx, args.userId);
         return {
           sessionToken,
           isExisting: false,
-          requestLimit: RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT,
+          requestLimit: limit,
         };
       } catch (error) {
         // If insert fails, try to find if a session was created concurrently
@@ -393,10 +418,11 @@ export const getOrCreateSessionToken = mutation({
           .first();
         
         if (concurrentSession) {
+          const limit = await getUserLimit(ctx, args.userId);
           return {
             sessionToken: concurrentSession.sessionToken,
             isExisting: true,
-            requestLimit: RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT,
+            requestLimit: limit,
           };
         }
         

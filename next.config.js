@@ -28,6 +28,12 @@ const nextConfig = {
   experimental: {
     turbopackUseBuiltinBabel: true,
   },
+
+  // Set build-time environment variables
+  env: {
+    // Auto-generate i18n cache version if not explicitly set
+    NEXT_PUBLIC_I18N_CACHE_VERSION: process.env.NEXT_PUBLIC_I18N_CACHE_VERSION || `v${Date.now()}`,
+  },
   
   async rewrites() {
     console.log('Convex proxy disabled - using direct connections');

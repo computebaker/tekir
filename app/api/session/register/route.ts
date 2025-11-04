@@ -61,16 +61,16 @@ export async function POST(req: NextRequest) {
       const s = await getRateLimitStatus(token);
       status = {
         currentCount: s.currentCount ?? 0,
-        limit: s.limit ?? getUserRateLimit(!!userId),
-        remaining: s.remaining ?? getUserRateLimit(!!userId),
+        limit: s.limit ?? getUserRateLimit(!!userId, user?.roles),
+        remaining: s.remaining ?? getUserRateLimit(!!userId, user?.roles),
         isAuthenticated: !!(s.isAuthenticated ?? userId)
       };
     } catch (e) {
       // Fall back to static values if Convex status fails
       status = {
         currentCount: 0,
-        limit: getUserRateLimit(!!userId),
-        remaining: getUserRateLimit(!!userId),
+        limit: getUserRateLimit(!!userId, user?.roles),
+        remaining: getUserRateLimit(!!userId, user?.roles),
         isAuthenticated: !!userId
       };
     }

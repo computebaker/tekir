@@ -39,6 +39,16 @@ export const getUserByVerificationToken = query({
   },
 });
 
+export const getUserByPolarCustomerId = query({
+  args: { polarCustomerId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_polarCustomerId", (q) => q.eq("polarCustomerId", args.polarCustomerId))
+      .unique();
+  },
+});
+
 // Admin: list users (recent first)
 export const listUsers = query({
   args: { limit: v.optional(v.number()) },
@@ -98,6 +108,7 @@ export const updateUser = mutation({
     roles: v.optional(v.array(v.string())),
     settingsSync: v.optional(v.boolean()),
     settings: v.optional(v.any()),
+    polarCustomerId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updateData } = args;
@@ -107,6 +118,19 @@ export const updateUser = mutation({
     
     return await ctx.db.patch(id, {
       ...updates,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateUserRoles = mutation({
+  args: {
+    id: v.id("users"),
+    roles: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.id, {
+      roles: args.roles,
       updatedAt: Date.now(),
     });
   },

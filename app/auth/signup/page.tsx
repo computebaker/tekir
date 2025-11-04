@@ -91,7 +91,7 @@ export default function SignUpPage() {
         <div className="text-center">
           <Link href="/" className="inline-block">
             <Image
-              src="/tekir-outlined.png"
+              src="/tekir-head.png"
               alt="Tekir Logo"
               width={80}
               height={80}

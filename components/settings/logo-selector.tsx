@@ -19,7 +19,7 @@ const LOGO_OPTIONS: LogoMetadata[] = [
   {
     id: 'tekir',
     name: 'Tekir',
-    path: '/tekir-outlined.png',
+    path: '/tekir-head.png',
     width: 200,
     height: 66,
   },

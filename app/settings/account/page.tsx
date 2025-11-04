@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { getUserAvatarUrl } from "@/lib/avatar";
 import ImageUpload from "@/components/image-upload";
+import SubscriptionManager from "@/components/subscription-manager";
 import { useSettings } from "@/lib/settings";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -32,6 +33,7 @@ export default function AccountSettingsPage() {
   const tSettings = useTranslations("settings");
   const tAccount = useTranslations("settings.accountPage");
   const tCommon = useTranslations("common");
+  const tSubscription = useTranslations("subscription");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
@@ -500,6 +502,12 @@ export default function AccountSettingsPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Tekir Plus Subscription */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="text-lg font-medium mb-6">{tSubscription("title")}</h3>
+                  <SubscriptionManager />
                 </div>
 
                 {/* Email Settings */}
