@@ -66,22 +66,22 @@
     "bangs": "Bang əmrləri"
   },
   "settings": {
-  "title": "Ayarlar",
-  "search": "Axtarış",
-  "privacy": "Gizlilik",
-  "account": "Hesab",
-  "about": "Haqqında",
-  "language": "Dil",
-  "theme": "Mövzu",
-  "searchEngine": "Axtarış mühərriki",
-  "country": "Ölkə",
-  "safesearch": "Təhlükəsiz axtarış",
-  "appearance": "Görünüş",
-  "general": "Ümumi",
-  "saveChanges": "Dəyişiklikləri yadda saxla",
-  "changesSaved": "Dəyişikliklər uğurla yadda saxlandı",
+    "title": "Ayarlar",
+    "search": "Axtarış",
+    "privacy": "Gizlilik",
+    "account": "Hesab",
+    "about": "Haqqında",
+    "language": "Dil",
+    "theme": "Mövzu",
+    "searchEngine": "Axtarış mühərriki",
+    "country": "Ölkə",
+    "safesearch": "Təhlükəsiz axtarış",
+    "appearance": "Görünüş",
+    "general": "Ümumi",
+    "saveChanges": "Dəyişiklikləri yadda saxla",
+    "changesSaved": "Dəyişikliklər uğurla yadda saxlandı",
     "accountPage": {
-  "metaTitle": "Hesab Ayarları",
+      "metaTitle": "Hesab Ayarları",
       "mobileNav": {
         "back": "Axtarışa qayıt",
         "chat": "AI Çat",
@@ -125,48 +125,48 @@
         "sessionOutdated": "Sessiyanız köhnəlib. Davam etmək üçün çıxış edib yenidən daxil olun."
       },
       "profilePicture": {
-    "title": "Profil şəkli",
-    "alternativeTitle": "Alternativ variantlar",
-    "alternativeDescription": "Şəkiliniz yoxdursa? Bunun əvəzinə yaradılmış avatar istifadə edə bilərsiniz.",
-    "generateButton": "Yeni avatar yaradın"
+        "title": "Profil şəkli",
+        "alternativeTitle": "Alternativ variantlar",
+        "alternativeDescription": "Şəkiliniz yoxdursa? Bunun əvəzinə yaradılmış avatar istifadə edə bilərsiniz.",
+        "generateButton": "Yeni avatar yaradın"
       },
       "emailSection": {
-    "title": "E-poçt ünvanı",
-    "label": "E-poçt",
-    "placeholder": "E-poçtunuzu daxil edin",
-    "button": "E-poçtu yenilə"
+        "title": "E-poçt ünvanı",
+        "label": "E-poçt",
+        "placeholder": "E-poçtunuzu daxil edin",
+        "button": "E-poçtu yenilə"
       },
       "nameSection": {
-    "title": "Göstərilən ad",
-    "label": "Ad",
-    "description": "Bu ad profilinizdə açıq şəkildə göstəriləcək.",
-    "placeholder": "Göstərilən adınızı daxil edin",
-    "button": "Adı yenilə"
+        "title": "Göstərilən ad",
+        "label": "Ad",
+        "description": "Bu ad profilinizdə açıq şəkildə göstəriləcək.",
+        "placeholder": "Göstərilən adınızı daxil edin",
+        "button": "Adı yenilə"
       },
       "usernameSection": {
-    "title": "İstifadəçi adı",
-    "label": "İstifadəçi adı",
-    "description": "Unikal istifadəçi adınız adınızın altında @{username} kimi göstəriləcək.",
-    "placeholder": "istifadəçi adı",
-    "button": "İstifadəçi adını yenilə"
+        "title": "İstifadəçi adı",
+        "label": "İstifadəçi adı",
+        "description": "Unikal istifadəçi adınız adınızın altında @{username} kimi göstəriləcək.",
+        "placeholder": "istifadəçi adı",
+        "button": "İstifadəçi adını yenilə"
       },
       "passwordSection": {
-    "title": "Şifrəni dəyiş",
-    "currentLabel": "Cari şifrə",
-    "currentPlaceholder": "Cari şifrəni daxil edin",
-    "newLabel": "Yeni şifrə",
-    "newPlaceholder": "Yeni şifrəni daxil edin",
-    "confirmLabel": "Yeni şifrəni təsdiq edin",
-    "confirmPlaceholder": "Yeni şifrəni təsdiq edin",
-    "button": "Şifrəni dəyiş"
+        "title": "Şifrəni dəyiş",
+        "currentLabel": "Cari şifrə",
+        "currentPlaceholder": "Cari şifrəni daxil edin",
+        "newLabel": "Yeni şifrə",
+        "newPlaceholder": "Yeni şifrəni daxil edin",
+        "confirmLabel": "Yeni şifrəni təsdiq edin",
+        "confirmPlaceholder": "Yeni şifrəni təsdiq edin",
+        "button": "Şifrəni dəyiş"
       },
       "syncSection": {
-    "title": "Ayarların sinxronizasiyası",
-    "description": "Axtarış üstünlüklərinizi, AI seçimlərini, mövzunu və digər ayarları bütün cihazlarınızda sinxron saxlamaq üçün sinxronizasiyanı aktiv edin.",
-    "cardTitle": "Ayar sinxronizasiyası",
-    "statusEnabled": "Ayarlarınız cihazlar arasında sinxronlaşdırılıb",
-    "statusDisabled": "Ayarlar yalnız yerli saxlanılır",
-    "syncedList": "<strong>Sinxronlaşdırılan ayarlar:</strong> Axtarış mühərriki üstünlükləri, AI model seçimi, hava parametrləri, mövzu, avtomatik tamamlayıcı provayder, axtarış regionları və SafeSearch ayarları."
+        "title": "Ayarların sinxronizasiyası",
+        "description": "Axtarış üstünlüklərinizi, AI seçimlərini, mövzunu və digər ayarları bütün cihazlarınızda sinxron saxlamaq üçün sinxronizasiyanı aktiv edin.",
+        "cardTitle": "Ayar sinxronizasiyası",
+        "statusEnabled": "Ayarlarınız cihazlar arasında sinxronlaşdırılıb",
+        "statusDisabled": "Ayarlar yalnız yerli saxlanılır",
+        "syncedList": "<strong>Sinxronlaşdırılan ayarlar:</strong> Axtarış mühərriki üstünlükləri, AI model seçimi, hava parametrləri, mövzu, avtomatik tamamlayıcı provayder, axtarış regionları və SafeSearch ayarları."
       },
       "dangerZone": {
         "title": "Təhlükəli bölmə",
@@ -179,7 +179,7 @@
       }
     },
     "privacyPage": {
-  "metaTitle": "Gizlilik Ayarları",
+      "metaTitle": "Gizlilik Ayarları",
       "mobileNav": {
         "back": "Axtarışa qayıt",
         "account": "Hesab Ayarları"
@@ -263,7 +263,7 @@
       }
     },
     "searchPage": {
-    "metaTitle": "Axtarış Ayarları",
+      "metaTitle": "Axtarış Ayarları",
       "mobileNav": {
         "back": "Axtarışa qayıt",
         "chat": "AI Çat",
