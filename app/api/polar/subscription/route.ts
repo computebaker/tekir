@@ -103,10 +103,13 @@ export async function GET(req: NextRequest) {
         subscription: {
           id: subscription.id,
           status: subscription.status,
-          currentPeriodEnd: subscription.current_period_end,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          currentPeriodStart: subscription.currentPeriodStart,
+          cancelAtPeriodEnd: subscription.cancelAtPeriodEnd || false,
           product: subscription.product,
-          price: subscription.price,
+          prices: subscription.prices,
+          amount: subscription.amount,
+          currency: subscription.currency,
         },
       },
       { headers }

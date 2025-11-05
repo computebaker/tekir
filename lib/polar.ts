@@ -61,6 +61,8 @@ export async function createCheckoutSession({
 
 /**
  * Get customer subscriptions
+ * 
+ * Note: The SDK returns paginated results with a result.items array structure.
  */
 export async function getCustomerSubscriptions(customerId: string) {
   try {
@@ -70,16 +72,36 @@ export async function getCustomerSubscriptions(customerId: string) {
     });
 
     const subscriptions: any[] = [];
-    for await (const subscription of result) {
-      console.log(`[Polar] Found subscription: id=${(subscription as any).id}, status=${(subscription as any).status}`);
-      subscriptions.push(subscription);
+    
+    // The result is a paginated response - iterate through pages
+    // Each page has a 'result' property containing 'items'
+    for await (const page of result) {
+      const items = (page as any).result?.items || (page as any).items;
+      
+      if (items && Array.isArray(items)) {
+        for (const subscription of items) {
+          console.log(`[Polar] Found subscription: id=${subscription.id}, status=${subscription.status}`);
+          subscriptions.push(subscription);
+        }
+      } else {
+        // If page structure is different, log for debugging
+        console.log('[Polar] Unexpected page structure:', Object.keys(page));
+      }
     }
 
-    const activeSubscriptions = subscriptions.filter((s: any) => s.status === 'active' || s.status === 'trialing');
-    console.log(`[Polar] Filtered to ${activeSubscriptions.length} active/trialing subscriptions out of ${subscriptions.length} total`);
+    // Filter for active or trialing subscriptions
+    const activeSubscriptions = subscriptions.filter(
+      (s: any) => s.status === 'active' || s.status === 'trialing'
+    );
     
-    // Also log all subscriptions for debugging
-    console.log(`[Polar] All subscription statuses:`, subscriptions.map((s: any) => ({ id: s.id, status: s.status })));
+    console.log(
+      `[Polar] Filtered to ${activeSubscriptions.length} active/trialing subscriptions out of ${subscriptions.length} total`
+    );
+    
+    console.log(
+      `[Polar] All subscription statuses:`,
+      subscriptions.map((s: any) => ({ id: s.id, status: s.status }))
+    );
 
     return {
       success: true,
