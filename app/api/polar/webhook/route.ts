@@ -75,12 +75,7 @@ export async function POST(req: NextRequest) {
       console.error('[Webhook] Signature validation failed:', error);
       console.error('[Webhook] Error details:', error instanceof Error ? error.message : String(error));
       
-      if (error instanceof WebhookVerificationError) {
-        // Log for debugging
-        console.error('[Webhook] WebhookVerificationError - check your POLAR_WEBHOOK_SECRET');
-        console.error('[Webhook] Expected secret format: polar_whs_...');
-        console.error('[Webhook] Secret configured:', webhookSecret ? `Yes (length: ${webhookSecret.length})` : 'No');
-        
+      if (error instanceof WebhookVerificationError) {        
         // TEMPORARY: Parse body anyway for debugging (REMOVE IN PRODUCTION)
         if (process.env.NODE_ENV === 'development') {
           console.warn('[Webhook] DEV MODE: Processing despite signature failure');

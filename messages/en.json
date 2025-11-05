@@ -656,6 +656,7 @@
       "upgrade": "Upgrade to Plus",
       "upgradeToPro": "Upgrade to Pro",
       "manage": "Manage Subscription",
+      "refresh": "Refresh",
       "loading": "Loading...",
       "signInRequired": "Please sign in to upgrade"
     },

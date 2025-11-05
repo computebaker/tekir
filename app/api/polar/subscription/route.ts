@@ -43,8 +43,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    console.log(`[Subscription API] User ${user._id} found:`, {
+      email: user.email,
+      roles: user.roles,
+      polarCustomerId: user.polarCustomerId,
+      hasPaidRole: user.roles?.some((role: string) => role.toLowerCase() === 'paid')
+    });
+
     // Check if user has polarCustomerId
     if (!user.polarCustomerId) {
+      console.log(`[Subscription API] User ${user._id} has no polarCustomerId`);
       return NextResponse.json(
         { 
           hasSubscription: false,
@@ -54,14 +62,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    console.log(`[Subscription API] User ${user._id} has polarCustomerId: ${user.polarCustomerId}`);
+
     // Fetch subscriptions from Polar
     const result = await getCustomerSubscriptions(user.polarCustomerId);
 
     if (!result.success) {
+      console.error(`[Subscription API] Failed to fetch subscriptions for customer ${user.polarCustomerId}:`, result);
       return NextResponse.json(
         { error: 'Failed to fetch subscription details' },
         { status: 500, headers }
       );
+    }
+
+    console.log(`[Subscription API] Found ${result.subscriptions.length} active subscriptions for customer ${user.polarCustomerId}`);
+    if (result.subscriptions.length > 0) {
+      console.log(`[Subscription API] First subscription:`, result.subscriptions[0]);
     }
 
     // Return subscription data

@@ -64,21 +64,32 @@ export async function createCheckoutSession({
  */
 export async function getCustomerSubscriptions(customerId: string) {
   try {
+    console.log(`[Polar] Fetching subscriptions for customer: ${customerId}`);
     const result = await polar.subscriptions.list({
       customerId,
     });
 
     const subscriptions: any[] = [];
     for await (const subscription of result) {
+      console.log(`[Polar] Found subscription:`, {
+        id: (subscription as any).id,
+        status: (subscription as any).status,
+        customer_id: (subscription as any).customer_id,
+        current_period_end: (subscription as any).current_period_end,
+        cancel_at_period_end: (subscription as any).cancel_at_period_end
+      });
       subscriptions.push(subscription);
     }
 
+    const activeSubscriptions = subscriptions.filter((s: any) => s.status === 'active' || s.status === 'trialing');
+    console.log(`[Polar] Filtered to ${activeSubscriptions.length} active/trialing subscriptions`);
+
     return {
       success: true,
-      subscriptions: subscriptions.filter((s: any) => s.status === 'active' || s.status === 'trialing'),
+      subscriptions: activeSubscriptions,
     };
   } catch (error) {
-    console.error('Failed to get subscriptions:', error);
+    console.error('[Polar] Failed to get subscriptions:', error);
     return {
       success: false,
       subscriptions: [],

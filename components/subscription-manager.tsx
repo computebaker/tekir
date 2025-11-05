@@ -41,6 +41,7 @@ export default function SubscriptionManager({
   const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
   const isPaid = user?.roles?.some((role: string) => role.toLowerCase() === 'paid');
 
@@ -60,26 +61,37 @@ export default function SubscriptionManager({
         return;
       }
 
-      try {
-        const response = await fetch('/api/polar/subscription', {
-          credentials: 'include',
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.hasSubscription && data.subscription) {
-            setSubscription(data.subscription);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch subscription:', err);
-      } finally {
-        setCheckingSubscription(false);
-      }
+      await fetchSubscriptionData();
     };
 
     checkSubscription();
   }, [isPaid]);
+
+  const fetchSubscriptionData = async () => {
+    try {
+      setError(null);
+      const response = await fetch('/api/polar/subscription', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasSubscription && data.subscription) {
+          setSubscription(data.subscription);
+        } else {
+          setSubscription(null);
+        }
+      } else {
+        setError('Failed to fetch subscription data');
+      }
+    } catch (err) {
+      console.error('Failed to fetch subscription:', err);
+      setError('Network error while fetching subscription');
+    } finally {
+      setCheckingSubscription(false);
+      setLastFetched(new Date());
+    }
+  };
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -285,6 +297,30 @@ export default function SubscriptionManager({
           {t('actions.manage')}
           <ExternalLink className="w-3 h-3" />
         </a>
+
+        {/* Refresh Button */}
+        <Button
+          onClick={() => {
+            setCheckingSubscription(true);
+            fetchSubscriptionData();
+          }}
+          variant="outline"
+          size="sm"
+          className="w-full"
+          disabled={checkingSubscription}
+        >
+          {checkingSubscription ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              {t('status.loading')}
+            </>
+          ) : (
+            <>
+              <Calendar className="w-4 h-4 mr-2" />
+              {t('actions.refresh')}
+            </>
+          )}
+        </Button>
 
         {/* Additional Info */}
         <p className="text-xs text-muted-foreground text-center">
