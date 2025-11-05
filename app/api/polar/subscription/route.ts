@@ -20,16 +20,21 @@ export async function GET(req: NextRequest) {
     'X-XSS-Protection': '1; mode=block',
   };
 
+  console.log(`[Polar] Subscription check request`);
+
   try {
     // Get authenticated user
     const jwtUser = await getJWTUser(req);
     
     if (!jwtUser) {
+      console.log(`[Polar] Authentication required`);
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401, headers }
       );
     }
+
+    console.log(`[Polar] Authenticated user: ${jwtUser.userId}`);
 
     // Get user from Convex to find polarCustomerId
     const user = await convex.query(api.users.getUserById, {
@@ -37,22 +42,18 @@ export async function GET(req: NextRequest) {
     });
 
     if (!user) {
+      console.log(`[Polar] User not found in Convex: ${jwtUser.userId}`);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404, headers }
       );
     }
 
-    console.log(`[Subscription API] User ${user._id} found:`, {
-      email: user.email,
-      roles: user.roles,
-      polarCustomerId: user.polarCustomerId,
-      hasPaidRole: user.roles?.some((role: string) => role.toLowerCase() === 'paid')
-    });
+    console.log(`[Polar] User found: hasPaidRole=${user.roles?.some((role: string) => role.toLowerCase() === 'paid')}, polarCustomerId=${!!user.polarCustomerId}`);
 
     // Check if user has polarCustomerId
     if (!user.polarCustomerId) {
-      console.log(`[Subscription API] User ${user._id} has no polarCustomerId`);
+      console.log(`[Polar] User has no polarCustomerId`);
       return NextResponse.json(
         { 
           hasSubscription: false,
@@ -62,26 +63,27 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log(`[Subscription API] User ${user._id} has polarCustomerId: ${user.polarCustomerId}`);
+    console.log(`[Polar] Fetching subscriptions for customer: ${user.polarCustomerId}`);
 
     // Fetch subscriptions from Polar
     const result = await getCustomerSubscriptions(user.polarCustomerId);
 
     if (!result.success) {
-      console.error(`[Subscription API] Failed to fetch subscriptions for customer ${user.polarCustomerId}:`, result);
+      console.error(`[Polar] Failed to fetch subscriptions for customer ${user.polarCustomerId}`);
       return NextResponse.json(
         { error: 'Failed to fetch subscription details' },
         { status: 500, headers }
       );
     }
 
-    console.log(`[Subscription API] Found ${result.subscriptions.length} active subscriptions for customer ${user.polarCustomerId}`);
+    console.log(`[Polar] Found ${result.subscriptions.length} active subscriptions`);
     if (result.subscriptions.length > 0) {
-      console.log(`[Subscription API] First subscription:`, result.subscriptions[0]);
+      console.log(`[Polar] First subscription status: ${result.subscriptions[0].status}`);
     }
 
     // Return subscription data
     if (result.subscriptions.length === 0) {
+      console.log(`[Polar] No active subscriptions found`);
       return NextResponse.json(
         { 
           hasSubscription: false,
@@ -93,6 +95,7 @@ export async function GET(req: NextRequest) {
 
     // Return the first active subscription
     const subscription = result.subscriptions[0];
+    console.log(`[Polar] Returning subscription: ${subscription.id}, status: ${subscription.status}`);
 
     return NextResponse.json(
       {
@@ -109,7 +112,7 @@ export async function GET(req: NextRequest) {
       { headers }
     );
   } catch (error) {
-    console.error('Subscription fetch error:', error);
+    console.error(`[Polar] Subscription fetch error:`, error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500, headers }

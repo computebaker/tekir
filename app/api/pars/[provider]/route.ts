@@ -382,12 +382,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const safesearch = req.nextUrl.searchParams.get('safesearch') || 'moderate';
   const lang = req.nextUrl.searchParams.get('lang') || req.nextUrl.searchParams.get('language') || undefined;
 
+  console.log(`[Search] ${provider} request: query length=${query?.length || 0}, country=${country}, safesearch=${safesearch}`);
+
   const rateLimitResult = await checkRateLimit(req, '/api/pars');
   if (!rateLimitResult.success) {
+    console.log(`[Search] Rate limit exceeded for ${provider}`);
     return rateLimitResult.response!;
   }
 
   if (!query) {
+    console.log(`[Search] Missing query parameter for ${provider}`);
     return NextResponse.json({ error: 'Missing query parameter "q".' }, { status: 400 });
   }
 
@@ -397,6 +401,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   let videos: any[] = [];
   let news: any[] = [];
   let totalResultsCount = 0;
+  console.log(`[Search] Calling ${provider} API`);
   switch (provider.toLowerCase()) {
     case 'duck':
       results = await getDuck(query);
@@ -413,8 +418,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     case 'google': {
       const authUser = await getJWTUser(req);
       if (!authUser) {
+        console.log(`[Search] Google requires authentication, user not found`);
         return NextResponse.json({ error: 'Authentication required for Google search.' }, { status: 401 });
       }
+      console.log(`[Search] Authenticated user for Google: ${authUser.userId}`);
       const googleRes = await getGoogle(query, country, safesearch, lang);
       results = googleRes.results;
       totalResultsCount = results.length;
@@ -427,17 +434,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       break;
     }
     default:
+      console.log(`[Search] Unsupported provider: ${provider}`);
       return NextResponse.json({ error: 'Unsupported provider.' }, { status: 400 });
   }
+
+  console.log(`[Search] ${provider} returned ${results.length} results, ${videos.length} videos, ${news.length} news`);
 
   // Generate favicon URLs for returned results using our favicon proxy
   try {
     await fetchFaviconsForResults(results);
   } catch (e) {
-    console.warn('Favicon processing failed:', e);
+    console.warn('[Search] Favicon processing failed:', e);
   }
 
   const responseTime = Date.now() - now;
+  console.log(`[Search] ${provider} completed in ${responseTime}ms`);
+  
   // Fire-and-forget usage logging (no PII, aggregated daily)
   try {
     const convex = getConvexClient();
@@ -449,8 +461,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       totalResults: totalResultsCount || results.length,
       queryText: query || undefined,
     });
+    console.log(`[Convex] Logged search usage for ${provider}`);
   } catch (e) {
-    console.warn('Failed to log search usage:', e);
+    console.warn('[Convex] Failed to log search usage:', e);
   }
   
   return NextResponse.json({

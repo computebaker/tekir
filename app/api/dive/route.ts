@@ -155,9 +155,11 @@ async function fetchPagesWithFallback(pages: PageContent[]): Promise<PageContent
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
+  console.log(`[Dive] Starting dive request`);
   
   const rateLimitResult = await checkRateLimit(req, '/api/dive');
   if (!rateLimitResult.success) {
+    console.log(`[Dive] Rate limit exceeded`);
     return rateLimitResult.response!;
   }
 
@@ -165,10 +167,11 @@ export async function POST(req: NextRequest) {
     const { query, pages } = await req.json() as { query: string, pages: PageContent[] };
 
     if (!query || !pages || pages.length === 0) {
+      console.log(`[Dive] Missing query or pages`);
       return NextResponse.json({ error: 'Missing query or pages for Dive mode.' }, { status: 400 });
     }
 
-    console.log(`Dive request: "${query}" with ${pages.length} candidate pages`);
+    console.log(`[Dive] Processing query "${query}" with ${pages.length} candidate pages`);
 
     // Use the new optimized fallback mechanism to fetch pages
     const fetchStartTime = Date.now();
@@ -176,10 +179,11 @@ export async function POST(req: NextRequest) {
     const fetchDuration = Date.now() - fetchStartTime;
 
     if (validPages.length === 0) {
+      console.log(`[Dive] No valid pages fetched`);
       return NextResponse.json({ error: 'Could not fetch meaningful content from any of the provided URLs.' }, { status: 500 });
     }
 
-    console.log(`Page fetching completed in ${fetchDuration}ms`);
+    console.log(`[Dive] Page fetching completed: ${validPages.length}/${pages.length} pages in ${fetchDuration}ms`);
 
     // Prepare optimized prompt for LLM
     let contextForLlm = "";
@@ -192,6 +196,7 @@ export async function POST(req: NextRequest) {
     const llmPrompt = `Query: "${query}"\n\nContent:\n${contextForLlm}\n\nProvide a concise, accurate answer based on the above sources.`;
 
     const aiStartTime = Date.now();
+    console.log(`[Dive] Calling AI API`);
     const llmResponse = await openai.chat.completions.create({
       model: 'openai/gpt-5-mini', 
       messages: [
@@ -211,8 +216,7 @@ export async function POST(req: NextRequest) {
     const aiDuration = Date.now() - aiStartTime;
     const totalDuration = Date.now() - startTime;
 
-    console.log(`AI processing completed in ${aiDuration}ms`);
-    console.log(`Total dive request completed in ${totalDuration}ms`);
+    console.log(`[Dive] AI completed in ${aiDuration}ms, total ${totalDuration}ms`);
 
     const answer = llmResponse.choices[0].message.content;
 
@@ -230,7 +234,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     const totalDuration = Date.now() - startTime;
-    console.error(`Error in /api/dive after ${totalDuration}ms:`, error);
+    console.error(`[Dive] Error after ${totalDuration}ms:`, error.message || error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

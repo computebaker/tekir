@@ -169,27 +169,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     };
 
     const { model } = await params;
+    console.log(`[AI] Karakulak request for model: ${model}`);
     
     // Validate model parameter
   const validModels = ['gemini', 'llama', 'mistral', 'chatgpt', 'grok', 'claude'];
     if (!validModels.includes(model.toLowerCase())) {
+      console.log(`[AI] Invalid model requested: ${model}`);
       return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 400, headers });
     }
     
     const rateLimitResult = await checkRateLimit(req, '/api/karakulak');
     if (!rateLimitResult.success) {
+      console.log(`[AI] Rate limit exceeded for model: ${model}`);
       return rateLimitResult.response!;
     }
 
   const { message } = await req.json();
+  console.log(`[AI] Processing message for ${model}, length: ${message?.length || 0}`);
   
   // Input validation
   if (!message || typeof message !== 'string') {
+    console.log(`[AI] Invalid message input for ${model}`);
     return NextResponse.json({ error: 'Message is required and must be a string.' }, { status: 400, headers });
   }
   
   // Limit message length (400 characters as per search query limit)
   if (message.length > 400) {
+    console.log(`[AI] Message too long for ${model}: ${message.length} chars`);
     return NextResponse.json({ error: 'Message too long. Maximum 400 characters allowed.' }, { status: 400, headers });
   }
   
@@ -197,12 +203,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
   const sanitizedMessage = message.trim().replace(/[\x00-\x1F\x7F]/g, '');
   
   if (!sanitizedMessage) {
+    console.log(`[AI] Message empty after sanitization for ${model}`);
     return NextResponse.json({ error: 'Message cannot be empty after sanitization.' }, { status: 400, headers });
   }
 
   try {
     let answer: string;
     const t0 = Date.now();
+    console.log(`[AI] Calling ${model} API`);
     switch (model.toLowerCase()) {
       case 'gemini':
         answer = await gemini(sanitizedMessage);
@@ -226,6 +234,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
         return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 404 });
     }
     const latency = Date.now() - t0;
+    console.log(`[AI] ${model} completed in ${latency}ms, response length: ${answer?.length || 0}`);
+    
     // Fire-and-forget AI usage logging
     try {
       const convex = getConvexClient();
@@ -234,12 +244,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
         latencyMs: latency,
         answerChars: (answer || '').length,
       });
+      console.log(`[Convex] Logged AI usage for ${model}`);
     } catch (e) {
-      console.warn('Failed to log AI usage:', e);
+      console.warn('[Convex] Failed to log AI usage:', e);
     }
     return NextResponse.json({ answer }, { headers });
   } catch (error: any) {
-    console.error('Error in Karakulak API:', error);
+    console.error(`[AI] Error in ${model}:`, error.message || error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500, headers });
   }
 }
