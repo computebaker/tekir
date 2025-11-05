@@ -97,16 +97,28 @@ export async function GET(req: NextRequest) {
     const subscription = result.subscriptions[0];
     console.log(`[Polar] Returning subscription: ${subscription.id}, status: ${subscription.status}`);
 
+    // Helper to safely convert Date to ISO string
+    const toISOString = (date: any) => {
+      if (!date) return null;
+      if (date instanceof Date) return date.toISOString();
+      if (typeof date === 'string') return date;
+      return null;
+    };
+
     return NextResponse.json(
       {
         hasSubscription: true,
         subscription: {
           id: subscription.id,
           status: subscription.status,
-          currentPeriodEnd: subscription.currentPeriodEnd,
-          currentPeriodStart: subscription.currentPeriodStart,
+          currentPeriodEnd: toISOString(subscription.currentPeriodEnd),
+          currentPeriodStart: toISOString(subscription.currentPeriodStart),
           cancelAtPeriodEnd: subscription.cancelAtPeriodEnd || false,
-          product: subscription.product,
+          product: {
+            id: subscription.product.id,
+            name: subscription.product.name,
+            description: subscription.product.description,
+          },
           prices: subscription.prices,
           amount: subscription.amount,
           currency: subscription.currency,

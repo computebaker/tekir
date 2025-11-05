@@ -298,30 +298,6 @@ export default function SubscriptionManager({
           <ExternalLink className="w-3 h-3" />
         </a>
 
-        {/* Refresh Button */}
-        <Button
-          onClick={() => {
-            setCheckingSubscription(true);
-            fetchSubscriptionData();
-          }}
-          variant="outline"
-          size="sm"
-          className="w-full"
-          disabled={checkingSubscription}
-        >
-          {checkingSubscription ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              {t('status.loading')}
-            </>
-          ) : (
-            <>
-              <Calendar className="w-4 h-4 mr-2" />
-              {t('actions.refresh')}
-            </>
-          )}
-        </Button>
-
         {/* Additional Info */}
         <p className="text-xs text-muted-foreground text-center">
           {t('info.manageInfo')}
