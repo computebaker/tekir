@@ -15,7 +15,8 @@ interface SubscriptionManagerProps {
 interface SubscriptionInfo {
   id: string;
   status: string;
-  currentPeriodEnd: number;
+  currentPeriodEnd: string | number | null;
+  currentPeriodStart?: string | number | null;
   cancelAtPeriodEnd: boolean;
   product?: {
     name: string;
@@ -130,12 +131,29 @@ export default function SubscriptionManager({
     return `${currencySymbol}${formattedAmount}/${intervalText}`;
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const formatDate = (dateInput: number | string | null | undefined) => {
+    if (!dateInput) return 'N/A';
+    
+    try {
+      // Handle both Unix timestamp (number) and ISO string
+      const date = typeof dateInput === 'number' 
+        ? new Date(dateInput * 1000)  // Unix timestamp in seconds
+        : new Date(dateInput);         // ISO string
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
   // Free user view - show upgrade option
