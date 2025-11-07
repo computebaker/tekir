@@ -9,6 +9,35 @@ import { useTranslations } from "next-intl";
 import { generateInitialsAvatar, generateAvatarUrl, getUserAvatarUrl } from "@/lib/avatar";
 import { storeRedirectUrl } from "@/lib/utils";
 
+// Tekir Plus Badge Component
+function PlusBadge({ size = 24 }: { size?: number }) {
+  return (
+    <div 
+      className="absolute -bottom-0.5 -right-0.5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg border-2 border-background"
+      style={{ width: size, height: size }}
+      aria-label="Tekir Plus Member"
+      title="You are a Tekir Plus member!"
+    >
+      <svg 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-3/5 h-3/5"
+      >
+        <path 
+          d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" 
+          fill="white"
+          stroke="white"
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+
 interface MobileNavItem {
   href: string;
   icon: LucideIcon;
@@ -31,6 +60,7 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
   const dropdownRef = useRef<HTMLDivElement>(null);
   const avatarPx = showOnlyAvatar ? (avatarSize ?? 40) : 32;
   const fallbackDisplayName = user?.name || user?.email || t("home.defaultUser");
+  const isPlusUser = user?.roles?.some((role: string) => role.toLowerCase() === 'paid');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -195,23 +225,43 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center ${showOnlyAvatar ? 'p-0' : 'gap-2 px-3 py-2'} rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors`}
       >
-        <div
-          className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-border flex-shrink-0`}
-          style={{ width: avatarPx, height: avatarPx }}
-          aria-label={t("userMenu.profileAria", { name: fallbackDisplayName })}
-          title={t("userMenu.profileAria", { name: fallbackDisplayName })}
-        >
-          {(() => {
-            const avatarUrl = getUserAvatarUrl({
-              id: user.id,
-              image: user.image,
-              imageType: (user as any).imageType,
-              email: user.email,
-              name: user.name,
-              updatedAt: (user as any).updatedAt
-            });
+        <div className="relative flex-shrink-0">
+          <div
+            className={`${showOnlyAvatar ? 'w-10 h-10' : 'w-8 h-8'} rounded-full overflow-hidden border-2 border-border`}
+            style={{ width: avatarPx, height: avatarPx }}
+            aria-label={t("userMenu.profileAria", { name: fallbackDisplayName })}
+            title={t("userMenu.profileAria", { name: fallbackDisplayName })}
+          >
+            {(() => {
+              const avatarUrl = getUserAvatarUrl({
+                id: user.id,
+                image: user.image,
+                imageType: (user as any).imageType,
+                email: user.email,
+                name: user.name,
+                updatedAt: (user as any).updatedAt
+              });
 
-            if (shouldUseNextImage(avatarUrl)) {
+              if (shouldUseNextImage(avatarUrl)) {
+                return (
+                  <Image
+                    key={`avatar-${user.id}-${avatarKey}`}
+                    src={avatarUrl}
+                    alt={fallbackDisplayName}
+                    width={avatarPx}
+                    height={avatarPx}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      const userId = user.id;
+                      target.src = user.image
+                        ? generateAvatarUrl(userId, user.email || undefined)
+                        : generateInitialsAvatar(fallbackDisplayName);
+                    }}
+                  />
+                );
+              }
               return (
                 <Image
                   key={`avatar-${user.id}-${avatarKey}`}
@@ -230,26 +280,9 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                   }}
                 />
               );
-            }
-            return (
-              <Image
-                key={`avatar-${user.id}-${avatarKey}`}
-                src={avatarUrl}
-                alt={fallbackDisplayName}
-                width={avatarPx}
-                height={avatarPx}
-                className="w-full h-full object-cover"
-                unoptimized
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  const userId = user.id;
-                  target.src = user.image
-                    ? generateAvatarUrl(userId, user.email || undefined)
-                    : generateInitialsAvatar(fallbackDisplayName);
-                }}
-              />
-            );
-          })()}
+            })()}
+          </div>
+          {isPlusUser && <PlusBadge size={showOnlyAvatar ? 16 : 14} />}
         </div>
         {!showOnlyAvatar && (
           <span className="hidden sm:block truncate max-w-24">
@@ -269,22 +302,42 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                 setIsOpen(false);
               }}
             >
-              <div
-                className="w-10 h-10 rounded-full overflow-hidden border-2 border-border flex-shrink-0"
-                aria-label={t("userMenu.profileAria", { name: fallbackDisplayName })}
-                title={t("userMenu.profileAria", { name: fallbackDisplayName })}
-              >
-                {(() => {
-                  const dropdownAvatarUrl = getUserAvatarUrl({
-                    id: user.id,
-                    image: user.image,
-                    imageType: (user as any).imageType,
-                    email: user.email,
-                    name: user.name,
-                    updatedAt: (user as any).updatedAt
-                  });
+              <div className="relative flex-shrink-0">
+                <div
+                  className="w-10 h-10 rounded-full overflow-hidden border-2 border-border"
+                  aria-label={t("userMenu.profileAria", { name: fallbackDisplayName })}
+                  title={t("userMenu.profileAria", { name: fallbackDisplayName })}
+                >
+                  {(() => {
+                    const dropdownAvatarUrl = getUserAvatarUrl({
+                      id: user.id,
+                      image: user.image,
+                      imageType: (user as any).imageType,
+                      email: user.email,
+                      name: user.name,
+                      updatedAt: (user as any).updatedAt
+                    });
 
-                  if (shouldUseNextImage(dropdownAvatarUrl)) {
+                    if (shouldUseNextImage(dropdownAvatarUrl)) {
+                      return (
+                        <Image
+                          key={`dropdown-avatar-${user.id}-${avatarKey}`}
+                          src={dropdownAvatarUrl}
+                            alt={fallbackDisplayName}
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                          unoptimized
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const userId = user.id;
+                            target.src = user.image
+                              ? generateAvatarUrl(userId, user.email || undefined)
+                                : generateInitialsAvatar(fallbackDisplayName);
+                          }}
+                        />
+                      );
+                    }
                     return (
                       <Image
                         key={`dropdown-avatar-${user.id}-${avatarKey}`}
@@ -303,26 +356,9 @@ export default function UserProfile({ mobileNavItems = [], showOnlyAvatar = fals
                         }}
                       />
                     );
-                  }
-                  return (
-                    <Image
-                      key={`dropdown-avatar-${user.id}-${avatarKey}`}
-                      src={dropdownAvatarUrl}
-                        alt={fallbackDisplayName}
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover"
-                      unoptimized
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        const userId = user.id;
-                        target.src = user.image
-                          ? generateAvatarUrl(userId, user.email || undefined)
-                            : generateInitialsAvatar(fallbackDisplayName);
-                      }}
-                    />
-                  );
-                })()}
+                  })()}
+                </div>
+                {isPlusUser && <PlusBadge size={18} />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{fallbackDisplayName}</p>
