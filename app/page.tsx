@@ -578,29 +578,43 @@ export default function Home() {
   // Global keydown listener to auto-focus search input and capture typing
   useEffect(() => {
     const handleGlobalKeydown = (ev: KeyboardEvent) => {
-      if (document.activeElement !== searchInputRef.current) {
-        // If user starts typing while scrolled, jump to top to expose the main search UI
-        const isTypingKey = ev.key === "Backspace" || (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey);
-        if ((window.scrollY || 0) > 0 && isTypingKey) {
-          const ua = navigator.userAgent || "";
-          const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
-          if (!isApple) {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }
-        }
-        try {
-          // Prevent browsers (notably Safari) from auto-scrolling too far when focusing
-          (searchInputRef.current as any)?.focus({ preventScroll: true });
-        } catch {
-          searchInputRef.current?.focus();
-        }
-        if (ev.key === "Backspace") {
-          setSearchQuery(prev => prev.slice(0, -1));
-        } else if (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
-          setSearchQuery(prev => prev + ev.key);
-        }
-        ev.preventDefault();
+      // Ignore if input is already focused
+      if (document.activeElement === searchInputRef.current) return;
+      
+      // Ignore modifier keys themselves
+      if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph', 'CapsLock', 'Tab', 'Escape'].includes(ev.key)) {
+        return;
       }
+      
+      // Ignore if any modifier key is pressed (except Shift for capitals)
+      if (ev.ctrlKey || ev.metaKey || ev.altKey) {
+        return;
+      }
+      
+      // Only handle alphanumeric keys (no space, no backspace)
+      const isAlphanumeric = /^[a-zA-Z0-9]$/.test(ev.key);
+      
+      if (!isAlphanumeric) return;
+      
+      // If user starts typing while scrolled, jump to top to expose the main search UI
+      if ((window.scrollY || 0) > 0) {
+        const ua = navigator.userAgent || "";
+        const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
+        if (!isApple) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }
+      
+      try {
+        // Prevent browsers (notably Safari) from auto-scrolling too far when focusing
+        (searchInputRef.current as any)?.focus({ preventScroll: true });
+      } catch {
+        searchInputRef.current?.focus();
+      }
+      
+      setSearchQuery(prev => prev + ev.key);
+      
+      ev.preventDefault();
     };
     window.addEventListener('keydown', handleGlobalKeydown);
     return () => window.removeEventListener('keydown', handleGlobalKeydown);
