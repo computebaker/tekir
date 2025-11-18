@@ -22,7 +22,7 @@ const setCookie = (name: string, value: string, days: number) => {
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     expires = "; expires=" + date.toUTCString();
   }
-  document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+  document.cookie = name + "=" + (value || "") + expires + "; path=/";
 };
 
 const removeCookie = (name: string) => {
@@ -66,6 +66,8 @@ export default function ClientLayout({
               removeCookie('session-token'); // Clear cookie if registration failed
             } else {
               console.log("Session token registered via API:", sessionToken);
+              (window as any).__sessionRegistered = true;
+              window.dispatchEvent(new Event('session-registered'));
             }
           } catch (error) {
             console.error("Error calling session registration API:", error);
@@ -74,6 +76,7 @@ export default function ClientLayout({
         }
       } else {
         console.log("Existing session token:", sessionToken);
+        (window as any).__sessionRegistered = true;
       }
     };
     initializeSession();

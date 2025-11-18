@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: { 
+  images: {
     remotePatterns: [
       {
         protocol: 'https',
@@ -24,7 +24,7 @@ const nextConfig = {
     minimumCacheTTL: 0,
   },
   transpilePackages: ['undici'],
-  
+
   experimental: {
     turbopackUseBuiltinBabel: true,
   },
@@ -34,23 +34,13 @@ const nextConfig = {
     // Auto-generate i18n cache version if not explicitly set
     NEXT_PUBLIC_I18N_CACHE_VERSION: process.env.NEXT_PUBLIC_I18N_CACHE_VERSION || `v${Date.now()}`,
   },
-  
+
   async rewrites() {
     console.log('Convex proxy disabled - using direct connections');
     return [];
   },
 
   webpack: (config, { isServer }) => {
-    config.module.rules.push({
-      test: /\.m?js$/,
-      include: /node_modules[\\/]undici/,
-      use: {
-        loader: 'babel-loader',
-        options: {
-          presets: ['next/babel'],
-        },
-      },
-    });
     return config;
   },
 };

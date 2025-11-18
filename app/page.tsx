@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useState, useRef, useTransition, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Lock, MessageCircleMore, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
-import UserProfile from "@/components/user-profile";
-import { useAuth } from "@/components/auth-provider";
-import { useSettings } from "@/lib/settings";
 import { getLogoMetadata } from "@/components/settings/logo-selector";
 import { fetchWithSessionRefreshAndCache } from "@/lib/cache";
-import WeatherWidget from "@/components/weather-widget";
+import { useAuth } from "@/components/auth-provider";
+import { useSettings } from "@/lib/settings";
+
+const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
+const WeatherWidget = dynamic(() => import("@/components/weather-widget"), { ssr: false });
+const MainFooter = dynamic(() => import("@/components/main-footer"), { ssr: false });
 import { SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import MainFooter from "@/components/main-footer";
 import { cn } from "@/lib/utils";
 
 async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
@@ -83,11 +85,11 @@ export default function Home() {
   const [isFocusLocked, setIsFocusLocked] = useState(false);
   const unlockingRef = useRef(false);
   const pushedStateRef = useRef(false);
-  
+
   // Logo chooser state - load from localStorage on mount
   const [selectedLogoState, setSelectedLogoState] = useState<'tekir' | 'duman' | 'pamuk' | null>(null);
   const [logoLoaded, setLogoLoaded] = useState(false);
-  
+
   // Tri-state: null = unknown (no explicit local value) | true | false
   // If user has an explicit local preference in localStorage, use it immediately.
   // Otherwise keep null and wait for server settings (isInitialized) before rendering.
@@ -136,13 +138,13 @@ export default function Home() {
     }
     return false;
   };
-  
+
   // Helper function to detect if input contains a bang
   const checkForBang = (input: string): boolean => {
     // Check for bang pattern (! followed by letters)
     return /(?:^|\s)![a-z]+/.test(input.toLowerCase());
   };
-  
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("karakulakEnabled");
@@ -172,6 +174,22 @@ export default function Home() {
   useEffect(() => {
     let active = true;
     const run = async () => {
+      // Wait for session initialization to avoid 401 on first load
+      if (typeof window !== 'undefined' && !(window as any).__sessionRegistered) {
+        await new Promise(resolve => {
+          const handler = () => {
+            window.removeEventListener('session-registered', handler);
+            resolve(true);
+          };
+          window.addEventListener('session-registered', handler);
+          // Timeout fallback
+          setTimeout(() => {
+            window.removeEventListener('session-registered', handler);
+            resolve(true);
+          }, 2000);
+        });
+      }
+
       setRecLoading(true);
       try {
         const res = await fetchWithSessionRefreshAndCache<{ results: string[]; date?: string; dateLabel?: string }>(
@@ -213,7 +231,7 @@ export default function Home() {
       if (rafId != null) return;
       rafId = requestAnimationFrame(() => {
         const y = window.scrollY || 0;
-        const start = 120; 
+        const start = 120;
         const span = 220;
         const raw = Math.min(1, Math.max(0, (y - start) / span));
         const eased = easeOutCubic(raw);
@@ -238,9 +256,9 @@ export default function Home() {
         unlockingRef.current = true;
         setIsFocusLocked(false);
         setIsHeroInputFocused(false);
-        try { searchInputRef.current?.blur(); } catch {}
+        try { searchInputRef.current?.blur(); } catch { }
         window.setTimeout(() => { unlockingRef.current = false; }, 80);
-  pushedStateRef.current = false;
+        pushedStateRef.current = false;
       }
     };
     window.addEventListener('popstate', onPopState);
@@ -253,7 +271,7 @@ export default function Home() {
       const target = ev.target as Node | null;
       const insideSuggestions = suggestionsRef.current?.contains(target as Node) ?? false;
       const insideForm = heroFormRef.current?.contains(target as Node) ?? false;
-      
+
       if (!insideForm && !insideSuggestions) {
         // Handle focus lock cleanup if active
         if (isFocusLocked) {
@@ -262,20 +280,20 @@ export default function Home() {
           setIsFocusLocked(false);
           setIsHeroInputFocused(false);
           if (pushedStateRef.current) {
-            try { history.back(); } catch {}
+            try { history.back(); } catch { }
             pushedStateRef.current = false;
           }
           // Blur after state updates to ensure onBlur sees the correct state
           window.setTimeout(() => {
-            try { searchInputRef.current?.blur(); } catch {}
+            try { searchInputRef.current?.blur(); } catch { }
             window.setTimeout(() => { unlockingRef.current = false; }, 80);
           }, 10);
         } else if (isHeroInputFocused) {
           // Handle regular unfocus if no lock
           setIsHeroInputFocused(false);
-          try { searchInputRef.current?.blur(); } catch {}
+          try { searchInputRef.current?.blur(); } catch { }
         }
-        
+
         // Always hide suggestions when clicking outside
         if (showSuggestions) {
           setShowSuggestions(false);
@@ -366,9 +384,9 @@ export default function Home() {
       // Use a timeout to allow visual feedback before navigation
       setTimeout(() => {
         router.replace(`${targetPath}?${params.toString()}`);
-  // safety: in case navigation is delayed/cancelled by browser, release lock after a bit
-  setTimeout(() => setIsSubmitting(false), 1000);
-      }, 100); 
+        // safety: in case navigation is delayed/cancelled by browser, release lock after a bit
+        setTimeout(() => setIsSubmitting(false), 1000);
+      }, 100);
     });
   };
 
@@ -379,7 +397,7 @@ export default function Home() {
       if (!isMounted) return;
 
       // When search is empty and recommendations are enabled, show recommendations immediately
-  if (isBlankQuery) {
+      if (isBlankQuery) {
         if (effectiveShowRecs === true && recs.length > 0) {
           const recSuggestions = recs.map(rec => ({ query: rec, type: 'recommendation' as const }));
           console.log(`[Suggestions] Showing ${recSuggestions.length} recommendations`, recSuggestions);
@@ -391,24 +409,24 @@ export default function Home() {
         return;
       }
 
-  if (!isBlankQuery && searchQuery.trim().length < 2) {
+      if (!isBlankQuery && searchQuery.trim().length < 2) {
         if (isMounted) setSuggestions([]);
         return;
       }
 
-  // Include user settings in cache key and in the request so suggestions
-  // are scoped to country/lang/safesearch. Use query-string style so keys
-  // match: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
-  const country = (typeof window !== 'undefined' && localStorage.getItem('searchCountry')) || 'ALL';
-  const safesearch = (typeof window !== 'undefined' && localStorage.getItem('safesearch')) || 'moderate';
-  const lang = (typeof window !== 'undefined' && (localStorage.getItem('language') || navigator.language?.slice(0,2))) || '';
-  const baseKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
-  const _paramsForKey = new URLSearchParams();
-  _paramsForKey.set('country', country);
-  if (lang) _paramsForKey.set('lang', lang);
-  _paramsForKey.set('safesearch', safesearch);
-  const cacheKey = `${baseKey}?${_paramsForKey.toString()}`;
-  const cached = sessionStorage.getItem(cacheKey);
+      // Include user settings in cache key and in the request so suggestions
+      // are scoped to country/lang/safesearch. Use query-string style so keys
+      // match: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
+      const country = (typeof window !== 'undefined' && localStorage.getItem('searchCountry')) || 'ALL';
+      const safesearch = (typeof window !== 'undefined' && localStorage.getItem('safesearch')) || 'moderate';
+      const lang = (typeof window !== 'undefined' && (localStorage.getItem('language') || navigator.language?.slice(0, 2))) || '';
+      const baseKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
+      const _paramsForKey = new URLSearchParams();
+      _paramsForKey.set('country', country);
+      if (lang) _paramsForKey.set('lang', lang);
+      _paramsForKey.set('safesearch', safesearch);
+      const cacheKey = `${baseKey}?${_paramsForKey.toString()}`;
+      const cached = sessionStorage.getItem(cacheKey);
       if (!(window as any).__autocompleteRetryMap) (window as any).__autocompleteRetryMap = {};
       const retryMap: Record<string, boolean> = (window as any).__autocompleteRetryMap;
       if (cached) {
@@ -487,10 +505,10 @@ export default function Home() {
       }
     };
 
-  // Show recommendations immediately when search is empty, debounce autocomplete
-  const delay = isBlankQuery ? 0 : 200;
+    // Show recommendations immediately when search is empty, debounce autocomplete
+    const delay = isBlankQuery ? 0 : 200;
     const timeoutId = setTimeout(fetchSuggestions, delay);
-    
+
     return () => {
       isMounted = false; // Set to false on cleanup
       clearTimeout(timeoutId);
@@ -503,7 +521,7 @@ export default function Home() {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => 
+        setSelectedIndex(prev =>
           prev < visibleSuggestions.length - 1 ? prev + 1 : prev
         );
         break;
@@ -517,7 +535,7 @@ export default function Home() {
           const selected = visibleSuggestions[selectedIndex];
           setSearchQuery(selected.query);
           setShowSuggestions(false);
-          
+
           // Clean up mobile focus lock state before navigation
           if (isMobile && isFocusLocked) {
             unlockingRef.current = true;
@@ -528,7 +546,7 @@ export default function Home() {
             }
             setTimeout(() => { unlockingRef.current = false; }, 80);
           }
-          
+
           // Navigate to search
           router.push(`/search?q=${encodeURIComponent(selected.query)}`);
         } else {
@@ -554,21 +572,21 @@ export default function Home() {
       const clickedInsideSuggestions = suggestionsRef.current?.contains(target);
       const clickedInsideInput = searchInputRef.current?.contains(target);
       const clickedInsideForm = heroFormRef.current?.contains(target);
-      
+
       if (!clickedInsideSuggestions && !clickedInsideInput && !clickedInsideForm) {
         if (showSuggestions) {
           setShowSuggestions(false);
         }
         if (isHeroInputFocused) {
           setIsHeroInputFocused(false);
-          try { searchInputRef.current?.blur(); } catch {}
+          try { searchInputRef.current?.blur(); } catch { }
         }
       }
     };
 
     // Add event listener
     document.addEventListener('mousedown', handleClickOutside);
-    
+
     // Clean up
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -580,22 +598,22 @@ export default function Home() {
     const handleGlobalKeydown = (ev: KeyboardEvent) => {
       // Ignore if input is already focused
       if (document.activeElement === searchInputRef.current) return;
-      
+
       // Ignore modifier keys themselves
       if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph', 'CapsLock', 'Tab', 'Escape'].includes(ev.key)) {
         return;
       }
-      
+
       // Ignore if any modifier key is pressed (except Shift for capitals)
       if (ev.ctrlKey || ev.metaKey || ev.altKey) {
         return;
       }
-      
+
       // Only handle alphanumeric keys (no space, no backspace)
       const isAlphanumeric = /^[a-zA-Z0-9]$/.test(ev.key);
-      
+
       if (!isAlphanumeric) return;
-      
+
       // If user starts typing while scrolled, jump to top to expose the main search UI
       if ((window.scrollY || 0) > 0) {
         const ua = navigator.userAgent || "";
@@ -604,16 +622,16 @@ export default function Home() {
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
       }
-      
+
       try {
         // Prevent browsers (notably Safari) from auto-scrolling too far when focusing
         (searchInputRef.current as any)?.focus({ preventScroll: true });
       } catch {
         searchInputRef.current?.focus();
       }
-      
+
       setSearchQuery(prev => prev + ev.key);
-      
+
       ev.preventDefault();
     };
     window.addEventListener('keydown', handleGlobalKeydown);
@@ -637,7 +655,7 @@ export default function Home() {
   return (
     <main className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
       {/* Top Right Welcome + Profile (only when not scrolled) */}
-  <div
+      <div
         className="fixed top-4 right-4 z-50"
         style={{
           opacity: keyboardAware ? 0 : (1 - scrollProgress),
@@ -669,7 +687,7 @@ export default function Home() {
 
 
       {/* Hero Section */}
-  <section
+      <section
         className={cn(
           "flex flex-col items-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10 transition-[height,padding] duration-200 ease-out",
           keyboardAware ? "justify-start pt-3" : "justify-center h-[calc(100dvh-64px)]",
@@ -694,12 +712,12 @@ export default function Home() {
                 (() => {
                   const logoMetadata = getLogoMetadata(selectedLogoState);
                   return (
-                    <Image 
+                    <Image
                       key={logoMetadata.path}
-                      src={logoMetadata.path} 
+                      src={logoMetadata.path}
                       alt={`${logoMetadata.name} logo`}
-                      width={logoMetadata.width} 
-                      height={logoMetadata.height} 
+                      width={logoMetadata.width}
+                      height={logoMetadata.height}
                       priority
                       fetchPriority="high"
                       suppressHydrationWarning
@@ -712,11 +730,11 @@ export default function Home() {
             </div>
           </div>
 
-      {/* Search Bar */}
-  <form ref={heroFormRef} onSubmit={handleSearch} className={cn("relative w-full transition-[margin,transform] duration-200 ease-out", keyboardAware && "mt-6")}> 
+          {/* Search Bar */}
+          <form ref={heroFormRef} onSubmit={handleSearch} className={cn("relative w-full transition-[margin,transform] duration-200 ease-out", keyboardAware && "mt-6")}>
             <div className="relative group">
               {/* Search input */}
-      <SearchInput
+              <SearchInput
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
@@ -725,58 +743,58 @@ export default function Home() {
                   setShowSuggestions(true);
                 }}
                 onKeyDown={handleKeyDown}
-    onFocus={() => { 
-          setShowSuggestions(true); 
-          setIsHeroInputFocused(true); 
-          if (isMobile) {
-            if (!isFocusLocked) {
-              setIsFocusLocked(true);
-              try { history.pushState({ focusLock: true }, "", location.href); pushedStateRef.current = true; } catch {}
-            }
-            window.setTimeout(() => {
-              try {
-                const ua = navigator.userAgent || "";
-                const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
-                if (!isApple) {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              } catch {}
-            }, 50);
-          }
-        }}
-    onBlur={(e) => { 
-          if (isSubmitting) return; 
-          
-          // Give time for click events on suggestions to fire first
-          window.setTimeout(() => {
-            // Check if the newly focused element is within suggestions
-            const newFocus = document.activeElement;
-            const clickedInSuggestions = suggestionsRef.current?.contains(newFocus as Node);
-            
-            if (clickedInSuggestions) {
-              // Keep the dropdown open and refocus input after interaction
-              return;
-            }
-            
-            if (isMobile && isFocusLocked && !unlockingRef.current) {
-              const ua = navigator.userAgent || "";
-              const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
-              if (!isApple) {
-                window.setTimeout(() => searchInputRef.current?.focus(), 0);
-              }
-              return;
-            }
-            
-            setIsHeroInputFocused(false);
-            setIsFocusLocked(false);
-            setShowSuggestions(false);
-            setSelectedIndex(-1);
-          }, 150);
-        }}
+                onFocus={() => {
+                  setShowSuggestions(true);
+                  setIsHeroInputFocused(true);
+                  if (isMobile) {
+                    if (!isFocusLocked) {
+                      setIsFocusLocked(true);
+                      try { history.pushState({ focusLock: true }, "", location.href); pushedStateRef.current = true; } catch { }
+                    }
+                    window.setTimeout(() => {
+                      try {
+                        const ua = navigator.userAgent || "";
+                        const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
+                        if (!isApple) {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      } catch { }
+                    }, 50);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (isSubmitting) return;
+
+                  // Give time for click events on suggestions to fire first
+                  window.setTimeout(() => {
+                    // Check if the newly focused element is within suggestions
+                    const newFocus = document.activeElement;
+                    const clickedInSuggestions = suggestionsRef.current?.contains(newFocus as Node);
+
+                    if (clickedInSuggestions) {
+                      // Keep the dropdown open and refocus input after interaction
+                      return;
+                    }
+
+                    if (isMobile && isFocusLocked && !unlockingRef.current) {
+                      const ua = navigator.userAgent || "";
+                      const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
+                      if (!isApple) {
+                        window.setTimeout(() => searchInputRef.current?.focus(), 0);
+                      }
+                      return;
+                    }
+
+                    setIsHeroInputFocused(false);
+                    setIsFocusLocked(false);
+                    setShowSuggestions(false);
+                    setSelectedIndex(-1);
+                  }, 150);
+                }}
                 placeholder={tHome("searchPlaceholder")}
                 className="w-full pr-24 shadow-lg transition-all duration-300 relative z-10"
               />
-              
+
               {/* Search button */}
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center z-20">
                 <Button type="submit" variant="ghost" size="icon" shape="pill" title={tSearch("searchButton")}>
@@ -784,7 +802,7 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            
+
             {/* Static links row under the search bar (when recommendations disabled or search not focused) */}
             {!isHeroInputFocused && effectiveShowRecs !== true && (
               <div className="absolute w-full mt-2 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
@@ -813,10 +831,10 @@ export default function Home() {
                 </div>
               </div>
             )}
-            
+
             {/* Autocomplete dropdown with recommendations */}
             {shouldRenderDropdown && (
-              <div 
+              <div
                 ref={suggestionsRef}
                 className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50"
               >
@@ -843,7 +861,7 @@ export default function Home() {
                         e.stopPropagation(); // Prevent mobile unlock handler
                         setSearchQuery(suggestion.query);
                         setShowSuggestions(false);
-                        
+
                         // Clean up mobile focus lock state before navigation
                         if (isMobile && isFocusLocked) {
                           unlockingRef.current = true;
@@ -854,13 +872,12 @@ export default function Home() {
                           }
                           setTimeout(() => { unlockingRef.current = false; }, 80);
                         }
-                        
+
                         // Navigate to search
                         router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
                       }}
-                      className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
-                        index === selectedIndex ? 'bg-muted' : ''
-                      }`}
+                      className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${index === selectedIndex ? 'bg-muted' : ''
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         {isRecommendation ? (
@@ -895,10 +912,11 @@ export default function Home() {
                 )}
               </div>
             )}
-          </form>          
-          </div>
+          </form>
+        </div>
       </section>
       {/* Fixed on-screen footer */}
       <MainFooter hidden={keyboardAware} />
     </main>
-  )};
+  )
+};

@@ -84,6 +84,11 @@ export const createUser = mutation({
     emailVerificationToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Enforce password hashing
+    if (!args.password.startsWith("$2")) {
+      throw new Error("Password must be hashed before storage");
+    }
+
     const now = Date.now();
     return await ctx.db.insert("users", {
       ...args,
@@ -112,6 +117,12 @@ export const updateUser = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updateData } = args;
+    
+    // Enforce password hashing if password is being updated
+    if (updateData.password && !updateData.password.startsWith("$2")) {
+      throw new Error("Password must be hashed before storage");
+    }
+
     const updates = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
     );

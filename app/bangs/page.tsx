@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Search, ExternalLink, Zap, Clock, Globe } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import UserProfile from "@/components/user-profile";
-import Footer from "@/components/footer";
 import { TopNavSimple } from "@/components/layout/top-nav-simple";
+
+const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
+const Footer = dynamic(() => import("@/components/footer"), { ssr: false });
 import { BadgeChip } from "@/components/shared/badge-chip";
 import { EmptyState } from "@/components/shared/empty-state";
 
@@ -34,7 +36,7 @@ export default function BangsPage() {
     const loadBangs = () => {
       const cachedBangs = localStorage.getItem('tekir_bangs_cache');
       const cacheExpiry = localStorage.getItem('tekir_bangs_cache_expiry');
-      
+
       if (cachedBangs && cacheExpiry) {
         const expiryDate = parseInt(cacheExpiry, 10);
         if (Date.now() < expiryDate) {
@@ -49,7 +51,7 @@ export default function BangsPage() {
           }
         }
       }
-      
+
       // If no valid cache, try to fetch from the API
       fetchBangs();
     };
@@ -61,7 +63,7 @@ export default function BangsPage() {
           const bangsData = await response.json();
           setBangs(bangsData);
           setFilteredBangsInternal(Object.entries(bangsData));
-          
+
           // Cache the data
           localStorage.setItem('tekir_bangs_cache', JSON.stringify(bangsData));
           localStorage.setItem('tekir_bangs_cache_expiry', (Date.now() + 24 * 60 * 60 * 1000).toString());
@@ -89,7 +91,7 @@ export default function BangsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-    <TopNavSimple backHref="/" backLabel="Back to Search" centerLogoHeight={40} />
+      <TopNavSimple backHref="/" backLabel="Back to Search" centerLogoHeight={40} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-b from-background via-background to-purple-50/30 dark:to-purple-950/10">
         {/* Hero Section */}
@@ -103,26 +105,26 @@ export default function BangsPage() {
             Quick access to everything
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Bangs are shortcuts that instantly take you to search results on other sites. 
-            Just type <code className="bg-muted px-2 py-1 rounded text-orange-600">!w</code> for Wikipedia, 
-            <code className="bg-muted px-2 py-1 rounded text-orange-600 ml-1">!g</code> for Google, 
+            Bangs are shortcuts that instantly take you to search results on other sites.
+            Just type <code className="bg-muted px-2 py-1 rounded text-orange-600">!w</code> for Wikipedia,
+            <code className="bg-muted px-2 py-1 rounded text-orange-600 ml-1">!g</code> for Google,
             or any of the thousands of other bangs.
           </p>
-          
+
           {/* Example Usage */}
           <div className="bg-muted/50 rounded-lg p-6 max-w-2xl mx-auto">
             <h3 className="text-lg font-semibold mb-4 flex items-center justify-center">
               <Search className="w-5 h-5 mr-2" />
               How it works
             </h3>
-        <div className="space-y-3 text-left">
+            <div className="space-y-3 text-left">
               <div className="flex items-center space-x-3">
                 <span className="text-sm bg-muted text-muted-foreground px-2 py-1 rounded">Example</span>
                 <code className="bg-background px-3 py-2 rounded border border-border flex-1 font-mono text-sm">!w quantum physics</code>
               </div>
               <div className="flex items-center space-x-3">
                 <span className="text-sm bg-muted text-muted-foreground px-2 py-1 rounded">Result</span>
-          <span className="text-muted-foreground text-sm">Instantly searches Wikipedia for &quot;quantum physics&quot;</span>
+                <span className="text-muted-foreground text-sm">Instantly searches Wikipedia for &quot;quantum physics&quot;</span>
               </div>
             </div>
           </div>
@@ -138,7 +140,7 @@ export default function BangsPage() {
                 `Use all ${bangsCount.toLocaleString()} of them`
               )}
             </h2>
-            
+
             {/* Search Box */}
             <div className="relative w-full sm:w-96">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />

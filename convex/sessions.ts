@@ -16,7 +16,7 @@ async function getUserLimit(ctx: any, userId: any): Promise<number> {
   if (!userId) {
     return RATE_LIMITS.ANONYMOUS_DAILY_LIMIT;
   }
-  
+
   try {
     const user = await ctx.db.get(userId);
     if (user && user.roles) {
@@ -28,7 +28,7 @@ async function getUserLimit(ctx: any, userId: any): Promise<number> {
   } catch (error) {
     console.error('Error fetching user for rate limit:', error);
   }
-  
+
   return RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT;
 }
 
@@ -97,7 +97,7 @@ export const registerSessionToken = mutation({
       const existingIpSession = await ctx.db
         .query("sessionTracking")
         .withIndex("by_hashedIp", (q) => q.eq("hashedIp", args.hashedIp))
-        .filter((q) => 
+        .filter((q) =>
           q.and(
             q.gt(q.field("expiresAt"), Date.now()),
             q.eq(q.field("userId"), undefined) // Only consider unauthenticated sessions
@@ -160,24 +160,24 @@ export const getRateLimitStatus = query({
       .unique();
 
     if (!session) {
-      return { 
-        isValid: false, 
-        currentCount: 0, 
+      return {
+        isValid: false,
+        currentCount: 0,
         limit: RATE_LIMITS.ANONYMOUS_DAILY_LIMIT,
         remaining: 0,
-        isAuthenticated: false 
+        isAuthenticated: false
       };
     }
 
     const isExpired = session.expiresAt <= Date.now();
     if (isExpired || !session.isActive) {
       const limit = await getUserLimit(ctx, session.userId);
-      return { 
-        isValid: false, 
-        currentCount: session.requestCount, 
+      return {
+        isValid: false,
+        currentCount: session.requestCount,
         limit,
         remaining: 0,
-        isAuthenticated: !!session.userId 
+        isAuthenticated: !!session.userId
       };
     }
 
@@ -196,7 +196,7 @@ export const getRateLimitStatus = query({
           .first();
         const deviceCount = du?.count ?? 0;
         deviceRemainingNum = Math.max(0, Number(limit) - deviceCount);
-      } catch {}
+      } catch { }
     }
 
     const remaining = Math.min(sessionRemaining, deviceRemainingNum);
@@ -230,7 +230,7 @@ export const incrementAndCheckRequestCount = mutation({
     }
 
     const maxRequests = await getUserLimit(ctx, session.userId);
-  const deviceCap: number = await getUserLimit(ctx, session.userId); // Use user's limit as device cap
+    const deviceCap: number = await getUserLimit(ctx, session.userId); // Use user's limit as device cap
 
     // Load device usage if we have a device key
     const deviceKey = session.deviceId || session.hashedIp;
@@ -272,8 +272,8 @@ export const incrementAndCheckRequestCount = mutation({
             .first();
           if (existing) await ctx.db.patch(existing._id, { count: existing.count + 1 });
           else await ctx.db.insert('apiHitsDaily', { day, count: 1 });
-        } catch {}
-        
+        } catch { }
+
         return {
           allowed: true,
           currentCount: newCount,
@@ -333,9 +333,9 @@ export const linkSessionToUser = mutation({
       if (!existingUserSession.deviceId && session.deviceId) {
         try {
           await ctx.db.patch(existingUserSession._id, { deviceId: session.deviceId });
-        } catch {}
+        } catch { }
       }
-      
+
       // Return the existing user session token for fingerprinting
       return existingUserSession.sessionToken;
     }
@@ -372,7 +372,7 @@ export const getOrCreateSessionToken = mutation({
         // Only extend expiration if it's significantly shorter than requested
         const timeUntilExpiry = existingUserSession.expiresAt - Date.now();
         const halfRequestedTime = (expirationInSeconds * 1000) / 2;
-        
+
         if (timeUntilExpiry < halfRequestedTime) {
           try {
             await ctx.db.patch(existingUserSession._id, { expiresAt, deviceId: existingUserSession.deviceId || args.deviceId });
@@ -381,7 +381,7 @@ export const getOrCreateSessionToken = mutation({
             console.warn("Failed to extend session expiration, but returning existing token");
           }
         }
-        
+
         const limit = await getUserLimit(ctx, args.userId);
         return {
           sessionToken: existingUserSession.sessionToken,
@@ -416,7 +416,7 @@ export const getOrCreateSessionToken = mutation({
           .withIndex("by_userId", (q) => q.eq("userId", args.userId))
           .filter((q) => q.gt(q.field("expiresAt"), Date.now()))
           .first();
-        
+
         if (concurrentSession) {
           const limit = await getUserLimit(ctx, args.userId);
           return {
@@ -425,7 +425,7 @@ export const getOrCreateSessionToken = mutation({
             requestLimit: limit,
           };
         }
-        
+
         // If still failing, rethrow the error
         throw error;
       }
@@ -436,7 +436,7 @@ export const getOrCreateSessionToken = mutation({
       const existingIpSession = await ctx.db
         .query("sessionTracking")
         .withIndex("by_hashedIp", (q) => q.eq("hashedIp", args.hashedIp))
-        .filter((q) => 
+        .filter((q) =>
           q.and(
             q.gt(q.field("expiresAt"), Date.now()),
             q.eq(q.field("userId"), undefined) // Only unauthenticated sessions
@@ -448,7 +448,7 @@ export const getOrCreateSessionToken = mutation({
         // Only extend expiration if it's significantly shorter than requested  
         const timeUntilExpiry = existingIpSession.expiresAt - Date.now();
         const halfRequestedTime = (expirationInSeconds * 1000) / 2;
-        
+
         if (timeUntilExpiry < halfRequestedTime) {
           try {
             await ctx.db.patch(existingIpSession._id, { expiresAt, deviceId: existingIpSession.deviceId || args.deviceId });
@@ -457,7 +457,7 @@ export const getOrCreateSessionToken = mutation({
             console.warn("Failed to extend session expiration, but returning existing token");
           }
         }
-        
+
         return {
           sessionToken: existingIpSession.sessionToken,
           isExisting: true,
@@ -501,7 +501,7 @@ export const cleanExpiredSessions = mutation({
   args: {},
   handler: async (ctx) => {
     const currentTime = Date.now();
-    
+
     // Find expired sessions in batches to avoid large transactions
     const expiredSessions = await ctx.db
       .query("sessionTracking")
@@ -509,7 +509,7 @@ export const cleanExpiredSessions = mutation({
       .take(100); // Process in batches of 100
 
     let deletedCount = 0;
-    
+
     // Delete expired sessions one by one to avoid conflicts
     for (const session of expiredSessions) {
       try {
@@ -521,7 +521,7 @@ export const cleanExpiredSessions = mutation({
       }
     }
 
-    return { 
+    return {
       deletedCount,
       hasMore: expiredSessions.length === 100 // Indicates if there might be more to clean
     };
@@ -567,6 +567,15 @@ export const resetDailyRequestCounts = mutation({
 
       // If fewer than a full batch were returned, we've cleared all matches.
       if (sessionsToReset.length < batchSize) break;
+
+      // Safety break to prevent timeouts
+      if (resetCount > 5000) {
+        console.warn("Reset limit reached for single execution");
+        return {
+          resetCount,
+          hasMore: true
+        }
+      }
     }
 
     return {

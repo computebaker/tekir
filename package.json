@@ -56,7 +56,6 @@
     "jsonwebtoken": "^9.0.2",
     "katex": "^0.16.9",
     "lucide-react": "^0.446.0",
-    "multer": "^2.0.1",
     "negotiator": "^1.0.0",
     "next": "^16.0.1",
     "next-auth": "^4.24.11",
