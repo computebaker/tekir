@@ -1,9 +1,12 @@
 import "./globals.css";
 import { Viewport } from 'next';
 import ClientLayout from '@/components/client-layout';
+import { Inter } from 'next/font/google';
 
-// Add KaTeX CSS
-import 'katex/dist/katex.min.css';
+// Add KaTeX CSS - Removed as unused
+// import 'katex/dist/katex.min.css';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const viewport: Viewport = {
   themeColor: [
@@ -26,7 +29,7 @@ export default function RootLayout({
         <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Tekir" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
-      <body>
+      <body className={inter.className}>
         <ClientLayout>
           {children}
         </ClientLayout>

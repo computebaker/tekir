@@ -334,21 +334,21 @@ async function getDuck(q: string): Promise<Results[]> {
       }
     });
     if (!res.ok) throw new Error('Network response was not ok');
-    
+
     const arrayBuffer = await res.arrayBuffer();
     const html = iconv.decode(Buffer.from(arrayBuffer), 'utf-8');
     const $ = load(html);
-    
+
     $('.web-result').each((_, element) => {
       const titleElement = $(element).find('.result__title a');
       const snippetElement = $(element).find('.result__snippet');
       const urlElement = $(element).find('.result__url');
-      
-  const title = sanitizeText(titleElement.text().trim());
-  const description = sanitizeText(snippetElement.text().trim());
+
+      const title = sanitizeText(titleElement.text().trim());
+      const description = sanitizeText(snippetElement.text().trim());
       const url = titleElement.attr('href') || '';
       const displayUrl = urlElement.text().trim().replace(/^https?:\/\//, '');
-      
+
       if (title && url) {
         let favicon = '';
         try {
@@ -449,23 +449,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
 
   const responseTime = Date.now() - now;
   console.log(`[Search] ${provider} completed in ${responseTime}ms`);
-  
+
+  // Fire-and-forget usage logging (no PII, aggregated daily)
   // Fire-and-forget usage logging (no PII, aggregated daily)
   try {
     const convex = getConvexClient();
     const type = 'web'; // this route serves web; videos/news are included in payload
-    await convex.mutation(api.usage.logSearchUsage, {
+    convex.mutation(api.usage.logSearchUsage, {
       provider: provider.toLowerCase(),
       type,
       responseTimeMs: responseTime,
       totalResults: totalResultsCount || results.length,
       queryText: query || undefined,
+    }).catch((e) => {
+      console.warn('[Convex] Failed to log search usage:', e);
     });
-    console.log(`[Convex] Logged search usage for ${provider}`);
+    console.log(`[Convex] Logged search usage for ${provider} (non-blocking)`);
   } catch (e) {
-    console.warn('[Convex] Failed to log search usage:', e);
+    console.warn('[Convex] Failed to initiate search usage logging:', e);
   }
-  
+
   return NextResponse.json({
     results,
     videos,
@@ -476,5 +479,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       responseTime: `${responseTime}ms`,
       totalResults: totalResultsCount || results.length,
     },
+  }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+    }
   });
 }

@@ -39,7 +39,7 @@ export class SearchCache {
     searchParams?: Record<string, string>
   ): string {
     const baseKey = `${searchType}-${provider}-${encodeURIComponent(query)}`;
-    
+
     if (searchParams && Object.keys(searchParams).length > 0) {
       // Sort params for consistent key generation
       const sortedParams = Object.keys(searchParams)
@@ -48,7 +48,7 @@ export class SearchCache {
         .join('&');
       return `${baseKey}?${sortedParams}`;
     }
-    
+
     return baseKey;
   }
 
@@ -61,7 +61,7 @@ export class SearchCache {
     try {
       const allKeys = Object.keys(sessionStorage);
       const typeKeys = allKeys.filter(key => key.startsWith(`${searchType}-`));
-      
+
       // Remove expired entries
       const currentTime = Date.now();
       const validEntries: Array<{ key: string; timestamp: number }> = [];
@@ -110,7 +110,7 @@ export class SearchCache {
     try {
       const cacheKey = this.generateCacheKey(searchType, provider, query, searchParams);
       const cachedItem = sessionStorage.getItem(cacheKey);
-      
+
       if (!cachedItem) return null;
 
       const parsed: CacheEntry<T> = JSON.parse(cachedItem);
@@ -186,7 +186,7 @@ export class SearchCache {
     try {
       const allKeys = Object.keys(sessionStorage);
       const typeKeys = allKeys.filter(key => key.startsWith(`${searchType}-`));
-      
+
       typeKeys.forEach(key => {
         sessionStorage.removeItem(key);
       });
@@ -205,9 +205,9 @@ export class SearchCache {
 
     try {
       const allKeys = Object.keys(sessionStorage);
-      const searchKeys = allKeys.filter(key => 
-        key.startsWith('search-') || 
-        key.startsWith('images-') || 
+      const searchKeys = allKeys.filter(key =>
+        key.startsWith('search-') ||
+        key.startsWith('images-') ||
         key.startsWith('news-') ||
         key.startsWith('ai-') ||
         key.startsWith('dive-') ||
@@ -215,7 +215,7 @@ export class SearchCache {
         key.startsWith('wikipedia-') ||
         key.startsWith('autocomplete-')
       );
-      
+
       searchKeys.forEach(key => {
         sessionStorage.removeItem(key);
       });
@@ -229,10 +229,10 @@ export class SearchCache {
   /**
    * Get cache statistics
    */
-  static getStats(): { 
-    search: number; 
-    images: number; 
-    news: number; 
+  static getStats(): {
+    search: number;
+    images: number;
+    news: number;
     ai: number;
     dive: number;
     videos: number;
@@ -246,37 +246,37 @@ export class SearchCache {
 
     try {
       const allKeys = Object.keys(sessionStorage);
-  const searchKeys = allKeys.filter(key => key.startsWith('search-'));
-  const imageKeys = allKeys.filter(key => key.startsWith('images-'));
-  const newsKeys = allKeys.filter(key => key.startsWith('news-'));
-  const aiKeys = allKeys.filter(key => key.startsWith('ai-'));
-  const diveKeys = allKeys.filter(key => key.startsWith('dive-'));
-  const videoKeys = allKeys.filter(key => key.startsWith('videos-'));
-  const wikipediaKeys = allKeys.filter(key => key.startsWith('wikipedia-'));
-      
+      const searchKeys = allKeys.filter(key => key.startsWith('search-'));
+      const imageKeys = allKeys.filter(key => key.startsWith('images-'));
+      const newsKeys = allKeys.filter(key => key.startsWith('news-'));
+      const aiKeys = allKeys.filter(key => key.startsWith('ai-'));
+      const diveKeys = allKeys.filter(key => key.startsWith('dive-'));
+      const videoKeys = allKeys.filter(key => key.startsWith('videos-'));
+      const wikipediaKeys = allKeys.filter(key => key.startsWith('wikipedia-'));
+
       // Calculate approximate storage size
       let totalSize = 0;
-  [...searchKeys, ...imageKeys, ...newsKeys, ...aiKeys, ...diveKeys, ...videoKeys, ...wikipediaKeys].forEach(key => {
+      [...searchKeys, ...imageKeys, ...newsKeys, ...aiKeys, ...diveKeys, ...videoKeys, ...wikipediaKeys].forEach(key => {
         const item = sessionStorage.getItem(key);
         if (item) {
           totalSize += item.length * 2; // Rough estimate: 2 bytes per character in UTF-16
         }
       });
 
-  return {
-  search: searchKeys.length,
-  images: imageKeys.length,
-  news: newsKeys.length,
-  ai: aiKeys.length,
-  dive: diveKeys.length,
-  videos: videoKeys.length,
-  wikipedia: wikipediaKeys.length,
-  total: searchKeys.length + imageKeys.length + newsKeys.length + aiKeys.length + diveKeys.length + videoKeys.length + wikipediaKeys.length,
-    totalSize
-  };
+      return {
+        search: searchKeys.length,
+        images: imageKeys.length,
+        news: newsKeys.length,
+        ai: aiKeys.length,
+        dive: diveKeys.length,
+        videos: videoKeys.length,
+        wikipedia: wikipediaKeys.length,
+        total: searchKeys.length + imageKeys.length + newsKeys.length + aiKeys.length + diveKeys.length + videoKeys.length + wikipediaKeys.length,
+        totalSize
+      };
     } catch (error) {
       console.warn('Error getting cache stats:', error);
-    return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, wikipedia: 0, total: 0, totalSize: 0 };
+      return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, wikipedia: 0, total: 0, totalSize: 0 };
     }
   }
 
@@ -350,7 +350,7 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
   url: RequestInfo | URL,
   options?: RequestInit,
   cacheConfig?: {
-  searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia';
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia';
     provider: string;
     query: string;
     searchParams?: Record<string, string>;
@@ -382,20 +382,20 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
   const originalResponse = await fetch(url, options);
 
   if (originalResponse.status === 401 || originalResponse.status === 403 && originalResponse.headers.get("Content-Type")?.includes("application/json")) {
-    const responseCloneForErrorCheck = originalResponse.clone(); 
+    const responseCloneForErrorCheck = originalResponse.clone();
     try {
       const errorData = await responseCloneForErrorCheck.json();
       if (errorData && errorData.error === "Invalid or expired session token.") {
         console.log("Session token expired or invalid. Attempting to refresh session...");
 
         const registerResponse = await fetch("/api/session/register", {
-          method: "POST", 
+          method: "POST",
         });
 
         if (registerResponse.ok) {
           console.log("Session refreshed successfully. Retrying the original request.");
           const retryResponse = await fetch(url, options);
-          
+
           // Cache successful response if caching is enabled
           if (cacheConfig && !cacheConfig.skipCache && retryResponse.ok) {
             try {
@@ -412,7 +412,7 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
               console.warn('Error caching response after retry:', error);
             }
           }
-          
+
           return retryResponse;
         } else {
           console.error("Failed to refresh session. Status:", registerResponse.status);
@@ -427,8 +427,10 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
   // Cache successful response if caching is enabled
   if (cacheConfig && !cacheConfig.skipCache && originalResponse.ok) {
     try {
-      const responseClone = originalResponse.clone();
-      const data = await responseClone.json();
+      // We need to read the body to cache it, but we can't read it twice.
+      // So we read it, cache it, and then return a new Response with the same body.
+      const data = await originalResponse.json();
+
       SearchCache.set(
         cacheConfig.searchType,
         cacheConfig.provider,
@@ -436,8 +438,20 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
         data,
         cacheConfig.searchParams
       );
+
+      // Return a new response with the consumed data
+      return new Response(JSON.stringify(data), {
+        status: originalResponse.status,
+        statusText: originalResponse.statusText,
+        headers: originalResponse.headers
+      });
     } catch (error) {
       console.warn('Error caching response:', error);
+      // If json parsing failed, we can't cache, but we might have consumed the body.
+      // Ideally we should clone before reading if we aren't sure it's JSON, 
+      // but here we expect JSON. If it fails, we might need to fallback or re-fetch?
+      // For safety in this specific utility which expects JSON for caching:
+      return originalResponse;
     }
   }
 

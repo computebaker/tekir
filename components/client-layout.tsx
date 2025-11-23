@@ -46,6 +46,12 @@ export default function ClientLayout({
 
   useEffect(() => {
     const initializeSession = async () => {
+      // Check if we've already registered this session in this browser tab to avoid redundant API calls
+      if (sessionStorage.getItem('session_registered') === 'true') {
+        (window as any).__sessionRegistered = true;
+        return;
+      }
+
       let sessionToken = getCookie('session-token');
       if (!sessionToken) {
         sessionToken = generateSessionToken();
@@ -66,6 +72,7 @@ export default function ClientLayout({
               removeCookie('session-token'); // Clear cookie if registration failed
             } else {
               console.log("Session token registered via API:", sessionToken);
+              sessionStorage.setItem('session_registered', 'true');
               (window as any).__sessionRegistered = true;
               window.dispatchEvent(new Event('session-registered'));
             }
@@ -75,7 +82,11 @@ export default function ClientLayout({
           }
         }
       } else {
+        // If we have a cookie but sessionStorage doesn't know about it, we assume it's valid 
+        // but mark it as registered to skip future checks in this tab.
+        // Ideally we might want to verify it, but for performance we trust the cookie existence.
         console.log("Existing session token:", sessionToken);
+        sessionStorage.setItem('session_registered', 'true');
         (window as any).__sessionRegistered = true;
       }
     };

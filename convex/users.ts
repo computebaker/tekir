@@ -53,6 +53,20 @@ export const getUserByPolarCustomerId = query({
 export const listUsers = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email!))
+      .unique();
+
+    if (!user || !user.roles?.includes("admin")) {
+      throw new Error("Forbidden: Admin access required");
+    }
+
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
     const items = await ctx.db
       .query("users")
@@ -117,7 +131,7 @@ export const updateUser = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updateData } = args;
-    
+
     // Enforce password hashing if password is being updated
     if (updateData.password && !updateData.password.startsWith("$2")) {
       throw new Error("Password must be hashed before storage");
@@ -126,7 +140,7 @@ export const updateUser = mutation({
     const updates = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
     );
-    
+
     return await ctx.db.patch(id, {
       ...updates,
       updatedAt: Date.now(),
@@ -156,7 +170,7 @@ export const deleteUser = mutation({
       .query("sessionTracking")
       .withIndex("by_userId", (q) => q.eq("userId", args.id))
       .collect();
-    
+
     for (const tracking of sessionTracking) {
       await ctx.db.delete(tracking._id);
     }
@@ -175,7 +189,7 @@ export const verifyEmail = mutation({
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
-    
+
     if (!user) {
       throw new Error("User not found");
     }
