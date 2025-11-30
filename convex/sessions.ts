@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { yyyymmdd } from "./usage";
+import { requireAdmin, requireAuth } from "./auth";
 
 // Rate limiting constants
 const RATE_LIMITS = {
@@ -307,6 +308,20 @@ export const linkSessionToUser = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Verify that the authenticated user matches the requested userId
+    const identity = await requireAuth(ctx);
+
+    // We need to fetch the user to check if the identity email matches the user's email
+    // This is because args.userId is an ID, but identity only gives us email/subject
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.email !== identity.email) {
+      throw new Error("Unauthorized: You can only link sessions to your own account");
+    }
+
     const session = await ctx.db
       .query("sessionTracking")
       .withIndex("by_sessionToken", (q) => q.eq("sessionToken", args.sessionToken))
@@ -532,6 +547,8 @@ export const cleanExpiredSessions = mutation({
 export const resetDailyRequestCounts = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
+
     const currentTime = Date.now();
     // Process in batches until there are no more sessions to reset.
     // The previous implementation only processed a single batch of 50,

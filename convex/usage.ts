@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./auth";
 
 export function yyyymmdd(ts: number) {
   const d = new Date(ts);
@@ -28,7 +29,7 @@ export const logSearchUsage = mutation({
     type: v.string(), // 'web' | 'images' | 'news'
     responseTimeMs: v.optional(v.number()),
     totalResults: v.optional(v.number()),
-  queryText: v.optional(v.string()), // full query; used for full-query frequency (and legacy tokens)
+    queryText: v.optional(v.string()), // full query; used for full-query frequency (and legacy tokens)
     timestamp: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -71,7 +72,7 @@ export const logSearchUsage = mutation({
         else await ctx.db.insert('searchQueryDaily', { day, query: qtext, count: 1 });
       }
 
-  // No longer logging tokenized queries; we store full queries only now.
+      // No longer logging tokenized queries; we store full queries only now.
     }
 
     return { ok: true };
@@ -118,6 +119,7 @@ export const logAiUsage = mutation({
 export const getSearchUsageByDay = query({
   args: { day: v.number() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     return await ctx.db
       .query('searchUsageDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -128,6 +130,7 @@ export const getSearchUsageByDay = query({
 export const getAiUsageByDay = query({
   args: { day: v.number() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     return await ctx.db
       .query('aiUsageDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -138,6 +141,7 @@ export const getAiUsageByDay = query({
 export const topSearchTokensByDay = query({
   args: { day: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const rows = await ctx.db
       .query('searchTokenDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -152,6 +156,7 @@ export const topSearchTokensByDay = query({
 export const topSearchQueriesByDay = query({
   args: { day: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const rows = await ctx.db
       .query('searchQueryDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -166,6 +171,7 @@ export const topSearchQueriesByDay = query({
 export const rangeSearchUsage = query({
   args: { fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     // naive range scan; can be optimized with pagination if needed
     const rows = await ctx.db
       .query('searchUsageDaily')
@@ -178,6 +184,7 @@ export const rangeSearchUsage = query({
 export const rangeAiUsage = query({
   args: { fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const rows = await ctx.db
       .query('aiUsageDaily')
       .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
@@ -207,6 +214,7 @@ export const logApiHit = mutation({
 export const rangeApiHits = query({
   args: { fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const rows = await ctx.db
       .query('apiHitsDaily')
       .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
@@ -219,6 +227,7 @@ export const rangeApiHits = query({
 export const purgeAnalytics = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     // Helper to delete all rows from a table by scanning a cheap index
     async function deleteAll(table: 'searchUsageDaily' | 'aiUsageDaily' | 'apiHitsDaily' | 'searchQueryDaily' | 'searchTokenDaily') {
       // Use by_day index where available for chunked deletes
@@ -228,12 +237,12 @@ export const purgeAnalytics = mutation({
       }
     }
 
-  await deleteAll('searchUsageDaily');
+    await deleteAll('searchUsageDaily');
     await deleteAll('aiUsageDaily');
     await deleteAll('apiHitsDaily');
     await deleteAll('searchQueryDaily');
-  // Legacy token frequency table (kept for backward compatibility)
-  await deleteAll('searchTokenDaily');
+    // Legacy token frequency table (kept for backward compatibility)
+    await deleteAll('searchTokenDaily');
 
     return { purged: true };
   },

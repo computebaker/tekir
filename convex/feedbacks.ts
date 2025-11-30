@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./auth";
 
 export const createFeedback = mutation({
   args: {
@@ -44,6 +45,8 @@ export const listFeedbacks = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
     const items = await ctx.db
       .query("feedbacks")
@@ -65,7 +68,7 @@ export const listFeedbacks = query({
       if (user) userMap.set(uid, user);
     }
 
-  return items.map((it) => {
+    return items.map((it) => {
       const u = it.userId ? userMap.get(it.userId) : undefined;
       return {
         ...it,
@@ -80,6 +83,7 @@ export const listFeedbacks = query({
 export const deleteFeedback = mutation({
   args: { id: v.id("feedbacks") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(args.id);
     return true;
   },
@@ -89,6 +93,7 @@ export const deleteFeedback = mutation({
 export const countFeedbacks = query({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     const items = await ctx.db.query("feedbacks").collect();
     return items.length;
   },

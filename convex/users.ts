@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { requireAdmin, requireUser } from "./auth";
 
 // Queries
 export const getUserByEmail = query({
@@ -53,25 +54,7 @@ export const getUserByPolarCustomerId = query({
 export const listUsers = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
-    console.log("Identity:", identity);
-
-    if (!identity.email) {
-      throw new Error("Unauthorized: Email is required");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email!))
-      .unique();
-
-    if (!user || !user.roles?.includes("admin")) {
-      throw new Error("Forbidden: Admin access required");
-    }
+    await requireAdmin(ctx);
 
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
     const items = await ctx.db
@@ -86,6 +69,7 @@ export const listUsers = query({
 export const countUsers = query({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     const all = await ctx.db.query("users").collect();
     return all.length;
   },
@@ -136,6 +120,9 @@ export const updateUser = mutation({
     polarCustomerId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Ensure user can only update themselves (or be admin)
+    await requireUser(ctx, args.id);
+
     const { id, ...updateData } = args;
 
     // Enforce password hashing if password is being updated
@@ -160,6 +147,7 @@ export const updateUserRoles = mutation({
     roles: v.array(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     return await ctx.db.patch(args.id, {
       roles: args.roles,
       updatedAt: Date.now(),
@@ -170,6 +158,9 @@ export const updateUserRoles = mutation({
 export const deleteUser = mutation({
   args: { id: v.id("users") },
   handler: async (ctx, args) => {
+    // Only admin can delete users for now
+    await requireAdmin(ctx);
+
     // Delete related data first
 
     const sessionTracking = await ctx.db
