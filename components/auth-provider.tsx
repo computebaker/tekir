@@ -79,7 +79,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
           // Set Convex auth token
           if (authData.token) {
-            convex.setAuth(async () => authData.token);
+            await convex.setAuth(async () => authData.token);
           }
 
           const newUser = {

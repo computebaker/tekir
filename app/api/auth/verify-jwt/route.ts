@@ -44,6 +44,8 @@ export async function GET(request: NextRequest) {
         user: {
           id: user._id,
           email: user.email,
+          name: user.name, // Include name
+          username: user.username, // Include username
           image: user.image, // Include the latest profile picture from DB
           imageType: user.imageType, // Include image type for proper cache busting
           avatar: user.image, // For compatibility
