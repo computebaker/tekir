@@ -58,6 +58,12 @@ export const listUsers = query({
       throw new Error("Unauthorized");
     }
 
+    console.log("Identity:", identity);
+
+    if (!identity.email) {
+      throw new Error("Unauthorized: Email is required");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", identity.email!))

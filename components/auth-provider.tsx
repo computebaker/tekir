@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
+import convex from "@/lib/convex-proxy";
 
 interface User {
   id: string;
@@ -60,7 +61,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     lastCheckTimeRef.current = now;
     try {
       console.log('AuthProvider: Checking JWT auth status...');
-      
+
       // Verify JWT token with our backend - cookie will be sent automatically
       const response = await fetch('/api/auth/verify-jwt', {
         method: 'GET',
@@ -72,27 +73,33 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const authData = await response.json();
         console.log('AuthProvider: JWT auth data:', authData);
-        
+
         if (authData.authenticated && authData.user) {
           console.log('AuthProvider: User authenticated via JWT:', authData.user);
+
+          // Set Convex auth token
+          if (authData.token) {
+            convex.setAuth(async () => authData.token);
+          }
+
           const newUser = {
             ...authData.user,
             isEmailVerified: true // JWT users are already verified
           };
-          
+
           // Only update user if the data has actually changed
           setUser(prevUser => {
             const prevRoles = (prevUser?.roles ?? []).join(',');
             const nextRoles = (newUser?.roles ?? []).join(',');
-            if (!prevUser || 
-                prevUser.id !== newUser.id ||
-                prevUser.email !== newUser.email ||
-                prevUser.name !== newUser.name ||
-                prevUser.username !== newUser.username ||
-                prevUser.image !== newUser.image ||
-                prevUser.imageType !== newUser.imageType ||
-                (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
-                prevRoles !== nextRoles) {
+            if (!prevUser ||
+              prevUser.id !== newUser.id ||
+              prevUser.email !== newUser.email ||
+              prevUser.name !== newUser.name ||
+              prevUser.username !== newUser.username ||
+              prevUser.image !== newUser.image ||
+              prevUser.imageType !== newUser.imageType ||
+              (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
+              prevRoles !== nextRoles) {
               console.log('AuthProvider: User data changed, updating...');
               return newUser;
             }
@@ -102,11 +109,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           setStatus("authenticated");
         } else {
           console.log('AuthProvider: JWT auth failed - not authenticated');
+          convex.setAuth(async () => null);
           setUser(null);
           setStatus("unauthenticated");
         }
       } else {
         console.log('AuthProvider: No valid JWT token found');
+        convex.setAuth(async () => null);
         setUser(null);
         setStatus("unauthenticated");
       }
@@ -187,7 +196,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     lastCheckTimeRef.current = now;
     try {
       console.log('AuthProvider: Refreshing user data from backend...');
-      
+
       // Verify JWT token with our backend to get fresh user data
       const response = await fetch('/api/auth/verify-jwt', {
         method: 'GET',
@@ -197,26 +206,26 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const authData = await response.json();
         console.log('AuthProvider: Fresh user data:', authData.user);
-        
+
         if (authData.authenticated && authData.user) {
           const newUser = {
             ...authData.user,
             isEmailVerified: true
           };
-          
+
           // Only update user if the data has actually changed
           setUser(prevUser => {
             const prevRoles = (prevUser?.roles ?? []).join(',');
             const nextRoles = (newUser?.roles ?? []).join(',');
-            if (!prevUser || 
-                prevUser.id !== newUser.id ||
-                prevUser.email !== newUser.email ||
-                prevUser.name !== newUser.name ||
-                prevUser.username !== newUser.username ||
-                prevUser.image !== newUser.image ||
-                prevUser.imageType !== newUser.imageType ||
-                (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
-                prevRoles !== nextRoles) {
+            if (!prevUser ||
+              prevUser.id !== newUser.id ||
+              prevUser.email !== newUser.email ||
+              prevUser.name !== newUser.name ||
+              prevUser.username !== newUser.username ||
+              prevUser.image !== newUser.image ||
+              prevUser.imageType !== newUser.imageType ||
+              (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
+              prevRoles !== nextRoles) {
               console.log('AuthProvider: Fresh user data changed, updating...');
               return newUser;
             }

@@ -5,27 +5,27 @@ import { api } from '@/convex/_generated/api';
 
 export async function GET(request: NextRequest) {
   try {
-  const authToken = request.cookies.get('auth-token')?.value;
-  const sessionToken = request.cookies.get('session-token')?.value;
-    
+    const authToken = request.cookies.get('auth-token')?.value;
+    const sessionToken = request.cookies.get('session-token')?.value;
+
     if (!authToken) {
       return NextResponse.json({ authenticated: false });
     }
 
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
-    
+
     try {
-  const decoded = jwt.verify(authToken, jwtSecret, { algorithms: ['HS256'] }) as any;
-      
+      const decoded = jwt.verify(authToken, jwtSecret, { algorithms: ['HS256'] }) as any;
+
       // Fetch the latest user data from Convex database
       const convex = getConvexClient();
       const user = await convex.query(api.users.getUserById, { id: decoded.userId });
-      
+
       if (!user) {
         console.log('JWT verification failed: User not found in database');
         return NextResponse.json({ authenticated: false });
       }
-      
+
       // If a session token exists, verify it's valid and linked to this user
       if (sessionToken) {
         try {
@@ -40,11 +40,10 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         authenticated: true,
+        token: authToken,
         user: {
           id: user._id,
           email: user.email,
-          name: user.name,
-          username: user.username,
           image: user.image, // Include the latest profile picture from DB
           imageType: user.imageType, // Include image type for proper cache busting
           avatar: user.image, // For compatibility
