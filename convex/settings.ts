@@ -2,17 +2,34 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireUser } from "./auth";
 
+const userSettingsResponse = v.object({
+  settingsSync: v.boolean(),
+  settings: v.any(),
+  updatedAt: v.number(),
+});
+
+const isUnauthorizedError = (error: unknown) =>
+  error instanceof Error && error.message.startsWith("Unauthorized");
+
 // Query to get user settings with real-time subscription
 export const getUserSettings = query({
   args: { userId: v.id("users") },
+  returns: v.union(userSettingsResponse, v.null()),
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.userId);
+    try {
+      const user = await requireUser(ctx, args.userId);
 
-    return {
-      settingsSync: user.settingsSync,
-      settings: user.settings ?? {},
-      updatedAt: user.updatedAt
-    };
+      return {
+        settingsSync: user.settingsSync,
+        settings: user.settings ?? {},
+        updatedAt: user.updatedAt
+      };
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        return null;
+      }
+      throw error;
+    }
   },
 });
 
