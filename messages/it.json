@@ -662,7 +662,8 @@
     },
     "errors": {
       "checkoutFailed": "Impossibile creare il checkout",
-      "upgradeFailed": "Impossibile avviare il processo di aggiornamento"
+      "upgradeFailed": "Impossibile avviare il processo di aggiornamento",
+      "portalFailed": "Impossibile aprire il portale clienti"
     },
     "info": {
       "includedFeatures": "Funzionalità incluse:",
