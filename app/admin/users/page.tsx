@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import AdminShell from "@/components/admin/admin-shell";
 import AdminGuard from "@/components/admin/admin-guard";
+import { useAdminAccess } from "@/components/admin/use-admin-access";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
@@ -18,10 +19,14 @@ type User = {
 
 export default function AdminUsersPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const users = useQuery(api.users.listUsers, { limit: 100 }) as User[] | undefined;
+  const { isAdmin } = useAdminAccess();
+  const users = useQuery(
+    api.users.listUsers,
+    isAdmin ? { limit: 100 } : "skip"
+  ) as User[] | undefined;
   const deleteUser = useMutation(api.users.deleteUser);
   const updateUser = useMutation(api.users.updateUser);
-  const loading = users === undefined;
+  const loading = !isAdmin || users === undefined;
 
   const remove = async (id: string) => {
     try {

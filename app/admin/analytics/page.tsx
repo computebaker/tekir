@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useRef } from "react";
 import AdminShell from "@/components/admin/admin-shell";
 import AdminGuard from "@/components/admin/admin-guard";
+import { useAdminAccess } from "@/components/admin/use-admin-access";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 // Stable empty array to avoid new reference on every render when data is missing
@@ -40,8 +41,9 @@ function useLastNonUndefined<T>(value: T | undefined): T | undefined {
 }
 
 export default function AdminAnalyticsPage() {
-  const users = useQuery(api.users.countUsers, {});
-  const feedbacks = useQuery(api.feedbacks.countFeedbacks, {});
+  const { isAdmin } = useAdminAccess();
+  const users = useQuery(api.users.countUsers, isAdmin ? {} : "skip");
+  const feedbacks = useQuery(api.feedbacks.countFeedbacks, isAdmin ? {} : "skip");
   // Date range filter: today, 7 days, 30 days
   const [range, setRange] = useState<'today' | '7d' | '30d'>('7d');
   const toDay = yyyymmdd(Date.now());
@@ -52,11 +54,23 @@ export default function AdminAnalyticsPage() {
   }, [range, toDay]);
 
   // Broad usage ranges
-  const searchRange = useQuery(api.usage.rangeSearchUsage as any, { fromDay, toDay }) as any[] | undefined;
-  const aiRange = useQuery(api.usage.rangeAiUsage as any, { fromDay, toDay }) as any[] | undefined;
-  const apiHits = useQuery(api.usage.rangeApiHits as any, { fromDay, toDay }) as any[] | undefined;
+  const searchRange = useQuery(
+    api.usage.rangeSearchUsage as any,
+    isAdmin ? { fromDay, toDay } : "skip"
+  ) as any[] | undefined;
+  const aiRange = useQuery(
+    api.usage.rangeAiUsage as any,
+    isAdmin ? { fromDay, toDay } : "skip"
+  ) as any[] | undefined;
+  const apiHits = useQuery(
+    api.usage.rangeApiHits as any,
+    isAdmin ? { fromDay, toDay } : "skip"
+  ) as any[] | undefined;
   // Top queries for end day of range (kept simple)
-  const topQueries = useQuery(api.usage.topSearchQueriesByDay as any, { day: toDay, limit: 20 }) as any[] | undefined;
+  const topQueries = useQuery(
+    api.usage.topSearchQueriesByDay as any,
+    isAdmin ? { day: toDay, limit: 20 } : "skip"
+  ) as any[] | undefined;
 
   // Replace effect+state caches with render-time ref retention.
   const displayUsers = useLastNonUndefined<number | undefined>(users);

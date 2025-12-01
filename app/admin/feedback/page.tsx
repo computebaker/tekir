@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import AdminShell from "@/components/admin/admin-shell";
 import AdminGuard from "@/components/admin/admin-guard";
+import { useAdminAccess } from "@/components/admin/use-admin-access";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
@@ -20,11 +21,15 @@ type Feedback = {
 
 export default function AdminFeedbackPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const items = useQuery(api.feedbacks.listFeedbacks, { limit: 100 }) as Feedback[] | undefined;
+  const { isAdmin } = useAdminAccess();
+  const items = useQuery(
+    api.feedbacks.listFeedbacks,
+    isAdmin ? { limit: 100 } : "skip"
+  ) as Feedback[] | undefined;
   const deleteFeedback = useMutation(api.feedbacks.deleteFeedback);
   // Optional error UI can be added with error boundaries; useQuery doesn't expose error directly
 
-  const loading = items === undefined;
+  const loading = !isAdmin || items === undefined;
 
   const handleDeleteClick = async (id: string) => {
     if (confirmingId === id) {
