@@ -55,14 +55,17 @@ type ExportPayload = {
 };
 
 export default function PrivacySettingsPage() {
-  const { user } = useAuth();
+  const { user, authToken } = useAuth();
   const { settings, updateSetting } = useSettings();
   const tSettings = useTranslations("settings");
   const tPrivacy = useTranslations("settings.privacyPage");
 
   // Server-side data overview using Convex
   const userId = user?.id as Id<"users"> | undefined;
-  const serverSettings = useQuery(api.settings.getUserSettings, userId ? { userId } : "skip");
+  const serverSettings = useQuery(
+    api.settings.getUserSettings,
+    userId && authToken ? { userId, authToken } : "skip"
+  );
 
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

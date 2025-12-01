@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireUser } from "./auth";
+import { requireUserWithToken } from "./auth";
 
 const userSettingsResponse = v.object({
   settingsSync: v.boolean(),
@@ -9,15 +9,18 @@ const userSettingsResponse = v.object({
 });
 
 const isUnauthorizedError = (error: unknown) =>
-  error instanceof Error && error.message.startsWith("Unauthorized");
+  error instanceof Error && (error.message.startsWith("Unauthorized") || error.message.startsWith("Forbidden"));
 
 // Query to get user settings with real-time subscription
 export const getUserSettings = query({
-  args: { userId: v.id("users") },
+  args: {
+    userId: v.id("users"),
+    authToken: v.string(),
+  },
   returns: v.union(userSettingsResponse, v.null()),
   handler: async (ctx, args) => {
     try {
-      const user = await requireUser(ctx, args.userId);
+      const user = await requireUserWithToken(ctx, args.userId, args.authToken);
 
       return {
         settingsSync: user.settingsSync,
@@ -37,10 +40,11 @@ export const getUserSettings = query({
 export const updateUserSettings = mutation({
   args: {
     userId: v.id("users"),
+    authToken: v.string(),
     settings: v.any(),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.userId);
+    const user = await requireUserWithToken(ctx, args.userId, args.authToken);
 
     if (!user.settingsSync) {
       throw new Error("Settings sync is disabled for this user");
@@ -63,10 +67,11 @@ export const updateUserSettings = mutation({
 export const toggleSettingsSync = mutation({
   args: {
     userId: v.id("users"),
+    authToken: v.string(),
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
-    await requireUser(ctx, args.userId); // Ensure user exists
+    await requireUserWithToken(ctx, args.userId, args.authToken); // Ensure user exists and authorized
 
     const updateData: any = {
       settingsSync: args.enabled,
@@ -92,9 +97,12 @@ export const toggleSettingsSync = mutation({
 
 // Query to check if user has settings sync enabled (lightweight)
 export const getSettingsSyncStatus = query({
-  args: { userId: v.id("users") },
+  args: {
+    userId: v.id("users"),
+    authToken: v.string(),
+  },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.userId);
+    const user = await requireUserWithToken(ctx, args.userId, args.authToken);
 
     return {
       settingsSync: user.settingsSync,

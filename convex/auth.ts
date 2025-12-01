@@ -1,5 +1,25 @@
 import { QueryCtx, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import jwt, { JwtPayload } from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET ?? "your-secret-key";
+
+type AuthTokenClaims = JwtPayload & {
+    userId?: string;
+    roles?: string[];
+};
+
+function decodeAuthToken(authToken: string): AuthTokenClaims {
+    if (!authToken) {
+        throw new Error("Unauthorized: Missing auth token");
+    }
+
+    try {
+        return jwt.verify(authToken, JWT_SECRET, { algorithms: ["HS256"] }) as AuthTokenClaims;
+    } catch (error) {
+        throw new Error("Unauthorized: Invalid auth token");
+    }
+}
 
 /**
  * Require a user to be authenticated.
@@ -62,4 +82,44 @@ export async function requireUser(ctx: QueryCtx | MutationCtx, userId: Id<"users
     }
 
     return user;
+}
+
+/**
+ * Require authentication via Tekir JWT token instead of Convex auth identity.
+ * Primarily used for browser clients that authenticate with our custom backend
+ * and forward the JWT as part of Convex queries/mutations.
+ */
+export async function requireUserWithToken(
+    ctx: QueryCtx | MutationCtx,
+    userId: Id<"users">,
+    authToken: string
+) {
+    const claims = decodeAuthToken(authToken);
+
+    if (!claims.userId) {
+        throw new Error("Unauthorized: Invalid auth token payload");
+    }
+
+    const actorUserId = claims.userId as Id<"users">;
+    const [actorUser, targetUser] = await Promise.all([
+        ctx.db.get(actorUserId),
+        ctx.db.get(userId),
+    ]);
+
+    if (!actorUser) {
+        throw new Error("Unauthorized: Token user not found");
+    }
+
+    if (!targetUser) {
+        throw new Error("Unauthorized: User not found");
+    }
+
+    const isSameUser = actorUser._id === userId;
+    const isAdmin = !!actorUser.roles?.includes("admin");
+
+    if (!isSameUser && !isAdmin) {
+        throw new Error("Forbidden: You can only access your own data");
+    }
+
+    return targetUser;
 }

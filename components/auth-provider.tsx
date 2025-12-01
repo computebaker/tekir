@@ -21,6 +21,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   status: "loading" | "authenticated" | "unauthenticated";
+  authToken: string | null;
   signOut: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
@@ -39,6 +40,7 @@ export function useAuth() {
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const isCheckingRef = useRef(false); // Use ref instead of state to prevent re-renders
   const lastCheckTimeRef = useRef(0); // Track last check time to prevent spam
@@ -79,7 +81,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
           // Set Convex auth token
           if (authData.token) {
+            setAuthToken(authData.token);
             await convex.setAuth(async () => authData.token);
+          } else {
+            setAuthToken(null);
+            await convex.setAuth(async () => null);
           }
 
           const newUser = {
@@ -109,18 +115,21 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           setStatus("authenticated");
         } else {
           console.log('AuthProvider: JWT auth failed - not authenticated');
-          convex.setAuth(async () => null);
+          setAuthToken(null);
+          await convex.setAuth(async () => null);
           setUser(null);
           setStatus("unauthenticated");
         }
       } else {
         console.log('AuthProvider: No valid JWT token found');
-        convex.setAuth(async () => null);
+        setAuthToken(null);
+        await convex.setAuth(async () => null);
         setUser(null);
         setStatus("unauthenticated");
       }
     } catch (error) {
       console.error('JWT auth check failed:', error);
+      setAuthToken(null);
       setUser(null);
       setStatus("unauthenticated");
     } finally {
@@ -166,6 +175,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Signout error:', error);
     } finally {
       // Always clear local state; server cleared cookies
+      setAuthToken(null);
+      await convex.setAuth(async () => null);
       setUser(null);
       setStatus("unauthenticated");
       window.location.href = '/';
@@ -208,6 +219,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         console.log('AuthProvider: Fresh user data:', authData.user);
 
         if (authData.authenticated && authData.user) {
+          if (authData.token) {
+            setAuthToken(authData.token);
+            await convex.setAuth(async () => authData.token);
+          }
           const newUser = {
             ...authData.user,
             isEmailVerified: true
@@ -245,7 +260,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // No dependencies to prevent recreation
 
   return (
-    <AuthContext.Provider value={{ user, status, signOut, updateUser, refreshUser, checkAuthStatus }}>
+    <AuthContext.Provider value={{ user, status, authToken, signOut, updateUser, refreshUser, checkAuthStatus }}>
       {children}
     </AuthContext.Provider>
   );

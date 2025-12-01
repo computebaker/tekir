@@ -221,7 +221,7 @@ export const convexSettingsManager = new ConvexSettingsManager();
 
 // React hook for using settings with Convex real-time sync
 export function useConvexSettings() {
-  const { user, status } = useAuth();
+  const { user, status, authToken } = useAuth();
   const [settings, setSettings] = useState<UserSettings>(() => convexSettingsManager.getAll());
   const [isInitialized, setIsInitialized] = useState(false);
   const [convexAuthReady, setConvexAuthReady] = useState(false);
@@ -229,7 +229,7 @@ export function useConvexSettings() {
 
   // Wait a tick after user is authenticated to ensure Convex auth is set
   useEffect(() => {
-    if (status === 'authenticated' && user?.id) {
+    if (status === 'authenticated' && user?.id && authToken) {
       // Small delay to ensure convex.setAuth has completed
       const timer = setTimeout(() => {
         setConvexAuthReady(true);
@@ -238,12 +238,14 @@ export function useConvexSettings() {
     } else {
       setConvexAuthReady(false);
     }
-  }, [status, user?.id]);
+  }, [status, user?.id, authToken]);
 
   // Convex hooks for real-time data
   const userSettings = useQuery(
     api.settings.getUserSettings,
-    convexAuthReady && user?.id ? { userId: user.id as Id<"users"> } : "skip"
+    convexAuthReady && user?.id && authToken
+      ? { userId: user.id as Id<"users">, authToken }
+      : "skip"
   );
 
   const updateSettingsMutation = useMutation(api.settings.updateUserSettings);
@@ -297,10 +299,15 @@ export function useConvexSettings() {
 
     // Sync to Convex if user is logged in and sync is enabled
     if (user?.id && userSettings?.settingsSync) {
+      if (!authToken) {
+        console.warn('Cannot sync settings without auth token');
+        return;
+      }
       try {
         const newSettings = { ...convexSettingsManager.getAll() };
         await updateSettingsMutation({
           userId: user.id as Id<"users">,
+          authToken,
           settings: newSettings
         });
         console.log('Settings synced to Convex successfully');
@@ -316,9 +323,14 @@ export function useConvexSettings() {
       throw new Error('User must be logged in to toggle settings sync');
     }
 
+    if (!authToken) {
+      throw new Error('Missing auth token while toggling settings sync');
+    }
+
     try {
       const result = await toggleSyncMutation({
         userId: user.id as Id<"users">,
+        authToken,
         enabled
       });
 
