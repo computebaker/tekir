@@ -60,6 +60,37 @@ export async function createCheckoutSession({
 }
 
 /**
+ * Create a customer portal session so users can manage their subscription without re-verifying email
+ */
+export async function createCustomerPortalSession({
+  customerId,
+  returnUrl,
+}: {
+  customerId: string;
+  returnUrl?: string;
+}) {
+  try {
+    const session = await polar.customerSessions.create({
+      customerId,
+      ...(returnUrl ? { returnUrl } : {}),
+    });
+
+    return {
+      success: true,
+      portalUrl: session.customerPortalUrl,
+      expiresAt: session.expiresAt,
+      sessionId: session.id,
+    };
+  } catch (error) {
+    console.error('Failed to create Polar customer portal session:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
  * Get customer subscriptions
  * 
  * Note: The SDK returns paginated results with a result.items array structure.

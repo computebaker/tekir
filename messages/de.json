@@ -662,7 +662,8 @@
     },
     "errors": {
       "checkoutFailed": "Checkout konnte nicht erstellt werden",
-      "upgradeFailed": "Upgrade-Prozess konnte nicht gestartet werden"
+      "upgradeFailed": "Upgrade-Prozess konnte nicht gestartet werden",
+      "portalFailed": "Kundenportal konnte nicht geöffnet werden"
     },
     "info": {
       "includedFeatures": "Enthaltene Funktionen:",

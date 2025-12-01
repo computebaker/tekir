@@ -662,7 +662,8 @@
     },
     "errors": {
       "checkoutFailed": "Failed to create checkout",
-      "upgradeFailed": "Failed to start upgrade process"
+      "upgradeFailed": "Failed to start upgrade process",
+      "portalFailed": "Failed to open customer portal"
     },
     "info": {
       "includedFeatures": "Included features:",

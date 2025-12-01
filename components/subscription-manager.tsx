@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Loader2, Sparkles, CreditCard, Calendar, XCircle, ExternalLink, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Sparkles, CreditCard, Calendar, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface SubscriptionManagerProps {
   productId?: string;
-  organizationName?: string;
 }
 
 interface SubscriptionInfo {
@@ -34,7 +33,6 @@ interface SubscriptionInfo {
 
 export default function SubscriptionManager({
   productId = process.env.NEXT_PUBLIC_POLAR_PRODUCT_ID || '',
-  organizationName = process.env.NEXT_PUBLIC_POLAR_ORGANIZATION || 'tekir',
 }: SubscriptionManagerProps) {
   const { user } = useAuth();
   const t = useTranslations('subscription');
@@ -43,6 +41,7 @@ export default function SubscriptionManager({
   const [error, setError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const isPaid = user?.roles?.some((role: string) => role.toLowerCase() === 'paid');
 
@@ -153,6 +152,39 @@ export default function SubscriptionManager({
     } catch (error) {
       console.error('Error formatting date:', error);
       return 'Invalid date';
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/polar/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          returnUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || t('errors.portalFailed'));
+      }
+
+      if (data.portalUrl) {
+        window.location.href = data.portalUrl;
+      } else {
+        throw new Error(t('errors.portalFailed'));
+      }
+    } catch (err) {
+      console.error('Portal link error:', err);
+      setError(err instanceof Error ? err.message : t('errors.portalFailed'));
+      setPortalLoading(false);
     }
   };
 
@@ -305,16 +337,26 @@ export default function SubscriptionManager({
       </CardContent>
       <CardFooter className="flex-col gap-3">
         {/* Manage Subscription Button */}
-        <a
-          href={`https://polar.sh/${organizationName}/portal`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-background hover:bg-muted transition-colors rounded-lg border border-border text-sm font-medium"
+        <Button
+          onClick={handleManageSubscription}
+          disabled={portalLoading}
+          variant="secondary"
+          className="w-full inline-flex items-center justify-center gap-2"
         >
-          <CreditCard className="w-4 h-4" />
-          {t('actions.manage')}
-          <ExternalLink className="w-3 h-3" />
-        </a>
+          {portalLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <CreditCard className="w-4 h-4" />
+          )}
+          {portalLoading ? t('actions.loading') : t('actions.manage')}
+        </Button>
+
+        {error && (
+          <div className="w-full p-3 text-sm bg-destructive/10 text-destructive rounded-md flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Additional Info */}
         <p className="text-xs text-muted-foreground text-center">

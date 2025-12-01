@@ -662,7 +662,8 @@
     },
     "errors": {
       "checkoutFailed": "Ödeme sayfası oluşturulamadı",
-      "upgradeFailed": "Yükseltme işlemi başlatılamadı"
+      "upgradeFailed": "Yükseltme işlemi başlatılamadı",
+      "portalFailed": "Müşteri portalı açılırken bir hata oluştu"
     },
     "info": {
       "includedFeatures": "Dahil edilen özellikler:",

@@ -662,7 +662,8 @@
     },
     "errors": {
       "checkoutFailed": "Ödəniş səhifəsi yaradıla bilmədi",
-      "upgradeFailed": "Yüksəltmə prosesi başladıla bilmədi"
+      "upgradeFailed": "Yüksəltmə prosesi başladıla bilmədi",
+      "portalFailed": "Müştəri portalını açmaq mümkün olmadı"
     },
     "info": {
       "includedFeatures": "Daxil edilmiş funksiyalar:",
