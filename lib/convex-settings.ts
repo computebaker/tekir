@@ -316,7 +316,7 @@ export function useConvexSettings() {
         // Settings are still updated locally, user can try again
       }
     }
-  }, [user?.id, userSettings?.settingsSync, updateSettingsMutation]);
+  }, [user?.id, userSettings?.settingsSync, authToken, updateSettingsMutation]);
 
   const toggleSync = useCallback(async (enabled: boolean) => {
     if (!user?.id) {
@@ -347,6 +347,7 @@ export function useConvexSettings() {
           try {
             await updateSettingsMutation({
               userId: user.id as Id<"users">,
+              authToken,
               settings: localSettings
             });
             console.log('Seeded server settings from local after enabling sync');
@@ -361,7 +362,7 @@ export function useConvexSettings() {
       console.error('Failed to toggle settings sync:', error);
       return false;
     }
-  }, [user?.id, toggleSyncMutation, updateSettingsMutation]);
+  }, [user?.id, authToken, toggleSyncMutation, updateSettingsMutation]);
 
   return {
     settings,
