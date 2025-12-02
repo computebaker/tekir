@@ -1,21 +1,23 @@
 import { QueryCtx, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import { jwtVerify, JWTPayload } from "jose";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "your-secret-key";
+const secret = new TextEncoder().encode(JWT_SECRET);
 
-type AuthTokenClaims = JwtPayload & {
+type AuthTokenClaims = JWTPayload & {
     userId?: string;
     roles?: string[];
 };
 
-function decodeAuthToken(authToken: string): AuthTokenClaims {
+async function decodeAuthToken(authToken: string): Promise<AuthTokenClaims> {
     if (!authToken) {
         throw new Error("Unauthorized: Missing auth token");
     }
 
     try {
-        return jwt.verify(authToken, JWT_SECRET, { algorithms: ["HS256"] }) as AuthTokenClaims;
+        const { payload } = await jwtVerify(authToken, secret, { algorithms: ["HS256"] });
+        return payload as AuthTokenClaims;
     } catch (error) {
         throw new Error("Unauthorized: Invalid auth token");
     }
@@ -94,7 +96,7 @@ export async function requireUserWithToken(
     userId: Id<"users">,
     authToken: string
 ) {
-    const claims = decodeAuthToken(authToken);
+    const claims = await decodeAuthToken(authToken);
 
     if (!claims.userId) {
         throw new Error("Unauthorized: Invalid auth token payload");
