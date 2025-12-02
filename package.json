@@ -1,6 +1,7 @@
 {
   "name": "frontend",
   "version": "0.1.0",
+  "platform": "node",
   "scripts": {
     "dev": "NODE_OPTIONS='--max-http-header-size=12800000' next dev --turbopack",
     "build": "npx convex codegen && next build",
