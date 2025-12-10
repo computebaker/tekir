@@ -571,7 +571,10 @@
       "title": "Recommendations",
       "loading": "Fetching today's picks…",
       "refresh": "Refresh recommendations",
-      "refreshing": "Refreshing…"
+      "refreshing": "Refreshing…",
+      "subtitle": "Tap a suggestion to search faster.",
+      "badge": "Daily pick",
+      "autocompleteBadge": "Autocomplete"
     }
   },
   "about": {

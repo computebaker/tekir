@@ -1839,7 +1839,9 @@ function SearchPageContent() {
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={suggestion.query}
-                    onClick={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       setSearchInput(suggestion.query);
                       router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
                       setShowSuggestions(false);
@@ -1907,7 +1909,9 @@ function SearchPageContent() {
                     {suggestions.map((suggestion, index) => (
                       <button
                         key={suggestion.query}
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setSearchInput(suggestion.query);
                           router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
                           setShowSuggestions(false);

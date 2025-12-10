@@ -571,7 +571,10 @@
       "title": "Öneriler",
       "loading": "Bugünün seçkileri getiriliyor…",
       "refresh": "Önerileri yenile",
-      "refreshing": "Yenileniyor…"
+      "refreshing": "Yenileniyor…",
+      "subtitle": "Daha hızlı aramak için bir öneriye dokun.",
+      "badge": "Günün seçimi",
+      "autocompleteBadge": "Otomatik tamamlama"
     }
   },
   "about": {

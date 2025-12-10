@@ -571,7 +571,10 @@
       "title": "Tövsiyələr",
       "loading": "Bugünkü seçimlər gətirilir…",
       "refresh": "Tövsiyələri yenilə",
-      "refreshing": "Yenilənir…"
+      "refreshing": "Yenilənir…",
+      "subtitle": "Daha sürətli axtarış üçün təklifə toxunun.",
+      "badge": "Günün seçimi",
+      "autocompleteBadge": "Avtomatik tamamla"
     }
   },
   "about": {

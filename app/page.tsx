@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useTransition, useMemo, useCallback } from "react";
+import { useEffect, useState, useRef, useTransition, useMemo, useCallback, useLayoutEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -42,6 +42,7 @@ export default function Home() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const heroFormRef = useRef<HTMLFormElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
 
   // Lock raised state while submitting so it doesn't animate back before redirect
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,10 +50,26 @@ export default function Home() {
   const [isFocusLocked, setIsFocusLocked] = useState(false);
   const unlockingRef = useRef(false);
   const pushedStateRef = useRef(false);
+  const [dropdownMetrics, setDropdownMetrics] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Logo chooser state - load from localStorage on mount
   const [selectedLogoState, setSelectedLogoState] = useState<'tekir' | 'duman' | 'pamuk' | null>(null);
   const [logoLoaded, setLogoLoaded] = useState(false);
+
+  const updateDropdownMetrics = useCallback(() => {
+    if (!heroFormRef.current || !mainRef.current) return;
+    const heroRect = heroFormRef.current.getBoundingClientRect();
+    const mainRect = mainRef.current.getBoundingClientRect();
+  // On mobile we want the dropdown to sit directly below the search bar
+  const mobileOffset = 8; // nudge down on mobile so it appears below input
+    const desktopOffset = 12;
+    const offset = isMobile ? mobileOffset : desktopOffset;
+    setDropdownMetrics({
+      top: heroRect.bottom - mainRect.top + offset,
+      left: Math.max(8, heroRect.left - mainRect.left),
+      width: Math.max(280, heroRect.width),
+    });
+  }, [isMobile]);
 
   // Tri-state: null = unknown (no explicit local value) | true | false
   const [localShowRecs, setLocalShowRecs] = useState<boolean | null>(() => {
@@ -282,6 +299,24 @@ export default function Home() {
   );
   const keyboardAware = isMobile && (isHeroInputFocused || kbVisible || isSubmitting);
 
+  useLayoutEffect(() => {
+    if (!shouldRenderDropdown) return;
+    updateDropdownMetrics();
+  }, [keyboardAware, isMobile, scrollProgress, shouldRenderDropdown, updateDropdownMetrics]);
+
+  // Ensure metrics are computed immediately when the hero input is focused
+  useLayoutEffect(() => {
+    if (!isHeroInputFocused) return;
+    updateDropdownMetrics();
+  }, [isHeroInputFocused, updateDropdownMetrics]);
+
+  useEffect(() => {
+    if (!shouldRenderDropdown) return;
+    const handleResize = () => updateDropdownMetrics();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [shouldRenderDropdown, updateDropdownMetrics]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!shouldRenderDropdown || suggestions.length === 0) return;
 
@@ -323,6 +358,25 @@ export default function Home() {
         break;
     }
   };
+
+  const handleSuggestionClick = useCallback((suggestion: Suggestion) => {
+    setSearchQuery(suggestion.query);
+    setShowSuggestions(false);
+
+    if (isMobile && isFocusLocked) {
+      unlockingRef.current = true;
+      setIsFocusLocked(false);
+      setIsHeroInputFocused(false);
+      if (pushedStateRef.current) {
+        pushedStateRef.current = false;
+      }
+      setTimeout(() => {
+        unlockingRef.current = false;
+      }, 80);
+    }
+
+    router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+  }, [isFocusLocked, isMobile, router, setIsFocusLocked, setIsHeroInputFocused, setSearchQuery, setShowSuggestions]);
 
   // Set the document title for the homepage
   useEffect(() => {
@@ -396,7 +450,7 @@ export default function Home() {
   }, [isHeroInputFocused, canShowRecommendations, showSuggestions, recLoading, recs.length]);
 
   return (
-    <main className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
+    <main ref={mainRef} className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
       {/* Top Right Welcome + Profile (only when not scrolled) */}
       <div
         className="fixed top-4 right-4 z-50"
@@ -456,17 +510,24 @@ export default function Home() {
         <div
           ref={suggestionsRef}
           className={cn(
-            "absolute left-1/2 -translate-x-1/2 w-full max-w-3xl bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl z-40 overflow-hidden ring-1 ring-black/5 dark:ring-white/10",
-            keyboardAware ? "top-[140px]" : "top-[calc(50vh+40px)] sm:top-[calc(50vh+60px)]"
+            "absolute w-full max-w-3xl bg-card/85 backdrop-blur-xl border border-border/50 shadow-2xl z-40 ring-1 ring-black/5 dark:ring-white/10",
+            isMobile ? "rounded-3xl px-1.5 py-1.5" : "rounded-2xl overflow-hidden",
+            !dropdownMetrics && "left-1/2 -translate-x-1/2",
+            !dropdownMetrics && (keyboardAware ? "top-[140px]" : "top-[calc(50vh+40px)] sm:top-[calc(50vh+60px)]")
           )}
+          style={dropdownMetrics ? { top: dropdownMetrics.top, left: dropdownMetrics.left, width: dropdownMetrics.width } : undefined}
+          data-mobile={isMobile}
           onMouseDown={(e) => {
             e.stopPropagation();
           }}
         >
           {/* Recommendations Header */}
           {canShowRecommendations && (
-            <div 
-              className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/40"
+            <div
+              className={cn(
+                "flex items-center justify-between border-border/40",
+                isMobile ? "px-3 py-2 rounded-2xl border border-border/60 bg-background/80 shadow-sm" : "px-4 py-2 bg-muted/30 border-b"
+              )}
               onClick={(e) => {
                 e.stopPropagation();
               }}
@@ -474,11 +535,16 @@ export default function Home() {
                 e.stopPropagation();
               }}
             >
-              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <span className="flex items-center gap-1.5">
+              <div className="flex flex-col gap-0.5 text-xs font-medium text-muted-foreground">
+                <span className="flex items-center gap-1.5 text-foreground">
                   <MessageCircleMore className="w-3.5 h-3.5" />
                   {tHome("recommendations.title")}
                 </span>
+                {isMobile && (
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">
+                    {tHome("recommendations.subtitle")}
+                  </span>
+                )}
               </div>
               <button
                 onClick={(e) => {
@@ -495,29 +561,60 @@ export default function Home() {
             </div>
           )}
 
-          <div className="max-h-[40vh] overflow-y-auto py-1.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+          <div
+            className={cn(
+              "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
+              isMobile ? "flex flex-col gap-2 max-h-[60vh] overflow-y-auto px-2 pb-2 pt-1" : "max-h-[40vh] overflow-y-auto py-1.5"
+            )}
+          >
             {suggestions.map((suggestion, index) => (
-              <div
-                key={index}
-                onClick={() => {
-                  setSearchQuery(suggestion.query);
-                  setShowSuggestions(false);
-                  router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+              <button
+                type="button"
+                key={`${suggestion.query}-${index}`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSuggestionClick(suggestion);
                 }}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors text-sm",
-                  index === selectedIndex ? "bg-accent/50 text-accent-foreground" : "hover:bg-accent/30 text-foreground/90"
+                  "w-full text-left transition-colors",
+                  isMobile
+                    ? "flex items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-3 shadow-sm"
+                    : "flex items-center gap-3 px-4 py-3",
+                  index === selectedIndex && !isMobile
+                    ? "bg-accent/50 text-accent-foreground"
+                    : "hover:bg-accent/30 text-foreground/90"
                 )}
               >
-                {suggestion.type === 'recommendation' ? (
+                {isMobile ? (
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-2xl",
+                      suggestion.type === "recommendation"
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted/60 text-muted-foreground"
+                    )}
+                  >
+                    <Search className="w-4 h-4" />
+                  </div>
+                ) : suggestion.type === 'recommendation' ? (
                   <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     <Search className="w-3 h-3 text-primary" />
                   </div>
                 ) : (
                   <Search className="w-4 h-4 text-muted-foreground shrink-0" />
                 )}
-                <span className="flex-1 truncate font-medium">{suggestion.query}</span>
-              </div>
+                <div className="flex-1 min-w-0">
+                  <span className={cn("font-medium", isMobile ? "text-base leading-tight" : "truncate")}>{suggestion.query}</span>
+                  {isMobile && (
+                    <span className="block text-[11px] uppercase tracking-wide text-muted-foreground/80 mt-0.5">
+                      {suggestion.type === 'recommendation'
+                        ? tHome("recommendations.badge")
+                        : tHome("recommendations.autocompleteBadge")}
+                    </span>
+                  )}
+                </div>
+              </button>
             ))}
           </div>
         </div>

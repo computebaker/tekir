@@ -571,7 +571,10 @@
       "title": "Raccomandazioni",
       "loading": "Recupero delle scelte di oggi…",
       "refresh": "Aggiorna raccomandazioni",
-      "refreshing": "Aggiornamento…"
+      "refreshing": "Aggiornamento…",
+      "subtitle": "Tocca un suggerimento per cercare più velocemente.",
+      "badge": "Scelta del giorno",
+      "autocompleteBadge": "Completamento automatico"
     }
   },
   "about": {
