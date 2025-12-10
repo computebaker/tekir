@@ -571,7 +571,10 @@
       "title": "Empfehlungen",
       "loading": "Rufe die heutigen Picks… ab",
       "refresh": "Empfehlungen aktualisieren",
-      "refreshing": "Aktualisiere…"
+      "refreshing": "Aktualisiere…",
+      "subtitle": "Tippe einen Vorschlag an, um schneller zu suchen.",
+      "badge": "Tagesvorschlag",
+      "autocompleteBadge": "Autovervollständigung"
     }
   },
   "about": {
