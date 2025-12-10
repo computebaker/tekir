@@ -101,7 +101,7 @@ interface I18nProviderProps {
 }
 
 export default function I18nProvider({ children }: I18nProviderProps) {
-  const { settings, isInitialized } = useSettings();
+  const { settings } = useSettings();
   const [bootLocale] = useState<Locale>(() => {
     // Clean up old cached translations on mount
     cleanupOldCache();
@@ -189,7 +189,7 @@ export default function I18nProvider({ children }: I18nProviderProps) {
   }, [locale, currentLocale]); // Removed 'messages' from dependencies
 
   // Always provide translations, falling back to the last loaded messages while new ones stream in
-  const providerLocale = isInitialized ? locale : currentLocale;
+  const providerLocale = currentLocale;
   const providerMessages = messages || defaultMessages;
 
   return (

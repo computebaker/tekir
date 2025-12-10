@@ -104,12 +104,8 @@ export function useSearchSuggestions(
             if (!isMounted) return;
 
             if (isBlankQuery) {
-                if (effectiveShowRecs === true && recs.length > 0) {
-                    const recSuggestions = recs.map(rec => ({ query: rec, type: 'recommendation' as const }));
-                    if (isMounted) setSuggestions(recSuggestions);
-                } else {
-                    if (isMounted) setSuggestions([]);
-                }
+                // Don't set suggestions here; let recommendationSuggestions handle windowing below
+                if (isMounted) setSuggestions([]);
                 return;
             }
 

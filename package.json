@@ -6,7 +6,7 @@
     "dev": "NODE_OPTIONS='--max-http-header-size=12800000' next dev --turbopack",
     "build": "npx convex codegen && next build",
     "start": "next start",
-    "lint": "next lint",
+  "lint": "eslint .",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
     "convex:codegen": "convex codegen",

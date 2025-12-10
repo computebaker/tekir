@@ -13,7 +13,7 @@ import { Search, MessageCircleMore, RefreshCw } from "lucide-react";
 
 const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
 const WeatherWidget = dynamic(() => import("@/components/weather-widget"), { ssr: false });
-const MainFooter = dynamic(() => import("@/components/main-footer"), { ssr: false });
+const MainFooter = dynamic(() => import("@/components/main-footer"));
 
 export default function Home() {
   const tHome = useTranslations("home");
@@ -456,27 +456,39 @@ export default function Home() {
         <div
           ref={suggestionsRef}
           className={cn(
-            "absolute left-1/2 -translate-x-1/2 w-full max-w-2xl bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl z-40 overflow-hidden ring-1 ring-black/5 dark:ring-white/10",
+            "absolute left-1/2 -translate-x-1/2 w-full max-w-3xl bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl z-40 overflow-hidden ring-1 ring-black/5 dark:ring-white/10",
             keyboardAware ? "top-[140px]" : "top-[calc(50vh+40px)] sm:top-[calc(50vh+60px)]"
           )}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
         >
           {/* Recommendations Header */}
           {canShowRecommendations && (
-            <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/40">
+            <div 
+              className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/40"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+            >
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <MessageCircleMore className="w-3.5 h-3.5" />
-                  {tHome("dailyPicks")}
+                  {tHome("recommendations.title")}
                 </span>
               </div>
               <button
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   handleRefreshRecommendations();
                 }}
                 disabled={recSwitching}
                 className="p-1.5 hover:bg-background/50 rounded-full transition-colors text-muted-foreground hover:text-primary disabled:opacity-50"
-                title={tHome("refreshPicks")}
+                title={tHome("recommendations.refresh")}
               >
                 <RefreshCw className={cn("w-3.5 h-3.5", recSwitching && "animate-spin")} />
               </button>
@@ -494,13 +506,12 @@ export default function Home() {
                 }}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors text-sm",
-                  index === selectedIndex ? "bg-accent/50 text-accent-foreground" : "hover:bg-accent/30 text-foreground/90",
-                  suggestion.type === 'recommendation' && "py-3.5"
+                  index === selectedIndex ? "bg-accent/50 text-accent-foreground" : "hover:bg-accent/30 text-foreground/90"
                 )}
               >
                 {suggestion.type === 'recommendation' ? (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Search className="w-4 h-4 text-primary" />
+                  <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Search className="w-3 h-3 text-primary" />
                   </div>
                 ) : (
                   <Search className="w-4 h-4 text-muted-foreground shrink-0" />
