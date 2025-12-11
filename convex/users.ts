@@ -75,6 +75,18 @@ export const countUsers = query({
   },
 });
 
+// Internal: list users with 'paid' role (for subscription validation cron)
+export const listPaidUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all users and filter for those with 'paid' role
+    const users = await ctx.db.query("users").collect();
+    return users.filter(user => 
+      user.roles && user.roles.some((role: string) => role.toLowerCase() === 'paid')
+    );
+  },
+});
+
 // Mutations
 export const createUser = mutation({
   args: {
