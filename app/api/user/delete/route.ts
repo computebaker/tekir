@@ -16,6 +16,14 @@ export async function DELETE(request: NextRequest) {
 
     const convex = getConvexClient();
 
+    const authToken = request.cookies.get('auth-token')?.value;
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     // Check if user exists
     const userRecord = await convex.query(api.users.getUserById, { id: user.userId as any });
 
@@ -27,7 +35,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the user (this will cascade delete related data in our deleteUser mutation)
-    await convex.mutation(api.users.deleteUser, { id: user.userId as any });
+  await convex.mutation(api.users.deleteUser, { authToken, id: user.userId as any });
 
     return NextResponse.json(
       { message: 'Account deleted successfully' },

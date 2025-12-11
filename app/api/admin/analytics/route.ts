@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const convex = getConvexClient();
   const [users, feedbacks] = await Promise.all([
     convex.query(api.users.countUsers, { authToken }),
-    convex.query(api.feedbacks.countFeedbacks, {}),
+    convex.query(api.feedbacks.countFeedbacks, { authToken }),
   ]);
 
   return NextResponse.json({ users, feedbacks });

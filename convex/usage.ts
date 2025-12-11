@@ -117,9 +117,9 @@ export const logAiUsage = mutation({
 
 // Queries for analytics pages
 export const getSearchUsageByDay = query({
-  args: { day: v.number() },
+  args: { authToken: v.string(), day: v.number() },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
     return await ctx.db
       .query('searchUsageDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -128,9 +128,9 @@ export const getSearchUsageByDay = query({
 });
 
 export const getAiUsageByDay = query({
-  args: { day: v.number() },
+  args: { authToken: v.string(), day: v.number() },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
     return await ctx.db
       .query('aiUsageDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -139,9 +139,9 @@ export const getAiUsageByDay = query({
 });
 
 export const topSearchTokensByDay = query({
-  args: { day: v.number(), limit: v.optional(v.number()) },
+  args: { authToken: v.string(), day: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
     const rows = await ctx.db
       .query('searchTokenDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
