@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAdmin } from "./auth";
+import { requireAdminWithToken } from "./auth";
 
 export const createFeedback = mutation({
   args: {
@@ -42,10 +42,11 @@ export const createFeedback = mutation({
 // Admin: list feedbacks (recent first)
 export const listFeedbacks = query({
   args: {
+    authToken: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
 
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
     const items = await ctx.db
@@ -81,9 +82,9 @@ export const listFeedbacks = query({
 
 // Admin: delete a feedback record
 export const deleteFeedback = mutation({
-  args: { id: v.id("feedbacks") },
+  args: { authToken: v.string(), id: v.id("feedbacks") },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
     await ctx.db.delete(args.id);
     return true;
   },
@@ -91,9 +92,9 @@ export const deleteFeedback = mutation({
 
 // Admin: count feedbacks
 export const countFeedbacks = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireAdmin(ctx);
+  args: { authToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     const items = await ctx.db.query("feedbacks").collect();
     return items.length;
   },

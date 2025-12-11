@@ -3,6 +3,8 @@
 import React, { useMemo, useState, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAdminAccess } from "./use-admin-access";
+import { useAuth } from "@/components/auth-provider";
 
 const EMPTY: any[] = [] as any[];
 const KNOWN_SEARCH_PROVIDERS = ["brave", "google", "duck"];
@@ -38,8 +40,15 @@ function useLastNonUndefined<T>(value: T | undefined): T | undefined {
 }
 
 export function AnalyticsContent() {
-  const users = useQuery(api.users.countUsers, {});
-  const feedbacks = useQuery(api.feedbacks.countFeedbacks, {});
+  const { isAdmin, status } = useAdminAccess();
+  const { authToken } = useAuth();
+  const isReady = status === "authenticated" && isAdmin;
+  
+  const users = useQuery(api.users.countUsers, isReady && authToken ? { authToken } : "skip");
+  const feedbacks = useQuery(
+    api.feedbacks.countFeedbacks,
+    isReady && authToken ? { authToken } : "skip"
+  );
   const [range, setRange] = useState<"today" | "7d" | "30d">("7d");
   const toDay = yyyymmdd(Date.now());
   const fromDay = useMemo(() => {
@@ -48,10 +57,22 @@ export function AnalyticsContent() {
     return dayNDaysAgo(29);
   }, [range, toDay]);
 
-  const searchRange = useQuery(api.usage.rangeSearchUsage as any, { fromDay, toDay }) as any[] | undefined;
-  const aiRange = useQuery(api.usage.rangeAiUsage as any, { fromDay, toDay }) as any[] | undefined;
-  const apiHits = useQuery(api.usage.rangeApiHits as any, { fromDay, toDay }) as any[] | undefined;
-  const topQueries = useQuery(api.usage.topSearchQueriesByDay as any, { day: toDay, limit: 20 }) as any[] | undefined;
+  const searchRange = useQuery(
+    api.usage.rangeSearchUsage as any,
+    isReady && authToken ? { authToken, fromDay, toDay } : "skip"
+  ) as any[] | undefined;
+  const aiRange = useQuery(
+    api.usage.rangeAiUsage as any,
+    isReady && authToken ? { authToken, fromDay, toDay } : "skip"
+  ) as any[] | undefined;
+  const apiHits = useQuery(
+    api.usage.rangeApiHits as any,
+    isReady && authToken ? { authToken, fromDay, toDay } : "skip"
+  ) as any[] | undefined;
+  const topQueries = useQuery(
+    api.usage.topSearchQueriesByDay as any,
+    isReady && authToken ? { authToken, day: toDay, limit: 20 } : "skip"
+  ) as any[] | undefined;
 
   const displayUsers = useLastNonUndefined<number | undefined>(users);
   const displayFeedbacks = useLastNonUndefined<number | undefined>(feedbacks);

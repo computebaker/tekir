@@ -24,6 +24,26 @@ async function decodeAuthToken(authToken: string): Promise<AuthTokenClaims> {
 }
 
 /**
+ * Decode Tekir's HS256 JWT (used in cookies and forwarded to Convex via convex.setAuth).
+ * Exported so queries/mutations can validate roles without relying on Convex identity.
+ */
+export async function decodeTekirJwt(authToken: string): Promise<AuthTokenClaims> {
+    return decodeAuthToken(authToken);
+}
+
+/**
+ * Require an auth token and the admin role (Tekir JWT path).
+ */
+export async function requireAdminWithToken(authToken: string) {
+    const claims = await decodeAuthToken(authToken);
+    const roles = (claims.roles ?? []).map((r) => r?.toLowerCase());
+    if (!roles.includes("admin")) {
+        throw new Error("Forbidden: Admin access required");
+    }
+    return claims;
+}
+
+/**
  * Require a user to be authenticated.
  * Returns the user identity.
  */
@@ -35,6 +55,18 @@ export async function requireAuth(ctx: QueryCtx | MutationCtx) {
     return identity;
 }
 
+function normalizedRolesFromIdentity(identity: any): string[] {
+    const raw =
+        identity?.tokenIdentifierClaims?.roles ??
+        identity?.claims?.roles ??
+        identity?.roles ??
+        [];
+    if (!Array.isArray(raw)) return [];
+    return raw
+        .map((r) => (typeof r === "string" ? r.toLowerCase() : ""))
+        .filter(Boolean);
+}
+
 /**
  * Require a user to be authenticated and have the 'admin' role.
  * Returns the user document.
@@ -42,13 +74,31 @@ export async function requireAuth(ctx: QueryCtx | MutationCtx) {
 export async function requireAdmin(ctx: QueryCtx | MutationCtx) {
     const identity = await requireAuth(ctx);
 
-    if (!identity.email) {
-        throw new Error("Unauthorized: Email required for admin check");
+    // Preferred: roles embedded in the authenticated identity (JWT claims).
+    // This avoids relying on email being present in the Convex identity.
+    const roles = normalizedRolesFromIdentity(identity);
+    if (roles.includes("admin")) {
+        // Still return the user doc when possible (for auditing), but don't require it.
+        const maybeEmail = (identity as any)?.email;
+        if (typeof maybeEmail === "string" && maybeEmail.length > 0) {
+            const user = await ctx.db
+                .query("users")
+                .withIndex("by_email", (q) => q.eq("email", maybeEmail))
+                .unique();
+            if (user) return user;
+        }
+        return null as any;
+    }
+
+    // Fallback: check the user record by email (legacy path).
+    const email = (identity as any)?.email;
+    if (!email) {
+        throw new Error("Forbidden: Admin access required");
     }
 
     const user = await ctx.db
         .query("users")
-        .withIndex("by_email", (q) => q.eq("email", identity.email!))
+        .withIndex("by_email", (q) => q.eq("email", email))
         .unique();
 
     if (!user || !user.roles?.includes("admin")) {

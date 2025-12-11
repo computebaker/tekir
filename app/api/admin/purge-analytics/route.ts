@@ -9,7 +9,11 @@ export async function POST(request: NextRequest) {
 
   const convex = getConvexClient();
   try {
-    const result = await convex.mutation(api.usage.purgeAnalytics, {} as any);
+    const authToken = request.cookies.get('auth-token')?.value;
+    if (!authToken) {
+      return NextResponse.json({ error: 'Missing auth token' }, { status: 401 });
+    }
+    const result = await convex.mutation(api.usage.purgeAnalytics, { authToken } as any);
     return NextResponse.json({ ok: true, ...result });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Failed to purge analytics' }, { status: 500 });

@@ -6,6 +6,7 @@ import AdminGuard from "@/components/admin/admin-guard";
 import { useAdminAccess } from "@/components/admin/use-admin-access";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/components/auth-provider";
 
 type Feedback = {
   _id: string;
@@ -22,9 +23,10 @@ type Feedback = {
 export default function AdminFeedbackPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const { isAdmin } = useAdminAccess();
+  const { authToken } = useAuth();
   const items = useQuery(
     api.feedbacks.listFeedbacks,
-    isAdmin ? { limit: 100 } : "skip"
+    isAdmin && authToken ? { authToken, limit: 100 } : "skip"
   ) as Feedback[] | undefined;
   const deleteFeedback = useMutation(api.feedbacks.deleteFeedback);
   // Optional error UI can be added with error boundaries; useQuery doesn't expose error directly
@@ -35,7 +37,8 @@ export default function AdminFeedbackPage() {
     if (confirmingId === id) {
       setConfirmingId(null);
       try {
-        await deleteFeedback({ id: id as any });
+        if (!authToken) throw new Error("Missing auth token");
+        await deleteFeedback({ authToken, id: id as any });
       } catch (e: any) {
         alert(`Delete failed: ${e.message || 'Unknown error'}`);
       }

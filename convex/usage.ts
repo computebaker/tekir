@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAdmin } from "./auth";
+import { requireAdminWithToken } from "./auth";
 
 export function yyyymmdd(ts: number) {
   const d = new Date(ts);
@@ -154,9 +154,9 @@ export const topSearchTokensByDay = query({
 });
 
 export const topSearchQueriesByDay = query({
-  args: { day: v.number(), limit: v.optional(v.number()) },
+  args: { authToken: v.string(), day: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
     const rows = await ctx.db
       .query('searchQueryDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -169,9 +169,9 @@ export const topSearchQueriesByDay = query({
 });
 
 export const rangeSearchUsage = query({
-  args: { fromDay: v.number(), toDay: v.number() },
+  args: { authToken: v.string(), fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
     // naive range scan; can be optimized with pagination if needed
     const rows = await ctx.db
       .query('searchUsageDaily')
@@ -182,9 +182,9 @@ export const rangeSearchUsage = query({
 });
 
 export const rangeAiUsage = query({
-  args: { fromDay: v.number(), toDay: v.number() },
+  args: { authToken: v.string(), fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
     const rows = await ctx.db
       .query('aiUsageDaily')
       .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
@@ -212,9 +212,9 @@ export const logApiHit = mutation({
 });
 
 export const rangeApiHits = query({
-  args: { fromDay: v.number(), toDay: v.number() },
+  args: { authToken: v.string(), fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
     const rows = await ctx.db
       .query('apiHitsDaily')
       .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
@@ -225,9 +225,9 @@ export const rangeApiHits = query({
 
 // Admin-only: Purge all analytics aggregates
 export const purgeAnalytics = mutation({
-  args: {},
-  handler: async (ctx) => {
-    await requireAdmin(ctx);
+  args: { authToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     // Helper to delete all rows from a table by scanning a cheap index
     async function deleteAll(table: 'searchUsageDaily' | 'aiUsageDaily' | 'apiHitsDaily' | 'searchQueryDaily' | 'searchTokenDaily') {
       // Use by_day index where available for chunked deletes

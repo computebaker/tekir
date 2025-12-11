@@ -14,9 +14,10 @@ export function AdminContentGate({
   loadingFallback,
   unauthorizedFallback,
 }: AdminContentGateProps) {
-  const { status, isAdmin } = useAdminAccess();
+  const { status, isAdmin, isChecking } = useAdminAccess();
 
-  if (status === "loading") {
+  // Show loading while checking auth status or waiting for Convex auth to be ready
+  if (status === "loading" || isChecking) {
     return (
       <>{
         loadingFallback ?? (

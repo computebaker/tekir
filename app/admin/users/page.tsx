@@ -6,6 +6,7 @@ import AdminGuard from "@/components/admin/admin-guard";
 import { useAdminAccess } from "@/components/admin/use-admin-access";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/components/auth-provider";
 
 type User = {
   _id: string;
@@ -20,9 +21,10 @@ type User = {
 export default function AdminUsersPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const { isAdmin } = useAdminAccess();
+  const { authToken } = useAuth();
   const users = useQuery(
     api.users.listUsers,
-    isAdmin ? { limit: 100 } : "skip"
+    isAdmin && authToken ? { authToken, limit: 100 } : "skip"
   ) as User[] | undefined;
   const deleteUser = useMutation(api.users.deleteUser);
   const updateUser = useMutation(api.users.updateUser);
@@ -30,7 +32,8 @@ export default function AdminUsersPage() {
 
   const remove = async (id: string) => {
     try {
-      await deleteUser({ id: id as any });
+      if (!authToken) throw new Error("Missing auth token");
+      await deleteUser({ authToken, id: id as any });
     } catch (e: any) {
       alert(`Delete failed: ${e.message || 'Unknown error'}`);
     }

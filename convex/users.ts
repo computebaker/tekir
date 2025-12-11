@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireAdmin, requireUser } from "./auth";
+import { requireAdmin, requireAdminWithToken, requireUser } from "./auth";
 
 // Queries
 export const getUserByEmail = query({
@@ -52,9 +52,9 @@ export const getUserByPolarCustomerId = query({
 
 // Admin: list users (recent first)
 export const listUsers = query({
-  args: { limit: v.optional(v.number()) },
+  args: { authToken: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
 
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
     const items = await ctx.db
@@ -67,9 +67,11 @@ export const listUsers = query({
 
 // Admin: count users
 export const countUsers = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireAdmin(ctx);
+  args: {
+    authToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     const all = await ctx.db.query("users").collect();
     return all.length;
   },
@@ -168,10 +170,10 @@ export const updateUserRoles = mutation({
 });
 
 export const deleteUser = mutation({
-  args: { id: v.id("users") },
+  args: { authToken: v.string(), id: v.id("users") },
   handler: async (ctx, args) => {
     // Only admin can delete users for now
-    await requireAdmin(ctx);
+    await requireAdminWithToken(args.authToken);
 
     // Delete related data first
 
