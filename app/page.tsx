@@ -60,8 +60,8 @@ export default function Home() {
     if (!heroFormRef.current || !mainRef.current) return;
     const heroRect = heroFormRef.current.getBoundingClientRect();
     const mainRect = mainRef.current.getBoundingClientRect();
-  // On mobile we want the dropdown to sit directly below the search bar
-  const mobileOffset = 8; // nudge down on mobile so it appears below input
+    // On mobile we want the dropdown to sit directly below the search bar
+    const mobileOffset = 12; // nudge down on mobile so it appears below input
     const desktopOffset = 12;
     const offset = isMobile ? mobileOffset : desktopOffset;
     setDropdownMetrics({
@@ -305,10 +305,51 @@ export default function Home() {
   }, [keyboardAware, isMobile, scrollProgress, shouldRenderDropdown, updateDropdownMetrics]);
 
   // Ensure metrics are computed immediately when the hero input is focused
+  // and continuously during the hero animation so dropdown follows smoothly
   useLayoutEffect(() => {
     if (!isHeroInputFocused) return;
-    updateDropdownMetrics();
+    
+    // Update metrics continuously during animation using requestAnimationFrame
+    let rafId: number;
+    const startTime = performance.now();
+    const animationDuration = 220; // slightly longer than 200ms CSS transition
+    
+    const tick = () => {
+      updateDropdownMetrics();
+      if (performance.now() - startTime < animationDuration) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+    
+    tick();
+    
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [isHeroInputFocused, updateDropdownMetrics]);
+
+  // Recalculate dropdown position when keyboardAware changes (animate along with hero)
+  useEffect(() => {
+    if (!shouldRenderDropdown) return;
+    
+    // Update metrics continuously during animation
+    let rafId: number;
+    const startTime = performance.now();
+    const animationDuration = 220;
+    
+    const tick = () => {
+      updateDropdownMetrics();
+      if (performance.now() - startTime < animationDuration) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+    
+    tick();
+    
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [keyboardAware, shouldRenderDropdown, updateDropdownMetrics]);
 
   useEffect(() => {
     if (!shouldRenderDropdown) return;
@@ -511,9 +552,11 @@ export default function Home() {
           ref={suggestionsRef}
           className={cn(
             "absolute w-full max-w-3xl bg-card/85 backdrop-blur-xl border border-border/50 shadow-2xl z-40 ring-1 ring-black/5 dark:ring-white/10",
+            "transition-[top,left,width,opacity] duration-200 ease-out",
             isMobile ? "rounded-3xl px-1.5 py-1.5" : "rounded-2xl overflow-hidden",
             !dropdownMetrics && "left-1/2 -translate-x-1/2",
-            !dropdownMetrics && (keyboardAware ? "top-[140px]" : "top-[calc(50vh+40px)] sm:top-[calc(50vh+60px)]")
+            // Fallback position when metrics not yet computed - use closer top value on mobile when focused
+            !dropdownMetrics && (isMobile ? "top-[100px]" : (keyboardAware ? "top-[140px]" : "top-[calc(50vh+40px)] sm:top-[calc(50vh+60px)]"))
           )}
           style={dropdownMetrics ? { top: dropdownMetrics.top, left: dropdownMetrics.left, width: dropdownMetrics.width } : undefined}
           data-mobile={isMobile}
@@ -564,7 +607,7 @@ export default function Home() {
           <div
             className={cn(
               "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
-              isMobile ? "flex flex-col gap-2 max-h-[60vh] overflow-y-auto px-2 pb-2 pt-1" : "max-h-[40vh] overflow-y-auto py-1.5"
+              isMobile ? "flex flex-col gap-1.5 max-h-[60vh] overflow-y-auto px-1.5 pb-1.5 pt-0.5" : "max-h-[40vh] overflow-y-auto py-1.5"
             )}
           >
             {suggestions.map((suggestion, index) => (
@@ -579,7 +622,7 @@ export default function Home() {
                 className={cn(
                   "w-full text-left transition-colors",
                   isMobile
-                    ? "flex items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-3 shadow-sm"
+                    ? "flex items-center gap-2.5 rounded-xl border border-border/60 bg-background/80 px-2.5 py-2 shadow-sm"
                     : "flex items-center gap-3 px-4 py-3",
                   index === selectedIndex && !isMobile
                     ? "bg-accent/50 text-accent-foreground"
@@ -589,13 +632,13 @@ export default function Home() {
                 {isMobile ? (
                   <div
                     className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-2xl",
+                      "flex h-7 w-7 items-center justify-center rounded-lg shrink-0",
                       suggestion.type === "recommendation"
                         ? "bg-primary/15 text-primary"
                         : "bg-muted/60 text-muted-foreground"
                     )}
                   >
-                    <Search className="w-4 h-4" />
+                    <Search className="w-3 h-3" />
                   </div>
                 ) : suggestion.type === 'recommendation' ? (
                   <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -605,14 +648,7 @@ export default function Home() {
                   <Search className="w-4 h-4 text-muted-foreground shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <span className={cn("font-medium", isMobile ? "text-base leading-tight" : "truncate")}>{suggestion.query}</span>
-                  {isMobile && (
-                    <span className="block text-[11px] uppercase tracking-wide text-muted-foreground/80 mt-0.5">
-                      {suggestion.type === 'recommendation'
-                        ? tHome("recommendations.badge")
-                        : tHome("recommendations.autocompleteBadge")}
-                    </span>
-                  )}
+                  <span className={cn("font-medium", isMobile ? "text-sm leading-tight" : "truncate")}>{suggestion.query}</span>
                 </div>
               </button>
             ))}
