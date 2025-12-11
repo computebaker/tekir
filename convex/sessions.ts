@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { yyyymmdd } from "./usage";
 import { requireAdmin, requireAuth } from "./auth";
 
@@ -587,6 +587,55 @@ export const resetDailyRequestCounts = mutation({
 
       // Safety break to prevent timeouts
       if (resetCount > 5000) {
+        console.warn("Reset limit reached for single execution");
+        return {
+          resetCount,
+          hasMore: true
+        }
+      }
+    }
+
+    return {
+      resetCount,
+      hasMore: false,
+    };
+  },
+});
+
+// Internal mutation to reset daily request counts (called by cron jobs, no auth required)
+export const resetDailyRequestCountsInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const currentTime = Date.now();
+    // Process in batches until there are no more sessions to reset.
+    const batchSize = 200;
+    let resetCount = 0;
+
+    while (true) {
+      const sessionsToReset = await ctx.db
+        .query("sessionTracking")
+        .filter((q) =>
+          q.and(
+            q.gt(q.field("expiresAt"), currentTime), // Still valid
+            q.eq(q.field("isActive"), true), // Still active
+            q.gt(q.field("requestCount"), 0) // Has requests to reset
+          )
+        )
+        .take(batchSize);
+
+      if (sessionsToReset.length === 0) {
+        break;
+      }
+
+      for (const session of sessionsToReset) {
+        await ctx.db.patch(session._id, {
+          requestCount: 0,
+        });
+        resetCount++;
+      }
+
+      // Safety check: prevent runaway loops
+      if (resetCount > 10000) {
         console.warn("Reset limit reached for single execution");
         return {
           resetCount,
