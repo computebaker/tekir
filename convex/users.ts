@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireAdmin, requireAdminWithToken, requireUser } from "./auth";
+import { requireAdmin, requireAdminWithToken, requireCronSecret, requireUser } from "./auth";
 
 // Queries
 export const getUserByEmail = query({
@@ -159,9 +159,17 @@ export const updateUserRoles = mutation({
   args: {
     id: v.id("users"),
     roles: v.array(v.string()),
+    // Optional: allow internal server/cron callers to authenticate via shared secret.
+    // Browser/admin UI should continue using authToken-based auth.
+    cronSecret: v.optional(v.string()),
+    authToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    if (args.authToken) {
+      await requireAdminWithToken(args.authToken);
+    } else {
+      requireCronSecret(args.cronSecret);
+    }
     return await ctx.db.patch(args.id, {
       roles: args.roles,
       updatedAt: Date.now(),

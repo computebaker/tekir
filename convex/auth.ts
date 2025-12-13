@@ -44,6 +44,22 @@ export async function requireAdminWithToken(authToken: string) {
 }
 
 /**
+ * Require a valid cron secret (server/cron path).
+ *
+ * This is intended for internal server-to-server calls only (e.g. Convex cron → Next route → Convex).
+ * It does not rely on Convex auth identity, which isn't configured in Tekir.
+ */
+export function requireCronSecret(cronSecret?: string) {
+    const expected = process.env.CONVEX_CRON_SECRET;
+    if (!expected) {
+        throw new Error("Unauthorized: Cron secret not configured");
+    }
+    if (!cronSecret || cronSecret !== expected) {
+        throw new Error("Unauthorized: Invalid cron secret");
+    }
+}
+
+/**
  * Require a user to be authenticated.
  * Returns the user identity.
  */

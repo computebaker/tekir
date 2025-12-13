@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
             await convex.mutation(api.users.updateUserRoles, {
               id: user._id as Id<'users'>,
               roles: newRoles,
+              cronSecret: cronSecret ?? undefined,
             });
             
             revoked++;
