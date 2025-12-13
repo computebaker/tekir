@@ -209,15 +209,23 @@ async function handleCheckoutCreated(data: any) {
 async function handleCheckoutSuccess(data: any) {
   const customerId = data.customer_id || data.customer?.id;
   const customerEmail = data.customer_email || data.customer?.email;
+  const embeddedUserId = data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId;
   
-  console.log(`Checkout success for customer ${customerId}, email: ${customerEmail}`);
+  console.log(
+    `Checkout success for customer ${customerId ?? 'unknown'}, email: ${customerEmail ?? 'unknown'}, embeddedUserId: ${embeddedUserId ?? 'none'}`
+  );
 
-  // Try to find user by customer ID first
-  let userId = customerId ? await findUserByCustomerId(customerId) : null;
-  
-  // If not found and we have an email, try to find by email
+  // Prefer explicit userId we injected at checkout creation time.
+  let userId: string | null = embeddedUserId || null;
+
+  // Fallback: Try to find user by customer ID first
+  if (!userId) {
+    userId = customerId ? await findUserByCustomerId(customerId) : null;
+  }
+
+  // Fallback: If not found and we have an email, try to find by email
   if (!userId && customerEmail) {
-    console.log(`User not found by customer ID, searching by email: ${customerEmail}`);
+    console.log(`User not found by embedded ID/customer ID, searching by email: ${customerEmail}`);
     userId = await findUserByEmail(customerEmail);
   }
 
@@ -245,9 +253,14 @@ async function handleCheckoutSuccess(data: any) {
 async function handleSubscriptionCreated(data: any) {
   const customerId = data.customer_id || data.customer?.id;
   const status = data.status;
-  
+
+  const embeddedUserId = data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId;
+
   // Try multiple ways to find the user
-  let userId = customerId ? await findUserByCustomerId(customerId) : null;
+  let userId: string | null = embeddedUserId || null;
+  if (!userId) {
+    userId = customerId ? await findUserByCustomerId(customerId) : null;
+  }
   
   if (!userId) {
     console.warn('Could not find user for subscription creation');
@@ -267,7 +280,11 @@ async function handleSubscriptionCreated(data: any) {
  */
 async function handleSubscriptionActive(data: any) {
   const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const userId =
+    data.custom_field_data?.userId ||
+    data.customFieldData?.userId ||
+    data.metadata?.userId ||
+    (customerId ? await findUserByCustomerId(customerId) : null);
 
   if (!userId) {
     console.warn('Could not find user for active subscription');
@@ -283,7 +300,11 @@ async function handleSubscriptionActive(data: any) {
  */
 async function handleSubscriptionUncanceled(data: any) {
   const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const userId =
+    data.custom_field_data?.userId ||
+    data.customFieldData?.userId ||
+    data.metadata?.userId ||
+    (customerId ? await findUserByCustomerId(customerId) : null);
 
   if (!userId) {
     console.warn('Could not find user for uncanceled subscription');
@@ -299,7 +320,11 @@ async function handleSubscriptionUncanceled(data: any) {
  */
 async function handleSubscriptionRevoked(data: any) {
   const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const userId =
+    data.custom_field_data?.userId ||
+    data.customFieldData?.userId ||
+    data.metadata?.userId ||
+    (customerId ? await findUserByCustomerId(customerId) : null);
 
   if (!userId) {
     console.warn('Could not find user for revoked subscription');
@@ -316,7 +341,12 @@ async function handleSubscriptionRevoked(data: any) {
 async function handleSubscriptionUpdated(data: any) {
   const status = data.status;
   const customerId = data.customer_id || data.customer?.id;
-  const userId = customerId ? (data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId)) : null;
+  const userId = customerId
+    ? (data.custom_field_data?.userId ||
+        data.customFieldData?.userId ||
+        data.metadata?.userId ||
+        await findUserByCustomerId(customerId))
+    : (data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId || null);
 
   if (!userId) {
     console.warn('Could not find user for subscription update');
@@ -341,7 +371,12 @@ async function handleSubscriptionUpdated(data: any) {
  */
 async function handleSubscriptionCanceled(data: any) {
   const customerId = data.customer_id || data.customer?.id;
-  const userId = customerId ? (data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId)) : null;
+  const userId = customerId
+    ? (data.custom_field_data?.userId ||
+        data.customFieldData?.userId ||
+        data.metadata?.userId ||
+        await findUserByCustomerId(customerId))
+    : (data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId || null);
 
   if (!userId) {
     console.warn('Could not find user for subscription cancellation');
