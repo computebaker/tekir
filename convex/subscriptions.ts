@@ -23,14 +23,14 @@ export const validateSubscriptions = internalAction({
     revoked: v.optional(v.number()),
   }),
   handler: async () => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.CONVEX_SITE_URL;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.SITE_URL;
     const cronSecret = process.env.CONVEX_CRON_SECRET;
     
     if (!baseUrl) {
       console.error('[Subscription Validation] No base URL configured');
       return {
         success: false,
-        message: 'No base URL configured. Set NEXT_PUBLIC_APP_URL or CONVEX_SITE_URL.',
+        message: 'No base URL configured. Set NEXT_PUBLIC_APP_URL or SITE_URL.',
       };
     }
 
@@ -55,13 +55,29 @@ export const validateSubscriptions = internalAction({
         },
       });
 
-      const data = await response.json();
+      const raw = await response.text();
+      let data: any;
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        data = null;
+      }
 
       if (!response.ok) {
-        console.error('[Subscription Validation] API error:', data);
+        console.error('[Subscription Validation] API error:', data ?? raw);
         return {
           success: false,
-          message: data.error || `HTTP ${response.status}`,
+          message:
+            (data && (data.error || data.message))
+              ? (data.error || data.message)
+              : `HTTP ${response.status}: ${raw.slice(0, 180)}`,
+        };
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          message: `Invalid JSON from ${url}: ${raw.slice(0, 180)}`,
         };
       }
 
