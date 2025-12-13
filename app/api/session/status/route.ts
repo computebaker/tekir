@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRateLimitStatus } from '@/lib/convex-session';
 import { getUserRateLimit, RATE_LIMITS } from '@/lib/rate-limits';
 import { getJWTUser } from '@/lib/jwt-auth';
+import { getConvexClient } from '@/lib/convex-client';
+import { api } from '@/convex/_generated/api';
 
 export async function GET(req: NextRequest) {
   console.log(`[Session] Status check request`);
@@ -13,9 +15,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Session token required' }, { status: 401 });
     }
 
-    // Check if user is actually authenticated via JWT
+    // JWT is used only to establish whether the request is authenticated and to identify the user.
+    // Limits must not be derived from JWT claims (they can become stale until re-login).
     const jwtUser = await getJWTUser(req);
     const isActuallyAuthenticated = !!jwtUser;
+
+    // Resolve latest roles from Convex so subscription downgrades reflect immediately.
+    let liveRoles: string[] | undefined;
+    if (jwtUser?.userId) {
+      try {
+        const convex = getConvexClient();
+  const u = await convex.query(api.users.getUserById, { id: jwtUser.userId as any });
+        liveRoles = Array.isArray((u as any)?.roles) ? (u as any).roles : undefined;
+      } catch (e: any) {
+        console.warn('[Session] Failed to fetch live roles from Convex, falling back to JWT roles');
+        liveRoles = Array.isArray((jwtUser as any)?.roles) ? (jwtUser as any).roles : undefined;
+      }
+    }
+
     console.log(`[Session] JWT auth status: ${isActuallyAuthenticated}, userId: ${jwtUser?.userId || 'none'}`);
 
     const s: any = await getRateLimitStatus(token);
@@ -26,8 +43,8 @@ export async function GET(req: NextRequest) {
 
     console.log(`[Session] Session valid, current count: ${s.currentCount}, remaining: ${s.remaining}`);
 
-    // Use JWT auth status and roles to determine limits, not session userId
-    const limit = getUserRateLimit(isActuallyAuthenticated, jwtUser?.roles);
+  // Use JWT only for auth status; use live roles from DB for limit decisions.
+  const limit = getUserRateLimit(isActuallyAuthenticated, liveRoles);
     const current = typeof s.currentCount === 'number' ? s.currentCount : 0;
     
     // Convex calculates remaining based on session's stored userId, which may be wrong for logged out users
