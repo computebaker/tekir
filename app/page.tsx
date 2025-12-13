@@ -265,7 +265,15 @@ export default function Home() {
       setSelectedIndex(-1);
       setRecSwitching(false);
     }, 200);
-  }, [canShowRecommendations, recs.length, recSwitching, recommendationWindowSize]);
+  }, [
+    canShowRecommendations,
+    recs.length,
+    recSwitching,
+    recommendationWindowSize,
+    setRecIndex,
+    setRecSwitching,
+    setSelectedIndex,
+  ]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,7 +1,7 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { verify } from 'crypto';
 
 // Type definition for the Ribaunt widget element
 interface RibauntWidgetElement extends HTMLElement {
@@ -122,7 +122,6 @@ export default function CaptchaPage() {
     // Listen for errors
     const errorHandler = (e: Event) => {
       console.error('Widget error:', e);
-      const customEvent = e as CustomEvent;
     };
 
     // Listen for state changes
@@ -130,8 +129,7 @@ export default function CaptchaPage() {
       const customEvent = e as CustomEvent;
       console.log('Widget state changed to:', customEvent.detail?.state);
       
-      if (customEvent.detail?.state === 'verifying') {
-      } else if (customEvent.detail?.state === 'verified') {
+      if (customEvent.detail?.state === 'verified') {
         setHeading('Continuing to your destination...');
         
         setTimeout(() => {
@@ -270,12 +268,15 @@ export default function CaptchaPage() {
 
       <div className="container">
         <div className="title-container">
-          <img
+          <Image
             src="/favicon.ico"
             alt="Site logo"
             className="site-logo"
+            width={30}
+            height={30}
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              // Hide the image on error to preserve original behavior
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
             }}
           />
           <h1>{hostname}</h1>
