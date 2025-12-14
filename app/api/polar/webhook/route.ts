@@ -236,9 +236,15 @@ async function handleCheckoutSuccess(data: any) {
 
   // Update user with Polar customer ID for future reference
   try {
+    const cronSecret = process.env.CONVEX_CRON_SECRET;
+    if (!cronSecret) {
+      console.error('[Webhook] CONVEX_CRON_SECRET not configured; cannot update user');
+      return;
+    }
     await convex.mutation(api.users.updateUser, {
       id: userId as Id<'users'>,
       polarCustomerId: customerId,
+      cronSecret,
     });
 
     console.log(`Updated user ${userId} with Polar customer ID: ${customerId}`);
@@ -472,6 +478,11 @@ async function findUserByCustomerId(customerId: string): Promise<string | null> 
  */
 async function grantPaidRole(userId: string) {
   try {
+    const cronSecret = process.env.CONVEX_CRON_SECRET;
+    if (!cronSecret) {
+      console.error('[Webhook] CONVEX_CRON_SECRET not configured; cannot grant paid role');
+      return;
+    }
     // Get current user roles
     const user = await convex.query(api.users.getUserById, {
       id: userId as Id<'users'>,
@@ -492,6 +503,7 @@ async function grantPaidRole(userId: string) {
       await convex.mutation(api.users.updateUserRoles, {
         id: userId as Id<'users'>,
         roles: newRoles,
+        cronSecret,
       });
 
       console.log(`Granted paid role to user ${userId}`);
@@ -506,6 +518,11 @@ async function grantPaidRole(userId: string) {
  */
 async function revokePaidRole(userId: string) {
   try {
+    const cronSecret = process.env.CONVEX_CRON_SECRET;
+    if (!cronSecret) {
+      console.error('[Webhook] CONVEX_CRON_SECRET not configured; cannot revoke paid role');
+      return;
+    }
     const user = await convex.query(api.users.getUserById, {
       id: userId as Id<'users'>,
     });
@@ -524,6 +541,7 @@ async function revokePaidRole(userId: string) {
       await convex.mutation(api.users.updateUserRoles, {
         id: userId as Id<'users'>,
         roles: newRoles,
+        cronSecret,
       });
 
       console.log(`Revoked paid role from user ${userId}`);

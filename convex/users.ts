@@ -132,10 +132,17 @@ export const updateUser = mutation({
     settingsSync: v.optional(v.boolean()),
     settings: v.optional(v.any()),
     polarCustomerId: v.optional(v.string()),
+    cronSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Ensure user can only update themselves (or be admin)
-    await requireUser(ctx, args.id);
+    // OR allow trusted server-side callers (webhooks / cron-like flows) via cronSecret.
+    // This keeps the public API stable while enabling internal server-to-server updates.
+    if (args.cronSecret) {
+      requireCronSecret(args.cronSecret);
+    } else {
+      await requireUser(ctx, args.id);
+    }
 
     const { id, ...updateData } = args;
 
