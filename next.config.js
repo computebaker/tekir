@@ -36,7 +36,6 @@ const nextConfig = {
   },
 
   async rewrites() {
-    console.log('Convex proxy disabled - using direct connections');
     return [];
   },
 

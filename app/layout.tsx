@@ -27,7 +27,7 @@ export default function RootLayout({
         <meta name="description" content="Tekir is a fast, open-source, and privacy-focused search engine." />
         <link rel="icon" href="/favicon.ico" />
         <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Tekir" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={inter.className}>
         <ClientLayout>

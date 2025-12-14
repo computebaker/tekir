@@ -91,7 +91,6 @@ class ConvexSettingsManager {
     this.userId = userId || null;
     this.hasLoadedLocalStorage = false;
     this.loadFromLocalStorage();
-    console.log('ConvexSettingsManager initialized for userId:', this.userId);
   }
 
   private loadFromLocalStorage() {
@@ -169,7 +168,6 @@ class ConvexSettingsManager {
       // that the user may have set in the browser. Only seed missing keys.
       this.saveConvexToLocalStorageWithoutOverwriting();
       this.notifyListeners();
-      console.log('Settings updated from Convex subscription');
     }
   }
 
@@ -179,7 +177,6 @@ class ConvexSettingsManager {
     this.settings[key] = value;
     this.saveToLocalStorage();
     this.notifyListeners();
-    console.log(`Setting updated locally: ${String(key)} = ${value}`);
   }
 
   private notifyListeners() {
@@ -269,7 +266,6 @@ export function useConvexSettings() {
   // Subscribe to real-time settings updates from Convex
   useEffect(() => {
     if (userSettings) {
-      console.log('Received settings from Convex:', userSettings);
       convexSettingsManager.updateFromConvex(userSettings);
       // Now that server settings have been applied, the settings manager is fully initialized.
       setIsInitialized(true);
@@ -310,7 +306,6 @@ export function useConvexSettings() {
           authToken,
           settings: newSettings
         });
-        console.log('Settings synced to Convex successfully');
       } catch (error) {
         console.error('Failed to sync settings to Convex:', error);
         // Settings are still updated locally, user can try again
@@ -334,7 +329,6 @@ export function useConvexSettings() {
         enabled
       });
 
-      console.log('Settings sync toggled:', result);
 
       if (enabled) {
         const hasServerSettings = !!(result && result.settings && Object.keys(result.settings).length > 0);
@@ -350,7 +344,6 @@ export function useConvexSettings() {
               authToken,
               settings: localSettings
             });
-            console.log('Seeded server settings from local after enabling sync');
           } catch (seedErr) {
             console.error('Failed to seed server settings after enabling sync:', seedErr);
           }

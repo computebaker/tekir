@@ -44,9 +44,6 @@ const cleanupOldCache = () => {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-    if (keysToRemove.length > 0) {
-      console.log(`[i18n] Cleaned up ${keysToRemove.length} old cache entries`);
-    }
   } catch (error) {
     console.warn('[i18n] Failed to cleanup old cache:', error);
   }
@@ -120,7 +117,6 @@ export default function I18nProvider({ children }: I18nProviderProps) {
   // Determine locale: user settings > browser detection > default
   const locale: Locale = (() => {
     if (settings.language && isValidLocale(settings.language)) {
-      console.log('[i18n] Using language from settings:', settings.language);
       return settings.language as Locale;
     }
     return bootLocale;
@@ -135,8 +131,6 @@ export default function I18nProvider({ children }: I18nProviderProps) {
       if (currentLocale === locale) {
         return;
       }
-
-      console.log('[i18n] Loading messages for locale:', locale);
       const cachedMessages = readCachedMessages(locale);
       if (cachedMessages && isMounted) {
         setMessages(cachedMessages);
@@ -159,7 +153,6 @@ export default function I18nProvider({ children }: I18nProviderProps) {
         const loadedMessages = await import(`@/messages/${locale}.json`);
 
         if (isMounted) {
-          console.log('[i18n] Successfully loaded messages for:', locale);
           setMessages(loadedMessages.default);
           setCurrentLocale(locale);
           persistMessages(locale, loadedMessages.default);

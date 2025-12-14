@@ -191,7 +191,6 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                 // Validate the location object
                 if (location && typeof location.lat === 'number' && typeof location.lon === 'number') {
                     newKey = `${location.lat}-${location.lon}`;
-                    console.log("Custom weather location detected:", location);
                 } else {
                     console.warn("Invalid stored weather location data:", location);
                     // Clear invalid data
@@ -202,10 +201,7 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                 // Clear invalid data
                 localStorage.removeItem("customWeatherLocation");
             }
-        } else {
-            console.log("No custom weather location set, using IP-based location");
         }
-        console.log("Setting location key to:", newKey);
         setLocationKey(newKey);
     }, []);
 
@@ -251,7 +247,6 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                 // When switching back to IP-based, also clear any existing weather state
                 // to ensure fresh data is fetched
                 if (locationKey !== "ip-based" && locationKey !== "") {
-                    console.log("Clearing weather state when switching to IP-based location");
                     setWeather(null);
                     setError(null);
                 }
@@ -307,7 +302,6 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                         if (cachedData && cachedTimestamp) {
                             const age = Date.now() - parseInt(cachedTimestamp);
                             if (age < 10 * 60 * 1000) { // 10 minutes
-                                console.log("Using cached custom location weather data");
                                 setWeather(JSON.parse(cachedData));
                                 setLoading(false);
                                 return;
@@ -325,7 +319,6 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                         if (cachedData && cachedTimestamp) {
                             const age = Date.now() - parseInt(cachedTimestamp);
                             if (age < 10 * 60 * 1000) { // 10 minutes
-                                console.log("Using cached IP-based weather data");
                                 setWeather(JSON.parse(cachedData));
                                 setLoading(false);
                                 return;
@@ -341,12 +334,10 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                 if (customLocation) {
                     method = "GET";  
                     apiUrl = `https://clim8.tekir.co/api/weather/current?lat=${customLocation.lat}&lon=${customLocation.lon}&units=${localStorage.getItem("weatherUnits") || "metric"}`;
-                    console.log("Fetching weather for custom location:", customLocation);
                 } else {
                     // Use IP lookup endpoint for automatic location
                     method = "POST";
                     apiUrl = "https://clim8.tekir.co/api/weather/ip-lookup";
-                    console.log("Fetching weather for IP-based location");
                 }
 
                 const fetchOptions: RequestInit = {
@@ -369,7 +360,7 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                     throw new Error("Invalid weather data received from API");
                 }
                 
-                console.log("Weather data received:", data);
+                // Intentionally no verbose client logging (avoids console noise)
                 
                 // Cache the weather data with appropriate keys
                 try {
@@ -379,7 +370,6 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                         const customTimestampKey = `weather-timestamp-${customLocation.lat}-${customLocation.lon}`;
                         localStorage.setItem(customCacheKey, JSON.stringify(data));
                         localStorage.setItem(customTimestampKey, Date.now().toString());
-                        console.log("Cached custom location weather data");
                         
                         // Clear any old IP-based cache to avoid conflicts
                         localStorage.removeItem('weather-data');
@@ -388,7 +378,6 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                         // Store IP-based data with standard keys
                         localStorage.setItem('weather-data', JSON.stringify(data));
                         localStorage.setItem('weather-timestamp', Date.now().toString());
-                        console.log("Cached IP-based weather data");
                         
                         // Clear any old custom location cache to avoid conflicts
                         const keys = Object.keys(localStorage);
@@ -441,11 +430,9 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
             }
             
             if (newKey !== locationKey) {
-                console.log(`Location key changing from ${previousKey} to ${newKey}`);
                 
                 // If switching from custom location to IP-based, clear weather data to force refetch
                 if (previousKey !== "ip-based" && newKey === "ip-based") {
-                    console.log("Switching from custom to IP-based location, clearing weather data");
                     setWeather(null);
                     setError(null);
                     setLoading(true);
@@ -471,7 +458,6 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
         const handleWeatherUnitsChange = () => {
             const storedWeatherUnits = localStorage.getItem("weatherUnits");
             if (storedWeatherUnits && storedWeatherUnits !== weatherUnits) {
-                console.log(`Weather units changing from ${weatherUnits} to ${storedWeatherUnits}`);
                 setWeatherUnits(storedWeatherUnits);
                 
                 // Clear weather data to force refetch with new units
