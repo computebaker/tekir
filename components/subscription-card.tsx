@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Loader2, Sparkles } from 'lucide-react';
+import { Check, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface SubscriptionCardProps {
@@ -25,7 +25,9 @@ export default function SubscriptionCard({
   const { user } = useAuth();
   const t = useTranslations('subscription');
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
 
   const isPaid = user?.roles?.some((role: string) => role.toLowerCase() === 'paid');
 
@@ -66,6 +68,37 @@ export default function SubscriptionCard({
       console.error('Upgrade error:', err);
       setError(err instanceof Error ? err.message : t('errors.upgradeFailed'));
       setLoading(false);
+    }
+  };
+
+  const handleRefreshStatus = async () => {
+    setRefreshing(true);
+    setError(null);
+    setRefreshMessage(null);
+
+    try {
+      const response = await fetch('/api/polar/refresh-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message || t('errors.subscriptionCheckFailed', { fallback: 'Failed to refresh subscription status' } as any));
+      }
+
+      setRefreshMessage(data.message || 'Subscription status refreshed');
+
+      // If the user is now paid, refresh the page to rehydrate auth context.
+      if (data.foundActiveSubscription) {
+        window.location.reload();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh subscription');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -122,29 +155,51 @@ export default function SubscriptionCard({
         </div>
       </CardContent>
       <CardFooter className="flex-col gap-2">
+        {refreshMessage && (
+          <div className="w-full p-2 text-sm bg-primary/10 text-primary rounded">
+            {refreshMessage}
+          </div>
+        )}
         {error && (
           <div className="w-full p-2 text-sm bg-destructive/10 text-destructive rounded">
             {error}
           </div>
         )}
-        <Button
-          onClick={handleUpgrade}
-          disabled={loading || !user}
-          className="w-full"
-          size="lg"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              {t('actions.loading')}
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4 mr-2" />
-              {t('actions.upgradeToPro')}
-            </>
-          )}
-        </Button>
+        <div className="flex w-full gap-2">
+          <Button
+            onClick={handleUpgrade}
+            disabled={loading || refreshing || !user}
+            className="flex-1"
+            size="lg"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {t('actions.loading')}
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                {t('actions.upgradeToPro')}
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleRefreshStatus}
+            disabled={loading || refreshing || !user}
+            variant="outline"
+            size="lg"
+            className="shrink-0"
+            title="Refresh subscription status"
+            aria-label="Refresh subscription status"
+          >
+            {refreshing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
         {!user && (
           <p className="text-xs text-muted-foreground text-center">
             {t('actions.signInRequired')}

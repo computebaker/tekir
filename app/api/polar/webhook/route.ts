@@ -400,13 +400,21 @@ async function handleOrderCreated(data: any) {
   // Log the full data structure to debug
   console.log('[order.created] Full data:', JSON.stringify(data, null, 2));
   
+  const embeddedUserId = data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId;
   const customerId = data.customer_id || data.customer?.id;
   const customerEmail = data.customer?.email || data.user?.email;
   
-  console.log(`Order created for customer ${customerId}, email: ${customerEmail}`);
+  console.log(
+    `Order created for customer ${customerId ?? 'unknown'}, email: ${customerEmail ?? 'unknown'}, embeddedUserId: ${embeddedUserId ?? 'none'}`
+  );
   
-  // First, try to find user by customer ID
-  let userId = customerId ? await findUserByCustomerId(customerId) : null;
+  // Prefer explicit userId we injected at checkout creation time.
+  let userId: string | null = embeddedUserId || null;
+
+  // Fallback: try to find user by customer ID
+  if (!userId) {
+    userId = customerId ? await findUserByCustomerId(customerId) : null;
+  }
   
   // If not found and we have an email, try to find by email
   if (!userId && customerEmail) {
@@ -417,9 +425,15 @@ async function handleOrderCreated(data: any) {
     if (userId) {
       console.log(`Found user by email, updating with Polar customer ID`);
       try {
+        const cronSecret = process.env.CONVEX_CRON_SECRET;
+        if (!cronSecret) {
+          console.error('[Webhook] CONVEX_CRON_SECRET not configured; cannot update user (order.created)');
+          return;
+        }
         await convex.mutation(api.users.updateUser, {
           id: userId as Id<'users'>,
           polarCustomerId: customerId,
+          cronSecret,
         });
         console.log(`Updated user ${userId} with Polar customer ID: ${customerId}`);
       } catch (error) {
