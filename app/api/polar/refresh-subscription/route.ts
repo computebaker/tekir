@@ -11,7 +11,7 @@ type RefreshResult = {
   ok: true;
   foundActiveSubscription: boolean;
   updatedPolarCustomerId: boolean;
-  message: string;
+  message?: string;
 } | {
   ok: false;
   message: string;
@@ -107,7 +107,6 @@ export async function POST(req: NextRequest) {
           ok: true,
           foundActiveSubscription: false,
           updatedPolarCustomerId,
-          message: "No Polar customer found for this account",
         },
         { headers }
       );

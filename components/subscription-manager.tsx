@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Loader2, Sparkles, CreditCard, Calendar, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Sparkles, CreditCard, Calendar, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface SubscriptionManagerProps {
@@ -42,6 +42,8 @@ export default function SubscriptionManager({
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [refreshingStatus, setRefreshingStatus] = useState(false);
+  const [refreshFailed, setRefreshFailed] = useState(false);
 
   const isPaid = user?.roles?.some((role: string) => role.toLowerCase() === 'paid');
 
@@ -120,6 +122,42 @@ export default function SubscriptionManager({
       console.error('Upgrade error:', err);
       setError(err instanceof Error ? err.message : t('errors.upgradeFailed'));
       setLoading(false);
+    }
+  };
+
+  const handleRefreshStatus = async () => {
+    setRefreshingStatus(true);
+    setError(null);
+    setRefreshFailed(false);
+    try {
+      const response = await fetch('/api/polar/refresh-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message || 'Failed to refresh subscription status');
+      }
+
+      if (!data.foundActiveSubscription) {
+        setRefreshFailed(true);
+      }
+
+      if (data.foundActiveSubscription) {
+        setRefreshFailed(false);
+        // Reload to ensure auth context / UI reflects Plus role.
+        window.location.reload();
+        return;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh subscription status');
+      setRefreshFailed(true);
+    } finally {
+      setRefreshingStatus(false);
     }
   };
 
@@ -223,24 +261,42 @@ export default function SubscriptionManager({
               <span>{error}</span>
             </div>
           )}
-          <Button
-            onClick={handleUpgrade}
-            disabled={loading || !user}
-            className="w-full"
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {t('actions.loading')}
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                {t('actions.upgrade')}
-              </>
-            )}
-          </Button>
+          <div className="flex w-full gap-2">
+            <Button
+              onClick={handleUpgrade}
+              disabled={loading || refreshingStatus || !user}
+              className="flex-1"
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t('actions.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {t('actions.upgrade')}
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleRefreshStatus}
+              disabled={loading || refreshingStatus || !user}
+              variant="outline"
+              size="lg"
+              className={refreshFailed ? "shrink-0 border-destructive text-destructive hover:bg-destructive/10" : "shrink-0"}
+              aria-invalid={refreshFailed || undefined}
+              title="Refresh subscription status"
+              aria-label="Refresh subscription status"
+            >
+              {refreshingStatus ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
           {!user && (
             <p className="text-xs text-muted-foreground text-center">
               {t('actions.signInRequired')}
