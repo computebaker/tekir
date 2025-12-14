@@ -144,7 +144,7 @@ export const updateUser = mutation({
       await requireUser(ctx, args.id);
     }
 
-    const { id, ...updateData } = args;
+  const { id, cronSecret: _cronSecret, ...updateData } = args;
 
     // Enforce password hashing if password is being updated
     if (updateData.password && !updateData.password.startsWith("$2")) {
