@@ -23,8 +23,25 @@ async function getCustomerIdByEmail(email: string): Promise<string | null> {
   const customers: any[] = [];
   try {
     const result: any = await (polar as any).customers.list({ email });
-    for await (const page of result) {
-      const items = (page as any).result?.items || (page as any).items || [];
+    console.info("[polar.refresh-subscription] customers.list(email) result shape", {
+      isAsyncIterable: !!(result && typeof result[Symbol.asyncIterator] === "function"),
+      keys: result ? Object.keys(result) : [],
+    });
+    // Some SDK versions return an async iterable, others return a single page object.
+    if (result && typeof result[Symbol.asyncIterator] === "function") {
+      for await (const page of result) {
+        const items = (page as any).result?.items || (page as any).items || [];
+        console.info("[polar.refresh-subscription] customers.list page shape", {
+          keys: page ? Object.keys(page) : [],
+          itemCount: Array.isArray(items) ? items.length : 0,
+        });
+        if (Array.isArray(items)) customers.push(...items);
+      }
+    } else {
+      const items = (result as any)?.result?.items || (result as any)?.items || [];
+      console.info("[polar.refresh-subscription] customers.list single page", {
+        itemCount: Array.isArray(items) ? items.length : 0,
+      });
       if (Array.isArray(items)) customers.push(...items);
     }
   } catch {
@@ -32,6 +49,10 @@ async function getCustomerIdByEmail(email: string): Promise<string | null> {
   }
 
   const first = customers[0];
+  console.info("[polar.refresh-subscription] customers.list(email) aggregated", {
+    customersCount: customers.length,
+    foundCustomer: Boolean(first?.id),
+  });
   return first?.id ?? null;
 }
 
@@ -39,13 +60,29 @@ async function hasActiveSubscription(customerId: string): Promise<boolean> {
   const active: any[] = [];
   try {
     const result: any = await (polar as any).subscriptions.list({ customerId });
+    console.info("[polar.refresh-subscription] subscriptions.list result shape", {
+      isAsyncIterable: !!(result && typeof result[Symbol.asyncIterator] === "function"),
+      keys: result ? Object.keys(result) : [],
+    });
     for await (const page of result) {
       const items = (page as any).result?.items || (page as any).items || [];
+      console.info("[polar.refresh-subscription] subscriptions.list page", {
+        keys: page ? Object.keys(page) : [],
+        itemCount: Array.isArray(items) ? items.length : 0,
+      });
       if (Array.isArray(items)) active.push(...items);
     }
   } catch {
     return false;
   }
+
+  const statuses = active
+    .map((s: any) => s?.status)
+    .filter((s: any) => typeof s === "string");
+  console.info("[polar.refresh-subscription] subscriptions aggregated", {
+    subscriptionsCount: active.length,
+    uniqueStatuses: Array.from(new Set(statuses)).slice(0, 10),
+  });
 
   return active.some((s: any) => s?.status === "active" || s?.status === "trialing");
 }
@@ -68,6 +105,7 @@ export async function POST(req: NextRequest) {
   };
 
   try {
+    console.info("[polar.refresh-subscription] start");
     const jwtUser = await getJWTUser(req);
     if (!jwtUser) {
       return NextResponse.json<RefreshResult>({ ok: false, message: "Authentication required" }, { status: 401, headers });
@@ -89,19 +127,29 @@ export async function POST(req: NextRequest) {
     let customerId: string | null = user.polarCustomerId ?? null;
     let updatedPolarCustomerId = false;
 
+    console.info("[polar.refresh-subscription] loaded user", {
+      hasStoredPolarCustomerId: Boolean(customerId),
+      hasPaidRole: (user.roles ?? []).some((r: string) => r.toLowerCase() === "paid"),
+    });
+
     if (!customerId) {
+      console.info("[polar.refresh-subscription] No stored polarCustomerId; attempting email lookup");
       customerId = await getCustomerIdByEmail(user.email);
       if (customerId) {
+        console.info("[polar.refresh-subscription] Email lookup found customer; storing polarCustomerId");
         await convex.mutation(api.users.updateUser, {
           id: user._id as Id<"users">,
           polarCustomerId: customerId,
           cronSecret,
         });
         updatedPolarCustomerId = true;
+      } else {
+        console.info("[polar.refresh-subscription] Email lookup returned no customer");
       }
     }
 
     if (!customerId) {
+      console.info("[polar.refresh-subscription] done: no customerId available");
       return NextResponse.json<RefreshResult>(
         {
           ok: true,
@@ -114,7 +162,13 @@ export async function POST(req: NextRequest) {
 
     const active = await hasActiveSubscription(customerId);
 
+    console.info("[polar.refresh-subscription] subscription check complete", {
+      foundActiveSubscription: active,
+      updatedPolarCustomerId,
+    });
+
     if (!active) {
+      console.info("[polar.refresh-subscription] done: no active subscription");
       return NextResponse.json<RefreshResult>(
         {
           ok: true,
@@ -130,11 +184,14 @@ export async function POST(req: NextRequest) {
     const currentRoles = user.roles ?? [];
     const hasPaid = currentRoles.some((r: string) => r.toLowerCase() === "paid");
     if (!hasPaid) {
+      console.info("[polar.refresh-subscription] granting paid role");
       await convex.mutation(api.users.updateUserRoles, {
         id: user._id as Id<"users">,
         roles: [...currentRoles, "paid"],
         cronSecret,
       });
+    } else {
+      console.info("[polar.refresh-subscription] paid role already present");
     }
 
     return NextResponse.json<RefreshResult>(
@@ -147,6 +204,9 @@ export async function POST(req: NextRequest) {
       { headers }
     );
   } catch (error) {
+    console.error("[polar.refresh-subscription] error", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
     return NextResponse.json<RefreshResult>(
       { ok: false, message: error instanceof Error ? error.message : "Unknown error" },
       { status: 500, headers }
