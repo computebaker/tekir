@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { requireAdminWithToken } from "./auth";
 
 export function yyyymmdd(ts: number) {
@@ -245,5 +245,34 @@ export const purgeAnalytics = mutation({
     await deleteAll('searchTokenDaily');
 
     return { purged: true };
+  },
+});
+
+export const getTopSearchesByYear = internalQuery({
+  args: {
+    year: v.number(),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const startDay = args.year * 10000 + 101; // YYYY0101
+    const endDay = args.year * 10000 + 1231; // YYYY1231
+
+    const dailyCounts = await ctx.db
+      .query("searchQueryDaily")
+      .withIndex("by_day", (q) => q.gte("day", startDay).lte("day", endDay))
+      .collect();
+
+    const queryMap = new Map<string, number>();
+
+    for (const entry of dailyCounts) {
+      const current = queryMap.get(entry.query) || 0;
+      queryMap.set(entry.query, current + entry.count);
+    }
+
+    const sorted = Array.from(queryMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, args.limit);
+
+    return sorted.map(([query, count]) => ({ query, count }));
   },
 });
