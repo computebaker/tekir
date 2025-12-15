@@ -2,9 +2,7 @@ import "./globals.css";
 import { Viewport } from 'next';
 import ClientLayout from '@/components/client-layout';
 import { Inter } from 'next/font/google';
-
-// Add KaTeX CSS - Removed as unused
-// import 'katex/dist/katex.min.css';
+import Script from "next/script";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -23,6 +21,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="description" content="Tekir is a fast, open-source, and privacy-focused search engine." />
         <link rel="icon" href="/favicon.ico" />

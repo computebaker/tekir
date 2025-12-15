@@ -312,53 +312,6 @@ export default function Home() {
     updateDropdownMetrics();
   }, [keyboardAware, isMobile, scrollProgress, shouldRenderDropdown, updateDropdownMetrics]);
 
-  // Ensure metrics are computed immediately when the hero input is focused
-  // and continuously during the hero animation so dropdown follows smoothly
-  useLayoutEffect(() => {
-    if (!isHeroInputFocused) return;
-    
-    // Update metrics continuously during animation using requestAnimationFrame
-    let rafId: number;
-    const startTime = performance.now();
-    const animationDuration = 220; // slightly longer than 200ms CSS transition
-    
-    const tick = () => {
-      updateDropdownMetrics();
-      if (performance.now() - startTime < animationDuration) {
-        rafId = requestAnimationFrame(tick);
-      }
-    };
-    
-    tick();
-    
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, [isHeroInputFocused, updateDropdownMetrics]);
-
-  // Recalculate dropdown position when keyboardAware changes (animate along with hero)
-  useEffect(() => {
-    if (!shouldRenderDropdown) return;
-    
-    // Update metrics continuously during animation
-    let rafId: number;
-    const startTime = performance.now();
-    const animationDuration = 220;
-    
-    const tick = () => {
-      updateDropdownMetrics();
-      if (performance.now() - startTime < animationDuration) {
-        rafId = requestAnimationFrame(tick);
-      }
-    };
-    
-    tick();
-    
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, [keyboardAware, shouldRenderDropdown, updateDropdownMetrics]);
-
   useEffect(() => {
     if (!shouldRenderDropdown) return;
     const handleResize = () => updateDropdownMetrics();
@@ -560,7 +513,6 @@ export default function Home() {
           ref={suggestionsRef}
           className={cn(
             "absolute w-full max-w-3xl bg-card/85 backdrop-blur-xl border border-border/50 shadow-2xl z-40 ring-1 ring-black/5 dark:ring-white/10",
-            "transition-[top,left,width,opacity] duration-200 ease-out",
             isMobile ? "rounded-3xl px-1.5 py-1.5" : "rounded-2xl overflow-hidden",
             !dropdownMetrics && "left-1/2 -translate-x-1/2",
             // Fallback position when metrics not yet computed - use closer top value on mobile when focused
