@@ -111,6 +111,7 @@ export function HeroSection({
                             ref={searchInputRef}
                             type="text"
                             value={searchQuery}
+                            autoComplete="off"
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
                                 setShowSuggestions(true);

@@ -41,7 +41,7 @@ export function useSearchSuggestions(
     const [recLoading, setRecLoading] = useState(false);
     const [recIndex, setRecIndex] = useState(0);
     const [recSwitching, setRecSwitching] = useState(false);
-    const recommendationWindowSize = 5;
+    const recommendationWindowSize = 4;
 
     const isBlankQuery = searchQuery.trim().length === 0;
     const canShowRecommendations = effectiveShowRecs === true && isBlankQuery;

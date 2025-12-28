@@ -543,11 +543,6 @@ export default function Home() {
                   <MessageCircleMore className="w-3.5 h-3.5" />
                   {tHome("recommendations.title")}
                 </span>
-                {isMobile && (
-                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">
-                    {tHome("recommendations.subtitle")}
-                  </span>
-                )}
               </div>
               <button
                 onClick={(e) => {
