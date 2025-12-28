@@ -12,8 +12,18 @@ const uploadSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the auth token from cookies
+    const authToken = request.cookies.get('auth-token')?.value;
+
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const user = await getJWTUser(request);
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -55,7 +65,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Profile picture upload error:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.issues },
@@ -72,6 +82,16 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Get the auth token from cookies
+    const authToken = request.cookies.get('auth-token')?.value;
+
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const user = await getJWTUser(request);
 
     if (!user) {

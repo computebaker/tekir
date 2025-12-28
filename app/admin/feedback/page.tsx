@@ -7,6 +7,7 @@ import { useAdminAccess } from "@/components/admin/use-admin-access";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/components/auth-provider";
+import { showToast } from "@/lib/toast";
 
 type Feedback = {
   _id: string;
@@ -38,9 +39,11 @@ export default function AdminFeedbackPage() {
       setConfirmingId(null);
       try {
         if (!authToken) throw new Error("Missing auth token");
-        await deleteFeedback({ authToken, id: id as any });
-      } catch (e: any) {
-        alert(`Delete failed: ${e.message || 'Unknown error'}`);
+        await deleteFeedback({ authToken, id });
+        showToast.success("Feedback deleted successfully");
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Unknown error';
+        showToast.error("Failed to delete feedback", message);
       }
     } else {
       setConfirmingId(id);
@@ -102,7 +105,9 @@ export default function AdminFeedbackPage() {
                     <td className="p-3 truncate max-w-[260px]" title={f.comment}>{f.comment || '-'}</td>
                     <td className="p-3 text-right">
                       <button
+                        type="button"
                         onClick={() => handleDeleteClick(f._id)}
+                        aria-pressed={confirmingId === f._id}
                         className={
                           `text-xs px-2 py-1 border rounded ` +
                           (confirmingId === f._id

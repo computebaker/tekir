@@ -10,8 +10,18 @@ const emailSchema = z.object({
 
 export async function PUT(request: NextRequest) {
   try {
+    // Get the auth token from cookies
+    const authToken = request.cookies.get('auth-token')?.value;
+
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const user = await getJWTUser(request);
-    
+
     if (!user?.userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -36,7 +46,7 @@ export async function PUT(request: NextRequest) {
 
     // Update user email
     await convex.mutation(api.users.updateUser, {
-      id: user.userId as any, // Cast to Convex ID type
+      id: user.userId as any,
       email: email
     });
 
@@ -47,7 +57,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Email update error:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.errors[0].message },

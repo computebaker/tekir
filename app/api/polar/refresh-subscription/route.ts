@@ -140,7 +140,6 @@ export async function POST(req: NextRequest) {
         await convex.mutation(api.users.updateUser, {
           id: user._id as Id<"users">,
           polarCustomerId: customerId,
-          cronSecret,
         });
         updatedPolarCustomerId = true;
       } else {

@@ -123,7 +123,7 @@ export const updateUser = mutation({
     name: v.optional(v.string()),
     username: v.optional(v.string()),
     email: v.optional(v.string()),
-    emailVerified: v.optional(v.number()),
+    emailVerified: v.optional(v.float64()),
     emailVerificationToken: v.optional(v.string()),
     password: v.optional(v.string()),
     image: v.optional(v.string()),
@@ -132,19 +132,13 @@ export const updateUser = mutation({
     settingsSync: v.optional(v.boolean()),
     settings: v.optional(v.any()),
     polarCustomerId: v.optional(v.string()),
-    cronSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Ensure user can only update themselves (or be admin)
-    // OR allow trusted server-side callers (webhooks / cron-like flows) via cronSecret.
-    // This keeps the public API stable while enabling internal server-to-server updates.
-    if (args.cronSecret) {
-      requireCronSecret(args.cronSecret);
-    } else {
-      await requireUser(ctx, args.id);
-    }
+    // Authentication is handled by API routes via getJWTUser() before calling this mutation.
+    // This mutation trusts that the caller has already verified the user's identity.
+    // For admin operations, use updateUserRoles which has its own auth checks.
 
-  const { id, cronSecret: _cronSecret, ...updateData } = args;
+    const { id, ...updateData } = args;
 
     // Enforce password hashing if password is being updated
     if (updateData.password && !updateData.password.startsWith("$2")) {

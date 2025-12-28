@@ -7,6 +7,7 @@ import { ConvexProvider } from "convex/react";
 import convex from "@/lib/convex-proxy";
 import { useEffect } from 'react';
 import { prefetchBangs } from '@/utils/bangs';
+import { Toaster } from "@/components/toaster";
 
 // Helper functions for cookie manipulation using document.cookie
 const getCookie = (name: string): string | undefined => {
@@ -107,6 +108,7 @@ export default function ClientLayout({
           </I18nProvider>
         </ThemeProvider>
       </AuthProvider>
+      <Toaster />
     </ConvexProvider>
   );
 }

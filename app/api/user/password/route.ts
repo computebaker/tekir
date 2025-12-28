@@ -14,8 +14,18 @@ const passwordSchema = z.object({
 
 export async function PUT(request: NextRequest) {
   try {
+    // Get the auth token from cookies
+    const authToken = request.cookies.get('auth-token')?.value;
+
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const user = await getJWTUser(request);
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -40,7 +50,7 @@ export async function PUT(request: NextRequest) {
 
     // Verify current password
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, userRecord.password);
-    
+
     if (!isCurrentPasswordValid) {
       return NextResponse.json(
         { error: 'Current password is incorrect' },
@@ -54,7 +64,7 @@ export async function PUT(request: NextRequest) {
 
     // Update user password
     await convex.mutation(api.users.updateUser, {
-      id: user.userId as any, // Cast to Convex ID type
+      id: user.userId as any,
       password: hashedNewPassword
     });
 
@@ -65,7 +75,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Password change error:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.errors[0].message },

@@ -6,8 +6,19 @@ import { api } from '@/convex/_generated/api';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the auth token from cookies
+    const authToken = request.cookies.get('auth-token')?.value;
+
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Verify JWT and get user info
     const user = await getJWTUser(request);
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -30,7 +41,7 @@ export async function POST(request: NextRequest) {
     // Generate a new avatar URL using the regenerate function which includes timestamp for uniqueness
     const newAvatarUrl = regenerateAvatar(userRecord._id, userRecord.email);
 
-    // Update user avatar - store the URL and mark as generated
+    // Update user avatar
     await convex.mutation(api.users.updateUser, {
       id: user.userId as any,
       image: newAvatarUrl,
@@ -46,7 +57,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Avatar regeneration error:', error);
-    
+
     return NextResponse.json(
       { error: 'Failed to regenerate avatar' },
       { status: 500 }

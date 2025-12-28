@@ -244,7 +244,6 @@ async function handleCheckoutSuccess(data: any) {
     await convex.mutation(api.users.updateUser, {
       id: userId as Id<'users'>,
       polarCustomerId: customerId,
-      cronSecret,
     });
 
     console.log(`Updated user ${userId} with Polar customer ID: ${customerId}`);
@@ -433,7 +432,6 @@ async function handleOrderCreated(data: any) {
         await convex.mutation(api.users.updateUser, {
           id: userId as Id<'users'>,
           polarCustomerId: customerId,
-          cronSecret,
         });
         console.log(`Updated user ${userId} with Polar customer ID: ${customerId}`);
       } catch (error) {
