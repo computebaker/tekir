@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { getRedirectUrlWithFallback } from "@/lib/utils";
 
 export default function SignInPage() {
@@ -81,8 +82,8 @@ export default function SignInPage() {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-red-50 border border-red-200 p-4">
-              <div className="text-sm text-red-700">{error}</div>
+            <div className="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4" role="alert">
+              <div className="text-sm text-red-700 dark:text-red-200">{error}</div>
             </div>
           )}
 
@@ -96,6 +97,7 @@ export default function SignInPage() {
                 type="text"
                 autoComplete="username"
                 required
+                disabled={loading}
                 className="relative block w-full px-3 py-3"
                 placeholder="Email or Username"
                 name="emailOrUsername"
@@ -113,6 +115,7 @@ export default function SignInPage() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
+                disabled={loading}
                 className="relative block w-full px-3 py-3 pr-10"
                 placeholder="Password"
                 name="password"
@@ -121,8 +124,10 @@ export default function SignInPage() {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center disabled:opacity-50"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5 text-muted-foreground" />
@@ -134,9 +139,14 @@ export default function SignInPage() {
           </div>
 
           <div>
-            <Button type="submit" disabled={loading} className="w-full py-3">
-              {loading ? "Signing in..." : "Sign in"}
-            </Button>
+            <LoadingButton
+              type="submit"
+              loading={loading}
+              loadingText="Signing in..."
+              className="w-full py-3"
+            >
+              Sign in
+            </LoadingButton>
           </div>
 
           <div className="text-center">

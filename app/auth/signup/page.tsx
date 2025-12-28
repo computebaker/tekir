@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { getRedirectUrlWithFallback } from "@/lib/utils";
 
 export default function SignUpPage() {
@@ -114,7 +115,7 @@ export default function SignUpPage() {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm" role="alert">
               {error}
             </div>
           )}
@@ -130,6 +131,7 @@ export default function SignUpPage() {
                 type="text"
                 autoComplete="username"
                 required
+                disabled={loading}
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase())}
                 className="relative block w-full px-3 py-3"
@@ -147,6 +149,7 @@ export default function SignUpPage() {
                 type="email"
                 autoComplete="email"
                 required
+                disabled={loading}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="relative block w-full px-3 py-3"
@@ -164,6 +167,7 @@ export default function SignUpPage() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
+                disabled={loading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="relative block w-full px-3 py-3 pr-10"
@@ -171,8 +175,9 @@ export default function SignUpPage() {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center disabled:opacity-50"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
@@ -193,6 +198,7 @@ export default function SignUpPage() {
                 type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
+                disabled={loading}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="relative block w-full px-3 py-3 pr-10"
@@ -200,8 +206,9 @@ export default function SignUpPage() {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center disabled:opacity-50"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={loading}
                 aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
               >
                 {showConfirmPassword ? (
@@ -214,9 +221,14 @@ export default function SignUpPage() {
           </div>
 
           <div>
-            <Button type="submit" disabled={loading} className="w-full py-3">
-              {loading ? "Creating account..." : "Create account"}
-            </Button>
+            <LoadingButton
+              type="submit"
+              loading={loading}
+              loadingText="Creating account..."
+              className="w-full py-3"
+            >
+              Create account
+            </LoadingButton>
           </div>
 
           <div className="text-center">
