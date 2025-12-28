@@ -39,7 +39,7 @@ export default function AdminFeedbackPage() {
       setConfirmingId(null);
       try {
         if (!authToken) throw new Error("Missing auth token");
-        await deleteFeedback({ authToken, id });
+        await deleteFeedback({ authToken, id: id as any });
         showToast.success("Feedback deleted successfully");
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'Unknown error';

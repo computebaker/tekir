@@ -5,14 +5,14 @@ import { Search, Image as ImageIcon, Newspaper, Video, MoreHorizontal } from "lu
 import { useTranslations } from "next-intl";
 
 interface SearchTabsProps {
-  active: string;
-  onChange: (tab: string) => void;
+  active: 'web' | 'images' | 'news' | 'videos';
+  onChange: (tab: 'web' | 'images' | 'news' | 'videos') => void;
 }
 
 export function SearchTabs({ active, onChange }: SearchTabsProps) {
   const t = useTranslations('search.tabs');
 
-  const TABS = [
+  const TABS: Array<{ key: 'web' | 'images' | 'news' | 'videos'; label: string; Icon: any }> = [
     { key: 'web', label: t('web'), Icon: Search },
     { key: 'images', label: t('images'), Icon: ImageIcon },
     { key: 'videos', label: t('videos'), Icon: Video },

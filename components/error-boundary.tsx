@@ -11,7 +11,7 @@ interface ErrorBoundaryProps {
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
-interface ErrorFallbackProps {
+export interface ErrorFallbackProps {
   error: Error;
   resetError: () => void;
 }
@@ -129,8 +129,10 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log to console
-    console.error("Error Boundary caught an error:", error, errorInfo);
+    // Log to console in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Error Boundary caught an error:", error, errorInfo);
+    }
 
     // Show toast notification
     showToast.error(

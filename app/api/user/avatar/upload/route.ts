@@ -64,7 +64,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Profile picture upload error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Profile picture upload error:', error);
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -132,7 +134,9 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error removing profile picture:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error removing profile picture:', error);
+    }
 
     return NextResponse.json(
       { error: 'Failed to remove profile picture' },

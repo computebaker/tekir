@@ -2,8 +2,14 @@ import { QueryCtx, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { jwtVerify, JWTPayload } from "jose";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "your-secret-key";
-const secret = new TextEncoder().encode(JWT_SECRET);
+// Helper function to get JWT_SECRET with validation
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("FATAL: JWT_SECRET environment variable is not configured.");
+  }
+  return secret;
+}
 
 type AuthTokenClaims = JWTPayload & {
     userId?: string;
@@ -16,6 +22,8 @@ async function decodeAuthToken(authToken: string): Promise<AuthTokenClaims> {
     }
 
     try {
+        const JWT_SECRET = getJWTSecret();
+        const secret = new TextEncoder().encode(JWT_SECRET);
         const { payload } = await jwtVerify(authToken, secret, { algorithms: ["HS256"] });
         return payload as AuthTokenClaims;
     } catch (error) {

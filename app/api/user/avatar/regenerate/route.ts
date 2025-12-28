@@ -56,7 +56,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Avatar regeneration error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Avatar regeneration error:', error);
+    }
 
     return NextResponse.json(
       { error: 'Failed to regenerate avatar' },

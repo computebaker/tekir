@@ -3,6 +3,15 @@ import jwt from 'jsonwebtoken';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
 
+// Helper function to get JWT_SECRET with validation
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('FATAL: JWT_SECRET environment variable is not configured.');
+  }
+  return secret;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authToken = request.cookies.get('auth-token')?.value;
@@ -12,17 +21,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ authenticated: false });
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
-
     try {
-      const decoded = jwt.verify(authToken, jwtSecret, { algorithms: ['HS256'] }) as any;
+      const decoded = jwt.verify(authToken, getJWTSecret(), { algorithms: ['HS256'] }) as any;
 
       // Fetch the latest user data from Convex database
       const convex = getConvexClient();
       const user = await convex.query(api.users.getUserById, { id: decoded.userId });
 
       if (!user) {
-        console.log('JWT verification failed: User not found in database');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('JWT verification failed: User not found in database');
+        }
         return NextResponse.json({ authenticated: false });
       }
 
@@ -40,26 +49,29 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         authenticated: true,
-        token: authToken,
         user: {
           id: user._id,
           email: user.email,
-          name: user.name, // Include name
-          username: user.username, // Include username
-          image: user.image, // Include the latest profile picture from DB
-          imageType: user.imageType, // Include image type for proper cache busting
-          avatar: user.image, // For compatibility
-          updatedAt: user.updatedAt, // Include update timestamp for cache busting
-          isEmailVerified: !!user.emailVerified, // Convert emailVerified timestamp to boolean
+          name: user.name,
+          username: user.username,
+          image: user.image,
+          imageType: user.imageType,
+          avatar: user.image,
+          updatedAt: user.updatedAt,
+          isEmailVerified: !!user.emailVerified,
           roles: Array.isArray(user.roles) ? user.roles : []
         }
       });
     } catch (jwtError) {
-      console.log('JWT verification failed:', jwtError);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('JWT verification failed:', jwtError);
+      }
       return NextResponse.json({ authenticated: false });
     }
   } catch (error) {
-    console.error('Verify JWT error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Verify JWT error:', error);
+    }
     return NextResponse.json({ authenticated: false });
   }
 }

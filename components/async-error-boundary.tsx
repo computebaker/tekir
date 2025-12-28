@@ -1,11 +1,11 @@
 "use client"
 
 import React, { ComponentType } from "react";
-import { ErrorBoundary } from "@/components/error-boundary";
+import { ErrorBoundary, ErrorFallbackProps } from "@/components/error-boundary";
 
 interface AsyncErrorBoundaryProps {
   children: React.ReactNode;
-  fallback?: ComponentType<{ error: Error; reset: () => void }>;
+  fallback?: ComponentType<ErrorFallbackProps>;
 }
 
 /**
@@ -14,7 +14,7 @@ interface AsyncErrorBoundaryProps {
  */
 export function withErrorBoundary<P extends object>(
   Component: ComponentType<P>,
-  fallback?: ComponentType<{ error: Error; reset: () => void }>
+  fallback?: ComponentType<ErrorFallbackProps>
 ): ComponentType<P> {
   const WrappedComponent = (props: P) => {
     return (

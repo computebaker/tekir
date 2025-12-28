@@ -74,7 +74,9 @@ export async function PUT(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Password change error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Password change error:', error);
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

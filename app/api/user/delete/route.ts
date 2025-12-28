@@ -43,8 +43,10 @@ export async function DELETE(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Account deletion error:', error);
-    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Account deletion error:', error);
+    }
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

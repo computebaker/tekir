@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error("Get user email error:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Get user email error:", error);
+    }
     return NextResponse.json(
       { error: "Failed to get user email" },
       { status: 500 }

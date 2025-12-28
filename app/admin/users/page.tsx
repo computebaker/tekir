@@ -34,7 +34,7 @@ export default function AdminUsersPage() {
   const remove = async (id: string) => {
     try {
       if (!authToken) throw new Error("Missing auth token");
-      await deleteUser({ authToken, id });
+      await deleteUser({ authToken, id: id as any });
       showToast.success("User deleted successfully");
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Unknown error';

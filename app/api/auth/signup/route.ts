@@ -5,6 +5,8 @@ import { generateAvatarUrl } from "@/lib/avatar";
 import { prelude } from "@/lib/prelude";
 import { z } from "zod";
 import { api } from "@/convex/_generated/api";
+import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
+import { sanitizeUsername, sanitizeEmail, isValidEmail, isValidUsername } from "@/lib/sanitize";
 
 const signupSchema = z.object({
   username: z.string().min(3).max(12).regex(/^[a-zA-Z0-9]+$/, "Username must contain only letters and numbers"),
@@ -13,17 +15,43 @@ const signupSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await applyRateLimit(request, {
+    ...RateLimitPresets.auth,
+    keyPrefix: 'signup'
+  });
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await request.json();
     const { username, email, password } = signupSchema.parse(body);
 
-    // Convert username to lowercase
-    const lowercaseUsername = username.toLowerCase();
+    // Sanitize and validate inputs
+    const sanitizedUsername = sanitizeUsername(username);
+    const sanitizedEmail = sanitizeEmail(email);
+
+    // Validate sanitized inputs
+    if (!isValidUsername(sanitizedUsername)) {
+      return NextResponse.json(
+        { error: "Invalid username format" },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidEmail(sanitizedEmail)) {
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 }
+      );
+    }
 
     const convex = getConvexClient();
 
     // Check if user already exists by email
-    const existingUserByEmail = await convex.query(api.users.getUserByEmail, { email });
+    const existingUserByEmail = await convex.query(api.users.getUserByEmail, { email: sanitizedEmail });
     if (existingUserByEmail) {
       return NextResponse.json(
         { error: "User with this email already exists" },
@@ -32,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists by username
-    const existingUserByUsername = await convex.query(api.users.getUserByUsername, { username: lowercaseUsername });
+    const existingUserByUsername = await convex.query(api.users.getUserByUsername, { username: sanitizedUsername });
     if (existingUserByUsername) {
       return NextResponse.json(
         { error: "User with this username already exists" },
@@ -45,14 +73,14 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const userId = await convex.mutation(api.users.createUser, {
-      username: lowercaseUsername,
-      email,
+      username: sanitizedUsername,
+      email: sanitizedEmail,
       password: hashedPassword,
-      name: lowercaseUsername, // Use username as display name initially
+      name: sanitizedUsername, // Use username as display name initially
     });
 
     // Generate avatar URL after user creation
-    const avatarUrl = generateAvatarUrl(userId, email);
+    const avatarUrl = generateAvatarUrl(userId, sanitizedEmail);
     
     // Update user with avatar
     await convex.mutation(api.users.updateUser, {
@@ -66,7 +94,7 @@ export async function POST(request: NextRequest) {
       const verification = await prelude.verification.create({
         target: {
           type: "email_address",
-          value: email,
+          value: sanitizedEmail,
         },
       });
 
@@ -76,7 +104,9 @@ export async function POST(request: NextRequest) {
         emailVerificationToken: verification.id,
       });
     } catch (verificationError) {
-      console.error("Failed to send verification email:", verificationError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Failed to send verification email:", verificationError);
+      }
       // Continue with signup even if verification fails
     }
 
@@ -106,7 +136,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error("Signup error:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Signup error:", error);
+    }
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

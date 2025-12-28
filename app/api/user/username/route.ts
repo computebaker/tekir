@@ -60,7 +60,9 @@ export async function PUT(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Username update error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Username update error:', error);
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
