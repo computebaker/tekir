@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         authenticated: true,
+        token: authToken,
         user: {
           id: user._id,
           email: user.email,

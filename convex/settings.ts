@@ -29,6 +29,12 @@ export const getUserSettings = query({
       };
     } catch (error) {
       if (isUnauthorizedError(error)) {
+        console.error('[Convex Settings] Auth error:', error instanceof Error ? error.message : error);
+        console.error('[Convex Settings] Args:', {
+          userId: args.userId,
+          tokenLength: args.authToken.length,
+          tokenPrefix: args.authToken.substring(0, 20) + '...'
+        });
         return null;
       }
       throw error;
