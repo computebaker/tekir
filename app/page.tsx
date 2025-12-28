@@ -61,7 +61,7 @@ export default function Home() {
     const heroRect = heroFormRef.current.getBoundingClientRect();
     const mainRect = mainRef.current.getBoundingClientRect();
     // On mobile we want the dropdown to sit directly below the search bar
-    const mobileOffset = 12; // nudge down on mobile so it appears below input
+    const mobileOffset = 10; // touch the search bar on mobile
     const desktopOffset = 12;
     const offset = isMobile ? mobileOffset : desktopOffset;
     setDropdownMetrics({
