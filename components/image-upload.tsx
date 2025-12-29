@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Camera, Upload, X, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { fileToBase64, validateImageFile } from '@/lib/image-client';
+import { isTrustedUrl } from '@/lib/sanitize';
 
 interface ImageUploadProps {
   currentImage?: string;
@@ -26,9 +27,18 @@ export default function ImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper function to determine if we should use Next.js Image or regular img
+  // Only use Next.js Image for URLs from trusted hosts to avoid SSR issues
   const shouldUseNextImage = (src: string) => {
-    // Use regular img for DiceBear URLs to hit API directly
-    return !src.includes('api.dicebear.com');
+    const TRUSTED_IMAGE_HOSTS = [
+      'api.dicebear.com',
+      'avatars.githubusercontent.com',
+      'lh3.googleusercontent.com',
+      'graph.facebook.com',
+    ];
+
+    // Use regular img for trusted hosts (to hit their APIs directly)
+    // Use Next.js Image for untrusted hosts (for optimization)
+    return !isTrustedUrl(src, TRUSTED_IMAGE_HOSTS);
   };
 
   const handleFileSelect = useCallback(async (file: File) => {

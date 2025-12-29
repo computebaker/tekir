@@ -4,33 +4,88 @@
  */
 
 /**
+ * Dangerous protocols that should be stripped from input
+ */
+const DANGEROUS_PROTOCOLS = [
+  'javascript:',
+  'vbscript:',
+  'data:',
+  'file:',
+  'ftp:',
+  'about:',
+] as const;
+
+/**
+ * Check if a URL is from a trusted host
+ *
+ * Security: Properly parses the URL and validates the hostname against an allowlist.
+ * This prevents bypass attempts where malicious URLs embed trusted domains in unexpected locations.
+ *
+ * @param url - The URL to validate
+ * @param allowedHosts - Array of trusted hostnames
+ * @returns true if the URL is from a trusted host, false otherwise
+ *
+ * @example
+ * isTrustedUrl('https://api.dicebear.com/avatar', ['api.dicebear.com']) // true
+ * isTrustedUrl('https://evil.com/api.dicebear.com', ['api.dicebear.com']) // false
+ * isTrustedUrl('https://api.dicebear.com.evil.com', ['api.dicebear.com']) // false
+ */
+export function isTrustedUrl(url: string, allowedHosts: string[]): boolean {
+  try {
+    const parsed = new URL(url);
+    return allowedHosts.includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Sanitize string input by removing potentially dangerous characters
+ *
+ * Security: Uses iterative replacement to prevent multi-character bypass attacks.
+ * For example, "javajavascript:script:" becomes "javascript:" after one pass,
+ * but the loop continues until no more dangerous patterns remain.
  */
 export function sanitizeString(input: string): string {
   if (typeof input !== 'string') {
     return '';
   }
 
-  return input
-    .trim()
-    .replace(/[<>]/g, '') // Remove angle brackets
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+\s*=/gi, ''); // Remove event handlers like onclick=
+  let sanitized = input.trim();
+  let previous: string;
+
+  // Iteratively remove dangerous patterns until no more changes occur
+  // This prevents bypass attempts like "javajavascript:script:"
+  const protocolPattern = new RegExp(DANGEROUS_PROTOCOLS.join('|'), 'gi');
+
+  do {
+    previous = sanitized;
+    sanitized = sanitized
+      .replace(/[<>]/g, '') // Remove angle brackets
+      .replace(protocolPattern, '') // Remove dangerous protocols
+      .replace(/on\w+\s*=/gi, ''); // Remove event handlers like onclick=
+  } while (sanitized !== previous);
+
+  return sanitized;
 }
 
 /**
  * Sanitize email address
+ *
+ * Security: Removes dangerous protocols and HTML tags from email addresses.
  */
 export function sanitizeEmail(email: string): string {
   if (typeof email !== 'string') {
     return '';
   }
 
+  const protocolPattern = new RegExp(DANGEROUS_PROTOCOLS.join('|'), 'gi');
+
   return email
     .trim()
     .toLowerCase()
     .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '');
+    .replace(protocolPattern, '');
 }
 
 /**
@@ -66,6 +121,12 @@ export function escapeHtml(unsafe: string): string {
 
 /**
  * Validate and sanitize a URL
+ *
+ * Security: Only allows http and https protocols. All other protocols including
+ * javascript:, vbscript:, data:, file:, ftp:, about: are rejected.
+ *
+ * This function uses URL parsing which handles protocol validation correctly
+ * and prevents bypass attempts via protocol confusion.
  */
 export function sanitizeUrl(url: string): string {
   if (typeof url !== 'string') {
@@ -73,20 +134,18 @@ export function sanitizeUrl(url: string): string {
   }
 
   try {
-    const parsed = new URL(url);
+    // Parse URL to properly extract protocol and validate structure
+    const parsed = new URL(url.trim());
 
     // Only allow http and https protocols
+    // This blocks: javascript:, vbscript:, data:, file:, ftp:, about:, etc.
     if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return '';
-    }
-
-    // Remove javascript: and data: protocols
-    if (url.startsWith('javascript:') || url.startsWith('data:')) {
       return '';
     }
 
     return parsed.toString();
   } catch {
+    // Invalid URL format
     return '';
   }
 }
@@ -213,15 +272,26 @@ export function validateInput(
 /**
  * Sanitize search query
  * Removes dangerous characters but preserves search functionality
+ *
+ * Security: Uses iterative replacement to prevent multi-character bypass attacks.
+ * Limits query length to prevent DoS attacks.
  */
 export function sanitizeSearchQuery(query: string): string {
   if (typeof query !== 'string') {
     return '';
   }
 
-  return query
-    .trim()
-    .slice(0, 200) // Limit length
-    .replace(/[<>]/g, '') // Remove angle brackets
-    .replace(/javascript:/gi, '');
+  let sanitized = query.trim().slice(0, 200); // Limit length first
+  let previous: string;
+
+  const protocolPattern = new RegExp(DANGEROUS_PROTOCOLS.join('|'), 'gi');
+
+  do {
+    previous = sanitized;
+    sanitized = sanitized
+      .replace(/[<>]/g, '') // Remove angle brackets
+      .replace(protocolPattern, ''); // Remove dangerous protocols
+  } while (sanitized !== previous);
+
+  return sanitized;
 }
