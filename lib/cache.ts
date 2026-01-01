@@ -92,7 +92,9 @@ export class SearchCache {
         });
       }
     } catch (error) {
-      console.warn('Error during cache cleanup:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Error during cache cleanup:', error);
+      }
     }
   }
 
@@ -122,10 +124,16 @@ export class SearchCache {
         return null;
       }
 
-      console.log(`Cache hit for ${searchType}: ${provider} - ${query}`);
+      // Development-only logging without sensitive query data
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Cache hit for ${searchType} with provider ${provider}`);
+      }
       return parsed.data;
     } catch (error) {
-      console.warn('Error reading from cache:', error);
+      // Only log errors in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Error reading from cache:', error);
+      }
       return null;
     }
   }
@@ -156,9 +164,14 @@ export class SearchCache {
       };
 
       sessionStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
-      console.log(`Cache set for ${searchType}: ${provider} - ${query}`);
+      // Development-only logging without sensitive query data
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Cache set for ${searchType} with provider ${provider}`);
+      }
     } catch (error) {
-      console.warn('Error writing to cache:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Error writing to cache:', error);
+      }
       // If we hit storage limits, try to clean up and retry once
       try {
         this.cleanupCache(searchType);
@@ -172,7 +185,9 @@ export class SearchCache {
         };
         sessionStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
       } catch (retryError) {
-        console.warn('Failed to cache after cleanup:', retryError);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to cache after cleanup:', retryError);
+        }
       }
     }
   }
@@ -191,9 +206,13 @@ export class SearchCache {
         sessionStorage.removeItem(key);
       });
 
-      console.log(`Cleared all ${searchType} cache entries`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Cleared all ${searchType} cache entries`);
+      }
     } catch (error) {
-      console.warn(`Error clearing ${searchType} cache:`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Error clearing ${searchType} cache:`, error);
+      }
     }
   }
 
@@ -220,9 +239,13 @@ export class SearchCache {
         sessionStorage.removeItem(key);
       });
 
-      console.log('Cleared all search cache entries');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Cleared all search cache entries');
+      }
     } catch (error) {
-      console.warn('Error clearing all cache:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Error clearing all cache:', error);
+      }
     }
   }
 
@@ -275,7 +298,9 @@ export class SearchCache {
         totalSize
       };
     } catch (error) {
-      console.warn('Error getting cache stats:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Error getting cache stats:', error);
+      }
       return { search: 0, images: 0, news: 0, ai: 0, dive: 0, videos: 0, wikipedia: 0, total: 0, totalSize: 0 };
     }
   }
@@ -386,14 +411,18 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
     try {
       const errorData = await responseCloneForErrorCheck.json();
       if (errorData && errorData.error === "Invalid or expired session token.") {
-        console.log("Session token expired or invalid. Attempting to refresh session...");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Session token expired or invalid. Attempting to refresh...");
+        }
 
         const registerResponse = await fetch("/api/session/register", {
           method: "POST",
         });
 
         if (registerResponse.ok) {
-          console.log("Session refreshed successfully. Retrying the original request.");
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Session refreshed successfully. Retrying request.");
+          }
           const retryResponse = await fetch(url, options);
 
           // Cache successful response if caching is enabled
@@ -409,18 +438,24 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
                 cacheConfig.searchParams
               );
             } catch (error) {
-              console.warn('Error caching response after retry:', error);
+              if (process.env.NODE_ENV === 'development') {
+                console.warn('Error caching response after retry:', error);
+              }
             }
           }
 
           return retryResponse;
         } else {
-          console.error("Failed to refresh session. Status:", registerResponse.status);
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Failed to refresh session. Status:", registerResponse.status);
+          }
           return originalResponse;
         }
       }
     } catch (e) {
-      console.warn("Error parsing JSON from 403/401 response, or not the specific session token error:", e);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("Error parsing JSON from 403/401 response:", e);
+      }
     }
   }
 
@@ -446,7 +481,9 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
         headers: originalResponse.headers
       });
     } catch (error) {
-      console.warn('Error caching response:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Error caching response:', error);
+      }
       // If json parsing failed, we can't cache, but we might have consumed the body.
       // Ideally we should clone before reading if we aren't sure it's JSON, 
       // but here we expect JSON. If it fails, we might need to fallback or re-fetch?

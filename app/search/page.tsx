@@ -16,6 +16,7 @@ import { Input, SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SearchTabs from "@/components/search/search-tabs";
 import WebResultItem from "@/components/search/web-result-item";
+import { SearchResultsSkeleton } from "@/components/ui/skeleton";
 import { storeRedirectUrl } from "@/lib/utils";
 
 const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
@@ -352,8 +353,14 @@ function SearchPageContent() {
           }
           return true;
         } catch (error) {
-          console.error(error);
+          // Log error with context for debugging (development only)
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`Search failed for engine "${engine}":`, error);
+          }
           if (isMounted) {
+            // TODO: Consider adding error state to show user-friendly messages
+            // For now, errors are logged but not shown to avoid breaking existing UX
+            // The fallback mechanism will try alternative search engines
           }
           return false;
         }
@@ -433,7 +440,9 @@ function SearchPageContent() {
               const retryData = await retryRes.json();
               if (retryData.results) setImageResults(retryData.results);
             } catch (err) {
-              console.error('Image retry failed:', err);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Image retry failed:', err);
+              }
             } finally {
               setImageLoading(false);
             }
@@ -445,7 +454,11 @@ function SearchPageContent() {
           imageRetryRef.current = false;
         }
       })
-      .catch((error) => console.error("Image search failed:", error))
+      .catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Image search failed:", error);
+        }
+      })
       .finally(() => {
         // If a retry is in progress, its own finally will update loading; avoid clobbering
         if (!imageRetryRef.current) setImageLoading(false);
@@ -511,7 +524,9 @@ function SearchPageContent() {
               const retryData = await retryRes.json();
               if (retryData.results) setVideoResults(retryData.results);
             } catch (err) {
-              console.error('Video retry failed:', err);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Video retry failed:', err);
+              }
             } finally {
               setVideoLoading(false);
             }
@@ -522,7 +537,11 @@ function SearchPageContent() {
           videoRetryRef.current = false;
         }
       })
-      .catch((error) => console.error("Video search failed:", error))
+      .catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Video search failed:", error);
+        }
+      })
       .finally(() => {
         if (!videoRetryRef.current) setVideoLoading(false);
       });
@@ -603,7 +622,9 @@ function SearchPageContent() {
               const retryData = await retryRes.json();
               if (retryData.results) setNewsResults(retryData.results);
             } catch (err) {
-              console.error('News retry failed:', err);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('News retry failed:', err);
+              }
             } finally {
               setNewsLoading(false);
             }
@@ -614,7 +635,11 @@ function SearchPageContent() {
           newsRetryRef.current = false;
         }
       })
-      .catch((error) => console.error("News search failed:", error))
+      .catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error("News search failed:", error);
+        }
+      })
       .finally(() => {
         if (!newsRetryRef.current) setNewsLoading(false);
       });
@@ -661,7 +686,11 @@ function SearchPageContent() {
             setImageResults(data.results);
           }
         })
-        .catch((error) => console.error("Image search failed:", error))
+        .catch((error) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Image search failed:", error);
+          }
+        })
         .finally(() => setImageLoading(false));
       return () => {
         if (imagesAbortRef.current) {
@@ -751,7 +780,9 @@ function SearchPageContent() {
         aiRequestInProgressRef.current = null;
         aiAbortControllerRef.current = null;
       } catch (error) {
-        console.error(`AI response failed for model ${model}:`, error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`AI response failed for model ${model}:`, error);
+        }
         if (!isRetry && model !== "gemini" && !aiModel && !aiDiveEnabled) {
           makeAIRequest("gemini", true);
         } else {
@@ -854,7 +885,9 @@ function SearchPageContent() {
           SearchCache.setDive(query, diveData.response, diveData.sources || []);
           setDiveError(false);
         } else {
-          console.log(`Search ID changed, ignoring stale dive response for query: "${query}"`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Search ID changed, ignoring stale dive response`);
+          }
         }
 
         setDiveLoading(false);
@@ -862,7 +895,9 @@ function SearchPageContent() {
         aiRequestInProgressRef.current = null;
         aiAbortControllerRef.current = null;
       } catch (error) {
-        console.error('Dive request failed:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Dive request failed:', error);
+        }
         setDiveLoading(false);
         setAiLoading(false);
         setDiveError(true);
@@ -1010,7 +1045,9 @@ function SearchPageContent() {
             return data[1].map((suggestion) => ({ query: suggestion }));
           }
 
-          console.warn('Unexpected suggestion format:', data);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Unexpected suggestion format:', data);
+          }
           return [] as Suggestion[];
         };
 
@@ -1019,7 +1056,9 @@ function SearchPageContent() {
         try {
           processedSuggestions = await fetchSuggestionsForLang(lang || undefined);
         } catch (primaryError) {
-          console.error('Failed to fetch suggestions for current language:', primaryError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to fetch suggestions for current language:', primaryError);
+          }
         }
 
         if (processedSuggestions.length === 0 && lang && lang.toLowerCase() !== 'en') {
@@ -1029,7 +1068,9 @@ function SearchPageContent() {
               processedSuggestions = fallbackSuggestions;
             }
           } catch (fallbackError) {
-            console.error('Fallback autocomplete fetch failed:', fallbackError);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Fallback autocomplete fetch failed:', fallbackError);
+            }
           }
         }
 
@@ -1042,7 +1083,9 @@ function SearchPageContent() {
           delete retryMap[cacheKey];
         }
       } catch (error) {
-        console.error('Failed to fetch suggestions:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch suggestions:', error);
+        }
         setSuggestions([]);
       }
     };
@@ -1154,7 +1197,9 @@ function SearchPageContent() {
         // Check cache first
         const cachedWikiData = SearchCache.getWikipedia(query, browserLanguage);
         if (cachedWikiData) {
-          console.log('Wikipedia cache hit for:', query);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Wikipedia cache hit');
+          }
           setWikiData(cachedWikiData);
           setWikiLoading(false);
           return;
@@ -1215,7 +1260,9 @@ function SearchPageContent() {
           await fallbackToWikipediaSearch(language);
         }
       } catch (error) {
-        console.error("Failed to fetch Wikipedia data:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Failed to fetch Wikipedia data:", error);
+        }
         setWikiData(null);
       } finally {
         setWikiLoading(false);
@@ -1260,7 +1307,9 @@ function SearchPageContent() {
           setWikiData(null);
         }
       } catch (error) {
-        console.error("Fallback Wikipedia search failed:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Fallback Wikipedia search failed:", error);
+        }
         setWikiData(null);
       }
     };
@@ -1381,7 +1430,8 @@ function SearchPageContent() {
   const logoMetadata = selectedLogoState ? getLogoMetadata(selectedLogoState) : getLogoMetadata('tekir');
 
   // Helper to normalize thumbnail values which may be a string or an object
-  const resolveImageSrc = (t: any): string | null => {
+  type ThumbnailValue = string | { src?: string; source?: string; original?: string } | null | undefined;
+  const resolveImageSrc = (t: ThumbnailValue): string | null => {
     if (!t) return null;
     if (typeof t === 'string') return t;
     if (t.src) return t.src;
@@ -1404,16 +1454,7 @@ function SearchPageContent() {
   const renderResultsArea = () => {
     if (searchType === 'web') {
       if (loading) {
-        return (
-          <div className="space-y-8">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
-        );
+        return <SearchResultsSkeleton />;
       }
 
       if (results.length > 0) {
@@ -1421,7 +1462,7 @@ function SearchPageContent() {
           <div className="space-y-8">
             {results.map((result, index) => (
               <div key={`result-${index}`}>
-                <WebResultItem result={result as any} />
+                <WebResultItem result={result} />
 
                 {/* Insert News cluster after 4th result (index 3) */}
                 {index === 3 && settings.enchantedResults !== false && newsResults && newsResults.length > 0 && (

@@ -74,7 +74,9 @@ async function getBraveImages(q: string, count: number = 20): Promise<ImageResul
     const data = await res.json();
     return data.results || [];
   } catch (error) {
-    console.error('Error fetching Brave image search data:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Brave image search data:', error);
+    }
     return [];
   }
 }
@@ -89,7 +91,9 @@ async function getGoogleImages(
   const apiKey = process.env.GOOGLE_API_KEY;
   const cx = process.env.GOOGLE_CX;
   if (!apiKey || !cx) {
-    console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    }
     return [];
   }
 
@@ -162,7 +166,9 @@ async function getGoogleImages(
       } satisfies ImageResult;
     });
   } catch (error) {
-    console.error('Error fetching Google image results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Google image results:', error);
+    }
     return [];
   }
 }

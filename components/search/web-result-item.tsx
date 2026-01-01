@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import Image from "next/image";
 import { Globe } from "lucide-react";
 import { useSettings } from "@/lib/settings";
@@ -17,7 +17,8 @@ type Props = {
   result: WebResult;
 };
 
-export function WebResultItem({ result }: Props) {
+// Memoized component to prevent unnecessary re-renders
+export const WebResultItem = memo(function WebResultItem({ result }: Props) {
   const [faviconError, setFaviconError] = useState(false);
   const { settings } = useSettings();
   
@@ -87,6 +88,6 @@ export function WebResultItem({ result }: Props) {
       </a>
     </div>
   );
-}
+});
 
 export default WebResultItem;

@@ -3,6 +3,19 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import convex from "@/lib/convex-proxy";
 
+// Define user settings interface
+interface UserSettings {
+  searchEngine?: string;
+  country?: string;
+  language?: string;
+  safesearch?: string;
+  theme?: string;
+  wikipediaEnabled?: boolean;
+  karakulakEnabled?: boolean;
+  aiModel?: string;
+  [key: string]: string | boolean | undefined;
+}
+
 interface User {
   id: string;
   email: string;
@@ -14,7 +27,7 @@ interface User {
   updatedAt?: number;
   isEmailVerified: boolean;
   roles?: string[];
-  settings?: any;
+  settings?: UserSettings;
   polarCustomerId?: string;
 }
 

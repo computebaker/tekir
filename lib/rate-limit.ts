@@ -69,14 +69,21 @@ export async function checkRateLimit(
     const convex = getConvexClient();
 
     // Check if rate limit module exists in Convex
-    // If it doesn't exist, allow the request (fail open)
+    // Fail closed in production for security, but allow in development for better UX
     const result = await convex.mutation(api.rateLimit.checkLimit, {
       identifier,
       keyPrefix: config.keyPrefix,
       maxRequests: config.maxRequests,
       windowMs: config.windowMs
-    }).catch(() => {
-      // If rate limit check fails (module doesn't exist), allow the request
+    }).catch((error) => {
+      // If rate limit check fails, block in production but allow in development
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      if (!isDevelopment) {
+        console.error('Rate limiting check failed, blocking request for security:', error);
+        return { success: false, count: config.maxRequests, resetAt: Date.now() + config.windowMs };
+      }
+      // Development: allow the request and log the error
+      console.warn('Rate limiting check failed in development, allowing request:', error);
       return { success: true, count: 0, resetAt: Date.now() + config.windowMs };
     });
 
@@ -95,12 +102,22 @@ export async function checkRateLimit(
 
     return { allowed: result.success, headers };
   } catch (error) {
-    // If rate limiting fails, allow the request (fail open)
-    // Log the error in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Rate limiting error:', error);
+    // If rate limiting fails, block in production for security
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (!isDevelopment) {
+      console.error('Rate limiting error, blocking request:', error);
+      // Block the request in production
+      const headers: RateLimitHeaders = {
+        'X-RateLimit-Limit': config.maxRequests.toString(),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': Math.ceil((Date.now() + config.windowMs) / 1000).toString(),
+        'Retry-After': Math.ceil(config.windowMs / 1000).toString()
+      };
+      return { allowed: false, headers };
     }
 
+    // Development: allow the request and log the error
+    console.error('Rate limiting error in development, allowing request:', error);
     const headers: RateLimitHeaders = {
       'X-RateLimit-Limit': config.maxRequests.toString(),
       'X-RateLimit-Remaining': config.maxRequests.toString(),

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { Cloud, Sun, CloudRain, CloudSnow, Wind, Eye, Droplets, Thermometer } from "lucide-react";
+import { safeGetItem, safeSetItem, safeRemoveItem as safeRemoveItemLocal } from "@/lib/safe-storage";
 
 // IP-lookup endpoint data structure
 interface IPWeatherData {
@@ -142,17 +143,31 @@ function getWeatherCondition(data: WeatherData): string {
     return '';
 }
 
-function validateWeatherData(data: any): data is WeatherData {
+function validateWeatherData(data: unknown): data is WeatherData {
+    if (!data || typeof data !== 'object') {
+        return false;
+    }
+
+    const obj = data as Record<string, unknown>;
+
     // Check for IP weather data structure
-    if (data && data.location && data.weather && typeof data.weather === 'object' && !Array.isArray(data.weather)) {
-        return !!(data.location.city && data.weather.temperature !== undefined);
+    if ('location' in obj && 'weather' in obj) {
+        const location = obj.location as Record<string, unknown>;
+        const weather = obj.weather as Record<string, unknown>;
+        if (typeof weather === 'object' && weather !== null && !Array.isArray(weather)) {
+            return !!(location.city && weather.temperature !== undefined);
+        }
     }
-    
+
     // Check for OpenWeather data structure
-    if (data && data.coord && data.main && data.weather && Array.isArray(data.weather)) {
-        return !!(data.name && data.main.temp !== undefined && data.weather.length > 0);
+    if ('coord' in obj && 'main' in obj && 'weather' in obj) {
+        const main = obj.main as Record<string, unknown>;
+        const weather = obj.weather as unknown[];
+        if (Array.isArray(weather)) {
+            return !!(obj.name && main.temp !== undefined && weather.length > 0);
+        }
     }
-    
+
     return false;
 }
 
@@ -161,7 +176,7 @@ type WeatherWidgetProps = {
     size?: 'sm' | 'md' | 'link';
 };
 
-export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
+function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
     const [weather, setWeather] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -183,7 +198,7 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
 
     // Effect to track custom location changes
     useEffect(() => {
-        const storedLocation = localStorage.getItem("customWeatherLocation");
+        const storedLocation = safeGetItem<string>("customWeatherLocation");
         let newKey = "ip-based";
         if (storedLocation) {
             try {
@@ -227,7 +242,7 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
 
         // Clear any conflicting cache data on initialization
         const clearConflictingCache = () => {
-            const storedLocation = localStorage.getItem("customWeatherLocation");
+            const storedLocation = safeGetItem<string>("customWeatherLocation");
             if (storedLocation) {
                 // Custom location is set, clear IP-based cache
                 localStorage.removeItem('weather-data');
@@ -270,12 +285,16 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                         if (parsed && typeof parsed.lat === 'number' && typeof parsed.lon === 'number') {
                             customLocation = parsed;
                         } else {
-                            console.warn("Invalid custom weather location data:", parsed);
+                            if (process.env.NODE_ENV === 'development') {
+                                console.warn("Invalid custom weather location data:", parsed);
+                            }
                             // Clear invalid data
                             localStorage.removeItem("customWeatherLocation");
                         }
                     } catch (error) {
-                        console.warn("Failed to parse custom weather location:", error);
+                        if (process.env.NODE_ENV === 'development') {
+                            console.warn("Failed to parse custom weather location:", error);
+                        }
                         // Clear invalid data
                         localStorage.removeItem("customWeatherLocation");
                     }
@@ -308,7 +327,9 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                             }
                         }
                     } catch (cacheError) {
-                        console.warn("Custom location cache access failed:", cacheError);
+                        if (process.env.NODE_ENV === 'development') {
+                            console.warn("Custom location cache access failed:", cacheError);
+                        }
                     }
                 } else {
                     // Only check IP-based cache if no custom location is set
@@ -325,7 +346,9 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                             }
                         }
                     } catch (cacheError) {
-                        console.warn("IP-based cache access failed:", cacheError);
+                        if (process.env.NODE_ENV === 'development') {
+                            console.warn("IP-based cache access failed:", cacheError);
+                        }
                     }
                 }
 
@@ -391,12 +414,16 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                         });
                     }
                 } catch (cacheError) {
-                    console.warn("Cache write failed:", cacheError);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.warn("Cache write failed:", cacheError);
+                    }
                 }
                 
                 setWeather(data);
             } catch (err) {
-                console.error("Failed to fetch weather:", err);
+                if (process.env.NODE_ENV === 'development') {
+                    console.error("Failed to fetch weather:", err);
+                }
                 setError("Unable to load weather data");
             } finally {
                 setLoading(false);
@@ -420,11 +447,15 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                     if (location && typeof location.lat === 'number' && typeof location.lon === 'number') {
                         newKey = `${location.lat}-${location.lon}`;
                     } else {
-                        console.warn("Invalid stored weather location data:", location);
+                        if (process.env.NODE_ENV === 'development') {
+                            console.warn("Invalid stored weather location data:", location);
+                        }
                         newKey = "ip-based";
                     }
                 } catch (error) {
-                    console.warn("Failed to parse stored weather location:", error);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.warn("Failed to parse stored weather location:", error);
+                    }
                     newKey = "ip-based";
                 }
             }
@@ -551,3 +582,9 @@ export default function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
         </div>
     );
 }
+
+// Memoized component to prevent unnecessary re-renders
+const WeatherWidgetMemo = memo(WeatherWidget);
+WeatherWidgetMemo.displayName = 'WeatherWidget';
+
+export default WeatherWidgetMemo;

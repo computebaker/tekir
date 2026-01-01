@@ -117,7 +117,9 @@ async function getGoogle(q: string, country?: string, safesearch?: string, lang?
   const cx = process.env.GOOGLE_CX;
 
   if (!apiKey || !cx) {
-    console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    }
     return { results, totalResults };
   }
 
@@ -179,7 +181,9 @@ async function getGoogle(q: string, country?: string, safesearch?: string, lang?
       });
     });
   } catch (error) {
-    console.error('Error fetching Google results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Google results:', error);
+    }
   }
 
   return { results, totalResults };
@@ -237,7 +241,9 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
       }));
     }
   } catch (error) {
-    console.error('Error fetching Brave results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Brave results:', error);
+    }
   }
   return { results, videos, news };
 }
@@ -248,7 +254,9 @@ async function getYou(q: string, country?: string | null, safesearch?: string | 
   const apiKey = process.env.YOU_SEARCH_KEY;
 
   if (!apiKey) {
-    console.error('You.com Search API key is missing. Set YOU_SEARCH_KEY.');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('You.com Search API key is missing. Set YOU_SEARCH_KEY.');
+    }
     return { results, totalResults };
   }
 
@@ -318,7 +326,9 @@ async function getYou(q: string, country?: string | null, safesearch?: string | 
       });
     });
   } catch (error) {
-    console.error('Error fetching You.com results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching You.com results:', error);
+    }
   }
 
   return { results, totalResults };
@@ -370,7 +380,9 @@ async function getDuck(q: string): Promise<Results[]> {
       }
     });
   } catch (error) {
-    console.error('Error fetching DuckDuckGo results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching DuckDuckGo results:', error);
+    }
   }
   return results;
 }
@@ -382,17 +394,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const safesearch = req.nextUrl.searchParams.get('safesearch') || 'moderate';
   const lang = req.nextUrl.searchParams.get('lang') || req.nextUrl.searchParams.get('language') || undefined;
 
-  console.log(`[Search] ${provider} request: query length=${query?.length || 0}, country=${country}, safesearch=${safesearch}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Search] ${provider} request: query length=${query?.length || 0}`);
+  }
 
   const rateLimitResult = await checkRateLimit(req, '/api/pars');
   if (!rateLimitResult.success) {
-    console.log(`[Search] Rate limit exceeded for ${provider}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Search] Rate limit exceeded for ${provider}`);
+    }
     return rateLimitResult.response!;
   }
 
+  // Validate query parameter
   if (!query) {
-    console.log(`[Search] Missing query parameter for ${provider}`);
     return NextResponse.json({ error: 'Missing query parameter "q".' }, { status: 400 });
+  }
+
+  // Prevent DoS attacks with extremely long queries (max 500 characters)
+  if (query.length > 500) {
+    return NextResponse.json(
+      { error: 'Query parameter is too long. Maximum length is 500 characters.' },
+      { status: 400 }
+    );
   }
 
   let results: Results[] = [];
@@ -401,7 +425,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   let videos: any[] = [];
   let news: any[] = [];
   let totalResultsCount = 0;
-  console.log(`[Search] Calling ${provider} API`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Search] Calling ${provider} API`);
+  }
   switch (provider.toLowerCase()) {
     case 'duck':
       results = await getDuck(query);
@@ -418,10 +444,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     case 'google': {
       const authUser = await getJWTUser(req);
       if (!authUser) {
-        console.log(`[Search] Google requires authentication, user not found`);
         return NextResponse.json({ error: 'Authentication required for Google search.' }, { status: 401 });
       }
-      console.log(`[Search] Authenticated user for Google: ${authUser.userId}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Search] Authenticated user for Google`);
+      }
       const googleRes = await getGoogle(query, country, safesearch, lang);
       results = googleRes.results;
       totalResultsCount = results.length;
@@ -434,21 +461,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       break;
     }
     default:
-      console.log(`[Search] Unsupported provider: ${provider}`);
       return NextResponse.json({ error: 'Unsupported provider.' }, { status: 400 });
   }
 
-  console.log(`[Search] ${provider} returned ${results.length} results, ${videos.length} videos, ${news.length} news`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Search] ${provider} returned ${results.length} results`);
+  }
 
   // Generate favicon URLs for returned results using our favicon proxy
   try {
     await fetchFaviconsForResults(results);
   } catch (e) {
-    console.warn('[Search] Favicon processing failed:', e);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Search] Favicon processing failed:', e);
+    }
   }
 
   const responseTime = Date.now() - now;
-  console.log(`[Search] ${provider} completed in ${responseTime}ms`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Search] ${provider} completed in ${responseTime}ms`);
+  }
 
   // Fire-and-forget usage logging (no PII, aggregated daily)
   // Fire-and-forget usage logging (no PII, aggregated daily)
@@ -462,11 +494,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       totalResults: totalResultsCount || results.length,
       queryText: query || undefined,
     }).catch((e) => {
-      console.warn('[Convex] Failed to log search usage:', e);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Convex] Failed to log search usage:', e);
+      }
     });
-    console.log(`[Convex] Logged search usage for ${provider} (non-blocking)`);
   } catch (e) {
-    console.warn('[Convex] Failed to initiate search usage logging:', e);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Convex] Failed to initiate search usage logging:', e);
+    }
   }
 
   return NextResponse.json({

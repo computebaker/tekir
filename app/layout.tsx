@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Viewport } from 'next';
 import ClientLayout from '@/components/client-layout';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { Inter } from 'next/font/google';
 import Script from "next/script";
 
@@ -35,9 +36,11 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={inter.className}>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <ErrorBoundary>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </ErrorBoundary>
       </body>
     </html>
   );

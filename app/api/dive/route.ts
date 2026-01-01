@@ -35,7 +35,9 @@ async function fetchPageContent(url: string): Promise<string> {
     clearTimeout(timeoutId);
     
     if (!response.ok) {
-      console.warn(`Failed to fetch ${url}: ${response.statusText}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Failed to fetch ${url}: ${response.statusText}`);
+      }
       return ""; // Return empty string on failure
     }
     
@@ -81,85 +83,107 @@ async function fetchPageContent(url: string): Promise<string> {
     // Return smaller content for faster processing
     return mainContent.substring(0, 2000); // Reduced from 5000 to 2000
   } catch (error) {
-    console.warn(`Error fetching or processing ${url}:`, error);
-    return ""; 
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`Error fetching or processing ${url}:`, error);
+    }
+    return "";
   }
 }
 
 async function fetchPagesWithFallback(pages: PageContent[]): Promise<PageContent[]> {
   const TARGET_PAGES = 2;
   const MAX_CONCURRENT = 4; // Increase concurrent requests
-  
-  console.log(`Starting fetch for ${pages.length} candidate pages`);
-  
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Starting fetch for ${pages.length} candidate pages`);
+  }
+
   // Phase 1: Try multiple pages concurrently (not just first 2)
   const firstBatch = pages.slice(0, MAX_CONCURRENT);
   const fetchPromises = firstBatch.map(async (page) => {
     const startTime = Date.now();
     const content = await fetchPageContent(page.url);
     const duration = Date.now() - startTime;
-    
+
     if (content && content.trim().length > 100) { // Minimum content threshold
-      console.log(`Successfully fetched: ${page.title} (${duration}ms)`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Successfully fetched: ${page.title} (${duration}ms)`);
+      }
       return {
         ...page,
         htmlContent: content,
       };
     } else {
-      console.log(`Failed to fetch: ${page.title} (${duration}ms)`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Failed to fetch: ${page.title} (${duration}ms)`);
+      }
       return null;
     }
   });
-  
+
   const results = await Promise.all(fetchPromises);
   const validResults = results.filter(result => result !== null) as PageContent[];
-  
+
   // If we have enough pages, return them
   if (validResults.length >= TARGET_PAGES) {
-    console.log(`Got ${validResults.length} pages from first batch`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Got ${validResults.length} pages from first batch`);
+    }
     return validResults.slice(0, TARGET_PAGES);
   }
-  
+
   // Phase 2: If we need more pages, try remaining ones in parallel
   if (validResults.length < TARGET_PAGES && pages.length > MAX_CONCURRENT) {
     const needed = TARGET_PAGES - validResults.length;
-    console.log(`Need ${needed} more pages, trying remaining candidates...`);
-    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Need ${needed} more pages, trying remaining candidates...`);
+    }
+
     const remainingPages = pages.slice(MAX_CONCURRENT);
     const remainingPromises = remainingPages.slice(0, needed * 2).map(async (page) => {
       const startTime = Date.now();
       const content = await fetchPageContent(page.url);
       const duration = Date.now() - startTime;
-      
+
       if (content && content.trim().length > 100) {
-        console.log(`Successfully fetched fallback: ${page.title} (${duration}ms)`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Successfully fetched fallback: ${page.title} (${duration}ms)`);
+        }
         return {
           ...page,
           htmlContent: content,
         };
       } else {
-        console.log(`Failed to fetch fallback: ${page.title} (${duration}ms)`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Failed to fetch fallback: ${page.title} (${duration}ms)`);
+        }
         return null;
       }
     });
-    
+
     const remainingResults = await Promise.all(remainingPromises);
     const validRemainingResults = remainingResults.filter(result => result !== null) as PageContent[];
-    
+
     validResults.push(...validRemainingResults.slice(0, needed));
   }
-  
-  console.log(`Final result: ${validResults.length} pages successfully fetched`);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Final result: ${validResults.length} pages successfully fetched`);
+  }
   return validResults;
 }
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
-  console.log(`[Dive] Starting dive request`);
-  
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Dive] Starting dive request`);
+  }
+
   const rateLimitResult = await checkRateLimit(req, '/api/dive');
   if (!rateLimitResult.success) {
-    console.log(`[Dive] Rate limit exceeded`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Dive] Rate limit exceeded`);
+    }
     return rateLimitResult.response!;
   }
 
@@ -167,11 +191,12 @@ export async function POST(req: NextRequest) {
     const { query, pages } = await req.json() as { query: string, pages: PageContent[] };
 
     if (!query || !pages || pages.length === 0) {
-      console.log(`[Dive] Missing query or pages`);
       return NextResponse.json({ error: 'Missing query or pages for Dive mode.' }, { status: 400 });
     }
 
-    console.log(`[Dive] Processing query "${query}" with ${pages.length} candidate pages`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Dive] Processing query with ${pages.length} candidate pages`);
+    }
 
     // Use the new optimized fallback mechanism to fetch pages
     const fetchStartTime = Date.now();
@@ -179,11 +204,12 @@ export async function POST(req: NextRequest) {
     const fetchDuration = Date.now() - fetchStartTime;
 
     if (validPages.length === 0) {
-      console.log(`[Dive] No valid pages fetched`);
       return NextResponse.json({ error: 'Could not fetch meaningful content from any of the provided URLs.' }, { status: 500 });
     }
 
-    console.log(`[Dive] Page fetching completed: ${validPages.length}/${pages.length} pages in ${fetchDuration}ms`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Dive] Page fetching completed: ${validPages.length}/${pages.length} pages in ${fetchDuration}ms`);
+    }
 
     // Prepare optimized prompt for LLM
     let contextForLlm = "";
@@ -196,7 +222,9 @@ export async function POST(req: NextRequest) {
     const llmPrompt = `Query: "${query}"\n\nContent:\n${contextForLlm}\n\nProvide a concise, accurate answer based on the above sources.`;
 
     const aiStartTime = Date.now();
-    console.log(`[Dive] Calling AI API`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Dive] Calling AI API`);
+    }
     const llmResponse = await openai.chat.completions.create({
       model: 'openai/gpt-5-mini', 
       messages: [
@@ -216,7 +244,9 @@ export async function POST(req: NextRequest) {
     const aiDuration = Date.now() - aiStartTime;
     const totalDuration = Date.now() - startTime;
 
-    console.log(`[Dive] AI completed in ${aiDuration}ms, total ${totalDuration}ms`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Dive] AI completed in ${aiDuration}ms, total ${totalDuration}ms`);
+    }
 
     const answer = llmResponse.choices[0].message.content;
 
@@ -234,7 +264,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     const totalDuration = Date.now() - startTime;
-    console.error(`[Dive] Error after ${totalDuration}ms:`, error.message || error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[Dive] Error after ${totalDuration}ms:`, error.message || error);
+    }
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

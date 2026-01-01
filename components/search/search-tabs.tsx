@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { Search, Image as ImageIcon, Newspaper, Video, MoreHorizontal } from "lucide-react";
+import React, { useState, useRef, useEffect, ComponentType } from "react";
+import { Search, Image as ImageIcon, Newspaper, Video, MoreHorizontal, LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface SearchTabsProps {
@@ -12,7 +12,7 @@ interface SearchTabsProps {
 export function SearchTabs({ active, onChange }: SearchTabsProps) {
   const t = useTranslations('search.tabs');
 
-  const TABS: Array<{ key: 'web' | 'images' | 'news' | 'videos'; label: string; Icon: any }> = [
+  const TABS: Array<{ key: 'web' | 'images' | 'news' | 'videos'; label: string; Icon: LucideIcon }> = [
     { key: 'web', label: t('web'), Icon: Search },
     { key: 'images', label: t('images'), Icon: ImageIcon },
     { key: 'videos', label: t('videos'), Icon: Video },

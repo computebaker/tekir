@@ -501,15 +501,14 @@ export const getOrCreateSessionToken = mutation({
   },
 });
 
-// Helper function to generate session tokens (moved from client library)
+// Helper function to generate cryptographically secure session tokens
 function generateSessionToken(): string {
-  // Generate a secure random session token
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 64; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  // Use Web Crypto API for cryptographically secure random values
+  // This works in Convex's JavaScript runtime environment
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  // Convert to hex string (64 characters)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export const cleanExpiredSessions = mutation({

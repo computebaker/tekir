@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         authenticated: true,
-        token: authToken,
+        // Token not included in response - already stored in HttpOnly cookie for security
         user: {
           id: user._id,
           email: user.email,

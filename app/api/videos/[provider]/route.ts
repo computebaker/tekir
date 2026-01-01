@@ -68,7 +68,9 @@ async function getBraveVideos(q: string, count: number = 20): Promise<VideoResul
     const data = await res.json();
     return data.results || [];
   } catch (error) {
-    console.error('Error fetching Brave video search data:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Brave video search data:', error);
+    }
     return [];
   }
 }
