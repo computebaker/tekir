@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable SWC minification (faster and better than Terser)
+  swcMinify: true,
+
   images: {
     remotePatterns: [
       {
@@ -23,6 +26,8 @@ const nextConfig = {
     ],
     minimumCacheTTL: 0,
   },
+
+  // Only transpile packages that truly need it (undici for Node fetch in older environments)
   transpilePackages: ['undici'],
 
   experimental: {
@@ -45,6 +50,26 @@ const nextConfig = {
 
   async headers() {
     return [
+      {
+        // Static JS/CSS assets with content hash - cache forever
+        source: '/:path*.(js|css|json|woff|woff2|ttf|otf)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      {
+        // Static assets in _next directory (Next.js build artifacts)
+        source: '/_next/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
       {
         source: '/:path*',
         headers: [

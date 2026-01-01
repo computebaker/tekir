@@ -5,7 +5,12 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Inter } from 'next/font/google';
 import Script from "next/script";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap', 
+  preload: true, 
+});
 
 export const viewport: Viewport = {
   themeColor: [
@@ -34,6 +39,14 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
         <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Tekir" />
         <meta name="mobile-web-app-capable" content="yes" />
+
+        {/* Preconnect to external origins for faster resource loading */}
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://tekir.co" />
+
+        {/* Preload critical resources */}
+        <link rel="preload" href="/favicon.ico" as="image" type="image/x-icon" />
       </head>
       <body className={inter.className}>
         <ErrorBoundary>

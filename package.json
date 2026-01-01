@@ -92,5 +92,13 @@
     "baseline-browser-mapping": "^2.8.32",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.3"
-  }
+  },
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Safari versions",
+    "last 2 Edge versions",
+    "not dead",
+    "not op_mini all"
+  ]
 }
