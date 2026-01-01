@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         authenticated: true,
-        // Token not included in response - already stored in HttpOnly cookie for security
+        // Return token for Convex authentication (token is from HttpOnly cookie - user already has it)
+        token: authToken,
         user: {
           id: user._id,
           email: user.email,

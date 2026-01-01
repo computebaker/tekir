@@ -198,21 +198,27 @@ function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
 
     // Effect to track custom location changes
     useEffect(() => {
-        const storedLocation = safeGetItem<string>("customWeatherLocation");
+        // Use localStorage directly for custom weather location since it's stored as JSON
+        // and we need to parse/validate it manually
+        const storedLocationStr = localStorage.getItem("customWeatherLocation");
         let newKey = "ip-based";
-        if (storedLocation) {
+        if (storedLocationStr) {
             try {
-                const location = JSON.parse(storedLocation);
+                const location = JSON.parse(storedLocationStr);
                 // Validate the location object
                 if (location && typeof location.lat === 'number' && typeof location.lon === 'number') {
                     newKey = `${location.lat}-${location.lon}`;
                 } else {
-                    console.warn("Invalid stored weather location data:", location);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.warn("Invalid stored weather location data:", location);
+                    }
                     // Clear invalid data
                     localStorage.removeItem("customWeatherLocation");
                 }
             } catch (error) {
-                console.warn("Failed to parse stored weather location:", error);
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn("Failed to parse stored weather location:", error);
+                }
                 // Clear invalid data
                 localStorage.removeItem("customWeatherLocation");
             }
@@ -242,8 +248,11 @@ function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
 
         // Clear any conflicting cache data on initialization
         const clearConflictingCache = () => {
-            const storedLocation = safeGetItem<string>("customWeatherLocation");
-            if (storedLocation) {
+            // Use localStorage directly for custom weather location
+            const storedLocationStr = localStorage.getItem("customWeatherLocation");
+            const hasCustomLocation = storedLocationStr !== null;
+
+            if (hasCustomLocation) {
                 // Custom location is set, clear IP-based cache
                 localStorage.removeItem('weather-data');
                 localStorage.removeItem('weather-timestamp');
