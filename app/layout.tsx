@@ -36,6 +36,24 @@ export default function RootLayout({
         )}
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="description" content="Tekir is a fast, open-source, and privacy-focused search engine." />
+
+        {/* Content Security Policy - strict in production, permissive in development for debugging tools */}
+        {process.env.NODE_ENV === "development" ? (
+          <meta httpEquiv="Content-Security-Policy" content="
+            default-src 'self' 'unsafe-inline' 'unsafe-eval' *.unpkg.com;
+            script-src 'self' 'unsafe-inline' 'unsafe-eval' *.unpkg.com;
+            style-src 'self' 'unsafe-inline';
+          " />
+        ) : (
+          <meta httpEquiv="Content-Security-Policy" content="
+            default-src 'self';
+            script-src 'self' 'unsafe-inline';
+            style-src 'self' 'unsafe-inline';
+            img-src 'self' data: https: blob:;
+            font-src 'self' data:;
+            connect-src 'self' https: wss: blob:;
+          " />
+        )}
         <link rel="icon" href="/favicon.ico" />
         <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Tekir" />
         <meta name="mobile-web-app-capable" content="yes" />
