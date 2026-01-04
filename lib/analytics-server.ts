@@ -207,6 +207,10 @@ export interface LLMServerEventProperties {
   $ai_tokens_input?: number;
   $ai_tokens_output?: number;
   $ai_tokens_total?: number;
+  // Cost tracking (in USD) - PostHog native fields
+  $ai_input_cost_usd?: number;
+  $ai_output_cost_usd?: number;
+  $ai_total_cost_usd?: number;
   $ai_trace_id?: string;
   $ai_temperature?: number;
   $ai_max_tokens?: number;
@@ -232,6 +236,10 @@ export function trackLLMGeneration(properties: LLMServerEventProperties): void {
       $ai_tokens_input: properties.$ai_tokens_input,
       $ai_tokens_output: properties.$ai_tokens_output,
       $ai_tokens_total: properties.$ai_tokens_total,
+      // Cost in USD - PostHog uses these for LLM cost dashboards
+      $ai_input_cost_usd: properties.$ai_input_cost_usd,
+      $ai_output_cost_usd: properties.$ai_output_cost_usd,
+      $ai_total_cost_usd: properties.$ai_total_cost_usd,
       $ai_trace_id: properties.$ai_trace_id,
       $ai_temperature: properties.$ai_temperature,
       $ai_max_tokens: properties.$ai_max_tokens,

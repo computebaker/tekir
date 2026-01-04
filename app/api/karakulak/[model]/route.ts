@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
-import { calculateCost, estimateTokens } from '@/lib/analytics-events';
+import { estimateTokens } from '@/lib/analytics-events';
 import {
   trackServerAIError,
   flushServerEvents,
@@ -13,6 +13,19 @@ import { WideEvent } from '@/lib/wide-event';
 import { randomUUID } from 'crypto';
 
 type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
+
+// Extended usage type for OpenRouter's response which includes cost
+interface OpenRouterUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  // OpenRouter-specific: actual cost in USD
+  cost?: number;
+  // OpenRouter-specific: native token counts (before any conversion)
+  native_tokens_prompt?: number;
+  native_tokens_completion?: number;
+  native_tokens_reasoning?: number;
+}
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -27,6 +40,12 @@ const generationConfig = {
   temperature: 0,
   top_p: 0.95,
   max_tokens: 300,
+  // Exclude reasoning tokens from response - ensures content is in message.content
+  // Without this, models with reasoning capabilities may return empty content
+  // and put reasoning in a separate field
+  reasoning: {
+    exclude: true,
+  },
 };
 
 const SYSTEM_PROMPT = `You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can't or don't want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can't find information on the question or you don't understand it, return an empty response.`;
@@ -196,13 +215,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     const latency = Date.now() - t0;
     const answer = response.choices[0]?.message.content ?? '';
     const actualModel = response.model || MODEL_CONFIG[modelKey].id;
-    const usage = response.usage;
-
-    // Calculate estimated cost (fallback if usage not available)
-    const queryTokens = usage?.prompt_tokens || estimateTokens(sanitizedMessage);
-    const answerTokens = usage?.completion_tokens || estimateTokens(answer);
-    const totalTokens = usage?.total_tokens || (queryTokens + answerTokens);
-    const estimatedCost = calculateCost(modelKey, sanitizedMessage, answer);
+    
+    // Get actual usage data from OpenRouter response (includes cost)
+    const usage = response.usage as OpenRouterUsage | undefined;
+    
+    // Use actual token counts from API, fallback to estimates only if not available
+    const queryTokens = usage?.prompt_tokens ?? estimateTokens(sanitizedMessage);
+    const answerTokens = usage?.completion_tokens ?? estimateTokens(answer);
+    const totalTokens = usage?.total_tokens ?? (queryTokens + answerTokens);
+    
+    // Use actual cost from OpenRouter if available (in USD), otherwise null
+    const actualCost = usage?.cost ?? null;
 
     // Update AI context with response data
     wideEvent.setAI({
@@ -210,12 +233,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
       query_length: sanitizedMessage.length,
       response_length: answer.length,
       estimated_tokens: totalTokens,
-      estimated_cost_cents: estimatedCost * 100,
+      estimated_cost_cents: actualCost !== null ? actualCost * 100 : undefined,
       is_dive_mode: false,
     });
     wideEvent.setCustom('latency_ms', latency);
     wideEvent.setCustom('response_length', answer.length);
     wideEvent.setCustom('actual_model', actualModel);
+    if (actualCost !== null) {
+      wideEvent.setCustom('actual_cost_usd', actualCost);
+    }
     wideEvent.finish(200);
 
     // Track with native PostHog LLM analytics
@@ -228,6 +254,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
       $ai_tokens_input: queryTokens,
       $ai_tokens_output: answerTokens,
       $ai_tokens_total: totalTokens,
+      $ai_total_cost_usd: actualCost ?? undefined,
       $ai_trace_id: traceId,
       $ai_temperature: generationConfig.temperature,
       $ai_max_tokens: generationConfig.max_tokens,
@@ -250,7 +277,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     const jsonResponse = NextResponse.json(
       {
         answer,
-        // Include metadata for client-side analytics (respects user consent)
+        // Include actual usage data from OpenRouter API
         _analytics: {
           model: modelKey,
           actual_model: actualModel,
@@ -260,7 +287,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
           tokens_input: queryTokens,
           tokens_output: answerTokens,
           tokens_total: totalTokens,
-          estimated_cost: estimatedCost,
+          // Actual cost from OpenRouter API in USD (null if not available)
+          cost: actualCost,
           trace_id: traceId,
         },
       },
