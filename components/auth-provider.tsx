@@ -57,8 +57,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const isCheckingRef = useRef(false); // Use ref instead of state to prevent re-renders
   const lastCheckTimeRef = useRef(0); // Track last check time to prevent spam
+  const initialCheckDoneRef = useRef(false); // Track if initial check completed
+  const pendingAuthCheckRef = useRef<(() => void) | null>(null); // Store pending auth check
 
-  const checkAuthStatus = useCallback(async (force = false) => {
+  const checkAuthStatus = useCallback(async (force = false, retryCount = 0) => {
     // Prevent multiple simultaneous auth checks
     if (isCheckingRef.current) {
       return;
@@ -70,6 +72,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const startTime = Date.now();
     isCheckingRef.current = true;
     lastCheckTimeRef.current = now;
     try {
@@ -114,32 +117,84 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             }
             return prevUser;
           });
+          // Only set authenticated status AFTER Convex auth is ready
           setStatus("authenticated");
+          initialCheckDoneRef.current = true;
         } else {
           setAuthToken(null);
           await convex.setAuth(async () => null);
           setUser(null);
           setStatus("unauthenticated");
+          initialCheckDoneRef.current = true;
         }
       } else {
         setAuthToken(null);
         await convex.setAuth(async () => null);
         setUser(null);
         setStatus("unauthenticated");
+        initialCheckDoneRef.current = true;
       }
     } catch (error) {
       console.error('JWT auth check failed:', error);
+
+      // Retry logic for transient network issues on initial check
+      if (!initialCheckDoneRef.current && retryCount < 2) {
+        console.log(`Retrying auth check (${retryCount + 1}/2)...`);
+        isCheckingRef.current = false;
+        // Exponential backoff: 500ms, then 1000ms
+        await new Promise(resolve => setTimeout(resolve, 500 * (retryCount + 1)));
+        return checkAuthStatus(force, retryCount + 1);
+      }
+
+      // Add minimum delay before showing unauthenticated on initial check
+      // This prevents a flash of "guest" UI when the network is just slow
+      if (!initialCheckDoneRef.current) {
+        const elapsed = Date.now() - startTime;
+        const minDelay = 500; // 500ms minimum delay for initial check
+        if (elapsed < minDelay) {
+          await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
+        }
+      }
+
       setAuthToken(null);
       setUser(null);
       setStatus("unauthenticated");
+      initialCheckDoneRef.current = true;
     } finally {
       isCheckingRef.current = false;
     }
   }, []); // No dependencies to prevent recreation
 
   useEffect(() => {
-    // Check for existing session on mount only - force this initial check
-    checkAuthStatus(true);
+    // Define auth check function that will be called
+    const doAuthCheck = () => {
+      checkAuthStatus(true);
+    };
+
+    // Check if session is already registered (from sessionStorage flag set by client-layout)
+    if ((window as any).__sessionRegistered) {
+      // Session already registered, proceed with auth check
+      doAuthCheck();
+    } else {
+      // Session not registered yet - wait for the event
+      // This prevents race condition where auth check runs before session is ready
+      const handleSessionRegistered = () => {
+        doAuthCheck();
+      };
+
+      window.addEventListener('session-registered', handleSessionRegistered, { once: true });
+
+      // Also set up a timeout fallback (in case event never fires)
+      const timeoutId = setTimeout(() => {
+        window.removeEventListener('session-registered', handleSessionRegistered);
+        doAuthCheck();
+      }, 2000); // 2 second fallback timeout
+
+      return () => {
+        window.removeEventListener('session-registered', handleSessionRegistered);
+        clearTimeout(timeoutId);
+      };
+    }
 
     // Listen for custom authentication events only
     const handleAuthLogin = () => {

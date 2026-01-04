@@ -83,12 +83,14 @@ export default function ClientLayout({
           }
         }
       } else {
-        // If we have a cookie but sessionStorage doesn't know about it, we assume it's valid 
+        // If we have a cookie but sessionStorage doesn't know about it, we assume it's valid
         // but mark it as registered to skip future checks in this tab.
         // Ideally we might want to verify it, but for performance we trust the cookie existence.
         console.log("Existing session token:", sessionToken);
         sessionStorage.setItem('session_registered', 'true');
         (window as any).__sessionRegistered = true;
+        // Dispatch event so AuthProvider can proceed with auth check
+        window.dispatchEvent(new Event('session-registered'));
       }
     };
     initializeSession();

@@ -227,10 +227,11 @@ export function useConvexSettings() {
   // Wait a tick after user is authenticated to ensure Convex auth is set
   useEffect(() => {
     if (status === 'authenticated' && user?.id && authToken) {
-      // Small delay to ensure convex.setAuth has completed
+      // Delay to ensure convex.setAuth has completed
+      // Increased from 100ms to 300ms for more reliable Convex auth readiness
       const timer = setTimeout(() => {
         setConvexAuthReady(true);
-      }, 100);
+      }, 300);
       return () => clearTimeout(timer);
     } else {
       setConvexAuthReady(false);
