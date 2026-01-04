@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
+import {
+  trackServerSearch,
+  trackAPIError,
+  flushServerEvents,
+} from '@/lib/analytics-server';
 
 interface VideoAuthor {
   name?: string;
@@ -92,20 +97,60 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   }
 
   let results: VideoResult[] = [];
+  const now = Date.now();
 
-  switch (provider.toLowerCase()) {
-    case 'brave': {
-      results = await getBraveVideos(query, count);
+  try {
+    switch (provider.toLowerCase()) {
+      case 'brave': {
+        results = await getBraveVideos(query, count);
 
-      const response: SearchResponse = {
-        results,
-        provider: 'Brave'
-      };
+        const responseTime = Date.now() - now;
+        trackServerSearch({
+          search_type: 'videos',
+          provider: 'brave',
+          results_count: results.length,
+          response_time_ms: responseTime,
+          user_authenticated: false,
+        });
 
-      return NextResponse.json(response, { status: 200 });
+        const response: SearchResponse = {
+          results,
+          provider: 'Brave'
+        };
+
+        flushServerEvents().catch((err) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[PostHog] Failed to flush events:', err);
+          }
+        });
+
+        return NextResponse.json(response, { status: 200 });
+      }
+
+      default:
+        return NextResponse.json({ error: 'Invalid or unsupported provider. Currently only "brave" is supported.' }, { status: 400 });
     }
+  } catch (error: any) {
+    const responseTime = Date.now() - now;
+    
+    trackAPIError({
+      endpoint: '/api/videos/[provider]',
+      method: 'GET',
+      status_code: 500,
+      error_type: error.name || 'VideoSearchError',
+      error_message: error.message || 'Unknown video search error',
+      user_authenticated: false,
+    });
+    
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
 
-    default:
-      return NextResponse.json({ error: 'Invalid or unsupported provider. Currently only "brave" is supported.' }, { status: 400 });
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[VideoSearch] ${provider} error:`, error);
+    }
+    return NextResponse.json({ error: 'Video search failed', details: error.message }, { status: 500 });
   }
 }

@@ -5,6 +5,11 @@ import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
 import { getJWTUser } from '@/lib/jwt-auth';
+import {
+  trackServerSearch,
+  trackAPIError,
+  flushServerEvents,
+} from '@/lib/analytics-server';
 
 async function fetchFaviconsForResults(items: Array<{ url: string; favicon?: string }>) {
   if (!Array.isArray(items) || items.length === 0) return;
@@ -428,7 +433,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   if (process.env.NODE_ENV === 'development') {
     console.log(`[Search] Calling ${provider} API`);
   }
-  switch (provider.toLowerCase()) {
+
+  try {
+    switch (provider.toLowerCase()) {
     case 'duck':
       results = await getDuck(query);
       totalResultsCount = results.length;
@@ -463,9 +470,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     default:
       return NextResponse.json({ error: 'Unsupported provider.' }, { status: 400 });
   }
+  } catch (error: any) {
+    const responseTime = Date.now() - now;
+    
+    // Track search error with PostHog
+    trackAPIError({
+      endpoint: '/api/pars/[provider]',
+      method: 'GET',
+      status_code: 500,
+      error_type: error.name || 'SearchError',
+      error_message: error.message || 'Unknown search error',
+      user_authenticated: !!(await getJWTUser(req)),
+    });
+    
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[Search] ${provider} returned ${results.length} results`);
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[Search] ${provider} error:`, error);
+    }
+    return NextResponse.json({ error: 'Search failed', details: error.message }, { status: 500 });
   }
 
   // Generate favicon URLs for returned results using our favicon proxy
@@ -481,6 +508,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   if (process.env.NODE_ENV === 'development') {
     console.log(`[Search] ${provider} completed in ${responseTime}ms`);
   }
+
+  // Track successful search with PostHog
+  trackServerSearch({
+    search_type: 'web',
+    provider: provider.toLowerCase(),
+    results_count: totalResultsCount || results.length,
+    response_time_ms: responseTime,
+    user_authenticated: !!(await getJWTUser(req)),
+  });
 
   // Fire-and-forget usage logging (no PII, aggregated daily)
   // Fire-and-forget usage logging (no PII, aggregated daily)
@@ -503,6 +539,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       console.warn('[Convex] Failed to initiate search usage logging:', e);
     }
   }
+
+  // Flush analytics after sending response
+  flushServerEvents().catch((err) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[PostHog] Failed to flush events:', err);
+    }
+  });
 
   return NextResponse.json({
     results,

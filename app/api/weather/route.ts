@@ -1,13 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
+import {
+  trackAPISuccess,
+  trackAPIError,
+  flushServerEvents,
+} from '@/lib/analytics-server';
 
 export async function GET(request: NextRequest) {
   // Use the improved rate limiting middleware
   const rateLimitResult = await checkRateLimit(request, '/api/weather');
   
   if (!rateLimitResult.success) {
+    trackAPIError({
+      endpoint: '/api/weather',
+      method: 'GET',
+      status_code: 429,
+      error_type: 'RateLimitError',
+      error_message: 'Rate limit exceeded',
+      user_authenticated: false,
+    });
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
     return rateLimitResult.response!;
   }
+
+  const now = Date.now();
 
   try {
     // Get client IP from headers
@@ -34,8 +54,40 @@ export async function GET(request: NextRequest) {
 
     const weatherData = await response.json();
     
+    const responseTime = Date.now() - now;
+    trackAPISuccess({
+      endpoint: '/api/weather',
+      method: 'GET',
+      status_code: 200,
+      response_time_ms: responseTime,
+      user_authenticated: false,
+    });
+
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
+    
     return NextResponse.json(weatherData);
-  } catch (error) {
+  } catch (error: any) {
+    const responseTime = Date.now() - now;
+    
+    trackAPIError({
+      endpoint: '/api/weather',
+      method: 'GET',
+      status_code: 500,
+      error_type: error.name || 'WeatherError',
+      error_message: error.message || 'Failed to fetch weather data',
+      user_authenticated: false,
+    });
+
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
+
     console.error("Weather API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch weather data" },
