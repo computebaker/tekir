@@ -229,20 +229,24 @@ export function trackLLMGeneration(properties: LLMServerEventProperties): void {
     properties: {
       $ai_provider: properties.$ai_provider,
       $ai_model: properties.$ai_model,
-      $ai_input: properties.$ai_input,
-      $ai_output: properties.$ai_output,
+      // PostHog expects OpenAI-compatible message format for proper display
+      $ai_input: [
+        { role: 'user', content: properties.$ai_input }
+      ],
+      // Output choices - just the content strings
       $ai_output_choices: [properties.$ai_output],
-      $ai_latency: properties.$ai_latency,
-      $ai_tokens_input: properties.$ai_tokens_input,
-      $ai_tokens_output: properties.$ai_tokens_output,
-      $ai_tokens_total: properties.$ai_tokens_total,
+      $ai_latency: properties.$ai_latency / 1000, // Convert ms to seconds for PostHog
+      // Token counts
+      $ai_input_tokens: properties.$ai_tokens_input,
+      $ai_output_tokens: properties.$ai_tokens_output,
       // Cost in USD - PostHog uses these for LLM cost dashboards
       $ai_input_cost_usd: properties.$ai_input_cost_usd,
       $ai_output_cost_usd: properties.$ai_output_cost_usd,
       $ai_total_cost_usd: properties.$ai_total_cost_usd,
       $ai_trace_id: properties.$ai_trace_id,
-      $ai_temperature: properties.$ai_temperature,
-      $ai_max_tokens: properties.$ai_max_tokens,
+      // Additional metadata
+      temperature: properties.$ai_temperature,
+      max_tokens: properties.$ai_max_tokens,
       server_event: true,
       environment: process.env.NODE_ENV || 'unknown',
     },
