@@ -83,9 +83,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   karakulakEnabled_grok: true,
   language: "en", // Default language: English
   selectedLogo: "tekir", // Default logo: Tekir
-  // Analytics defaults - privacy-first (opt-in only)
-  analyticsEnabled: false,
-  sessionReplayEnabled: false,
+  analyticsEnabled: true,
+  sessionReplayEnabled: true,
 };
 
 class ConvexSettingsManager {

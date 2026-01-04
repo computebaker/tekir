@@ -18,7 +18,7 @@ export default function AnalyticsSettingsPage() {
 
   const { settings, updateSetting } = useSettings();
 
-  const analyticsEnabled = settings.analyticsEnabled ?? false;
+  const analyticsEnabled = settings.analyticsEnabled ?? true;
   const sessionReplayEnabled = settings.sessionReplayEnabled ?? false;
 
   const mobileNavItems: MobileNavItem[] = [
