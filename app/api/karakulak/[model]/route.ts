@@ -1,17 +1,18 @@
-// Remove all in-memory cache logic
-
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
-import { generateText, streamText } from 'ai';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
-import { calculateCost, estimateTokens, TOKEN_COSTS } from '@/lib/analytics-events';
+import { calculateCost, estimateTokens } from '@/lib/analytics-events';
 import {
-  trackServerAIQuery,
   trackServerAIError,
   flushServerEvents,
+  trackLLMGeneration,
 } from '@/lib/analytics-server';
+import { WideEvent } from '@/lib/wide-event';
+import { randomUUID } from 'crypto';
+
+type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -26,20 +27,57 @@ const generationConfig = {
   temperature: 0,
   top_p: 0.95,
   max_tokens: 300,
-  reasoning: {
-    exclude: true,
-  },
 };
 
-async function gemini(message: string): Promise<string> {
+const SYSTEM_PROMPT = `You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can't or don't want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can't find information on the question or you don't understand it, return an empty response.`;
+
+// Model configurations with their actual OpenRouter model IDs
+const MODEL_CONFIG = {
+  gemini: {
+    id: 'google/gemini-2.5-flash-lite',
+    provider: 'google',
+  },
+  llama: {
+    id: 'meta-llama/llama-4-maverick',
+    provider: 'meta',
+  },
+  mistral: {
+    id: 'mistralai/mistral-small-3.2-24b-instruct',
+    provider: 'mistralai',
+  },
+  chatgpt: {
+    id: 'openai/gpt-5-mini',
+    provider: 'openai',
+  },
+  grok: {
+    id: 'x-ai/grok-4-fast',
+    provider: 'x-ai',
+  },
+  claude: {
+    id: 'anthropic/claude-haiku-4.5',
+    provider: 'anthropic',
+  },
+} as const;
+
+type ModelKey = keyof typeof MODEL_CONFIG;
+
+/**
+ * Generic AI call function that returns the full API response
+ * for proper usage tracking with PostHog LLM analytics
+ */
+async function callAI(
+  modelKey: ModelKey,
+  message: string
+): Promise<ChatCompletionResponse> {
+  const config = MODEL_CONFIG[modelKey];
+
   const response = await openai.chat.completions.create({
-    model: 'google/gemini-2.5-flash-lite',
+    model: config.id,
     ...generationConfig,
     messages: [
       {
         role: 'system',
-        content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response.',
+        content: SYSTEM_PROMPT,
       },
       {
         role: 'user',
@@ -49,262 +87,219 @@ async function gemini(message: string): Promise<string> {
     stream: false,
   });
 
-  const answer = response.choices[0].message.content;
-  return answer ?? "";
+  return response;
 }
 
-async function llama(message: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'meta-llama/llama-4-maverick',
-    ...generationConfig,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response.',
-      },
-      {
-        role: 'user',
-        content: message,
-      },
-    ],
-    stream: false,
-  });
+// Helper to get user ID from session
+async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
+  try {
+    const sessionToken = req.cookies.get('session-token')?.value;
+    if (!sessionToken) return null;
 
-  const answer = response.choices[0].message.content;
-  return answer ?? "";
+    const convex = getConvexClient();
+    const session = await convex.query(api.sessions.getSessionByToken, { token: sessionToken });
+    return session?.userId || null;
+  } catch {
+    return null;
+  }
 }
-
-async function mistral(message: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'mistralai/mistral-small-3.2-24b-instruct',
-    ...generationConfig,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response.',
-      },
-      {
-        role: 'user',
-        content: message,
-      },
-    ],
-    stream: false,
-  });
-
-  const answer = response.choices[0].message.content;
-  return answer ?? "";
-}
-
-async function chatgpt(message: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'openai/gpt-5-mini',
-    ...generationConfig,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response. Sometimes, the users might provide single words like "reddit", "cat" etc., provide them with information about the string user submitted.',
-      },
-      {
-        role: 'user',
-        content: message,
-      },
-    ],
-    stream: false,
-  });
-
-  const answer = response.choices[0].message.content;
-  return answer ?? "";
-}
-
-async function grok(message: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'x-ai/grok-4-fast',
-    ...generationConfig,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response. When a user query is something like "reddit" or "redis", which are single word searches, provide information about the words topic.',
-      },
-      {
-        role: 'user',
-        content: message,
-      },
-    ],
-    stream: false,
-  });
-
-  const answer = response.choices[0].message.content;
-  return answer ?? "";
-}
-
-async function claude(message: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'anthropic/claude-haiku-4.5',
-    ...generationConfig,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can\'t or don\'t want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can\'t find information on the question or you don\'t understand it, return an empty response. Even if the search term is not a response (ex. Redis, Elon Musk etc.) provide relevant information about the topic.',
-      },
-      {
-        role: 'user',
-        content: message,
-      },
-    ],
-    stream: false,
-  });
-
-  const answer = response.choices[0].message.content;
-  return answer ?? "";
-}
-
-// Using shared Convex-backed rate limiter via middleware
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
-    // Add security headers
-    const headers = {
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'X-XSS-Protection': '1; mode=block',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-    };
+  // Generate a unique trace ID for this request
+  const traceId = randomUUID();
 
-    const { model } = await params;
-    console.log(`[AI] Karakulak request for model: ${model}`);
-    
-    // Validate model parameter
-  const validModels = ['gemini', 'llama', 'mistral', 'chatgpt', 'grok', 'claude'];
-    if (!validModels.includes(model.toLowerCase())) {
-      console.log(`[AI] Invalid model requested: ${model}`);
-      return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 400, headers });
-    }
-    
-    const rateLimitResult = await checkRateLimit(req, '/api/karakulak');
-    if (!rateLimitResult.success) {
-      console.log(`[AI] Rate limit exceeded for model: ${model}`);
-      return rateLimitResult.response!;
-    }
+  // Add security headers
+  const headers = {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+  };
+
+  const { model } = await params;
+  const wideEvent = WideEvent.getOrCreate();
+  wideEvent.setRequest({ method: 'POST', path: `/api/karakulak/${model}` });
+  wideEvent.setCustom('trace_id', traceId);
+
+  // Get user context
+  const userId = await getUserIdFromRequest(req);
+  if (userId) {
+    wideEvent.setUser({ id: userId });
+  }
+
+  // Validate model parameter
+  const validModels: ModelKey[] = ['gemini', 'llama', 'mistral', 'chatgpt', 'grok', 'claude'];
+  const modelKey = model.toLowerCase() as ModelKey;
+
+  if (!validModels.includes(modelKey)) {
+    wideEvent.setError({ type: 'ValidationError', message: `Invalid model: ${model}`, code: 'invalid_model' });
+    wideEvent.setAI({ model: modelKey, query_length: 0 });
+    wideEvent.finish(400);
+
+    return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 400, headers });
+  }
+
+  const rateLimitResult = await checkRateLimit(req, '/api/karakulak');
+  if (!rateLimitResult.success) {
+    wideEvent.setError({ type: 'RateLimitError', message: 'Rate limit exceeded', code: 'rate_limited' });
+    wideEvent.setAI({ model: modelKey, query_length: 0 });
+    wideEvent.finish(429);
+
+    return rateLimitResult.response!;
+  }
 
   const { message } = await req.json();
-  console.log(`[AI] Processing message for ${model}, length: ${message?.length || 0}`);
-  
+
   // Input validation
   if (!message || typeof message !== 'string') {
-    console.log(`[AI] Invalid message input for ${model}`);
+    wideEvent.setError({ type: 'ValidationError', message: 'Invalid message input', code: 'invalid_message' });
+    wideEvent.setAI({ model: modelKey, query_length: 0 });
+    wideEvent.finish(400);
+
     return NextResponse.json({ error: 'Message is required and must be a string.' }, { status: 400, headers });
   }
-  
+
   // Limit message length (400 characters as per search query limit)
   if (message.length > 400) {
-    console.log(`[AI] Message too long for ${model}: ${message.length} chars`);
+    wideEvent.setError({ type: 'ValidationError', message: 'Message too long', code: 'message_too_long' });
+    wideEvent.setAI({ model: modelKey, query_length: message.length });
+    wideEvent.finish(400);
+
     return NextResponse.json({ error: 'Message too long. Maximum 400 characters allowed.' }, { status: 400, headers });
   }
-  
+
   // Basic sanitization - remove excessive whitespace and potentially harmful characters
   const sanitizedMessage = message.trim().replace(/[\x00-\x1F\x7F]/g, '');
-  
+
   if (!sanitizedMessage) {
-    console.log(`[AI] Message empty after sanitization for ${model}`);
+    wideEvent.setError({ type: 'ValidationError', message: 'Message empty after sanitization', code: 'empty_message' });
+    wideEvent.setAI({ model: modelKey, query_length: 0 });
+    wideEvent.finish(400);
+
     return NextResponse.json({ error: 'Message cannot be empty after sanitization.' }, { status: 400, headers });
   }
 
+  // Set initial AI context
+  wideEvent.setAI({
+    model: modelKey,
+    query_length: sanitizedMessage.length,
+    is_dive_mode: false,
+  });
+
+  // Start timing
+  const t0 = Date.now();
+
   try {
-    let answer: string;
-    const t0 = Date.now();
-    console.log(`[AI] Calling ${model} API`);
-    const queryTokens = estimateTokens(sanitizedMessage);
+    // Call the AI model and get full response
+    const response = await callAI(modelKey, sanitizedMessage);
 
-    switch (model.toLowerCase()) {
-      case 'gemini':
-        answer = await gemini(sanitizedMessage);
-        break;
-      case 'llama':
-        answer = await llama(sanitizedMessage);
-        break;
-      case 'mistral':
-        answer = await mistral(sanitizedMessage);
-        break;
-      case 'chatgpt':
-        answer = await chatgpt(sanitizedMessage);
-        break;
-      case 'grok':
-        answer = await grok(sanitizedMessage);
-        break;
-      case 'claude':
-        answer = await claude(sanitizedMessage);
-        break;
-      default:
-        return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 404 });
-    }
     const latency = Date.now() - t0;
-    const answerTokens = estimateTokens(answer || '');
+    const answer = response.choices[0]?.message.content ?? '';
+    const actualModel = response.model || MODEL_CONFIG[modelKey].id;
+    const usage = response.usage;
 
-    // Calculate estimated cost
-    const estimatedCost = calculateCost(model.toLowerCase(), sanitizedMessage, answer || '');
+    // Calculate estimated cost (fallback if usage not available)
+    const queryTokens = usage?.prompt_tokens || estimateTokens(sanitizedMessage);
+    const answerTokens = usage?.completion_tokens || estimateTokens(answer);
+    const totalTokens = usage?.total_tokens || (queryTokens + answerTokens);
+    const estimatedCost = calculateCost(modelKey, sanitizedMessage, answer);
 
-    console.log(`[AI] ${model} completed in ${latency}ms, response length: ${answer?.length || 0}, estimated cost: $${estimatedCost.toFixed(6)}`);
+    // Update AI context with response data
+    wideEvent.setAI({
+      model: modelKey,
+      query_length: sanitizedMessage.length,
+      response_length: answer.length,
+      estimated_tokens: totalTokens,
+      estimated_cost_cents: estimatedCost * 100,
+      is_dive_mode: false,
+    });
+    wideEvent.setCustom('latency_ms', latency);
+    wideEvent.setCustom('response_length', answer.length);
+    wideEvent.setCustom('actual_model', actualModel);
+    wideEvent.finish(200);
+
+    // Track with native PostHog LLM analytics
+    trackLLMGeneration({
+      $ai_provider: MODEL_CONFIG[modelKey].provider,
+      $ai_model: actualModel,
+      $ai_input: sanitizedMessage,
+      $ai_output: answer,
+      $ai_latency: latency,
+      $ai_tokens_input: queryTokens,
+      $ai_tokens_output: answerTokens,
+      $ai_tokens_total: totalTokens,
+      $ai_trace_id: traceId,
+      $ai_temperature: generationConfig.temperature,
+      $ai_max_tokens: generationConfig.max_tokens,
+      user_id: userId || undefined,
+    });
 
     // Fire-and-forget AI usage logging to Convex
     try {
       const convex = getConvexClient();
       await convex.mutation(api.usage.logAiUsage, {
-        model: model.toLowerCase(),
+        model: modelKey,
         latencyMs: latency,
-        answerChars: (answer || '').length,
+        answerChars: answer.length,
       });
-      console.log(`[Convex] Logged AI usage for ${model}`);
     } catch (e) {
-      console.warn('[Convex] Failed to log AI usage:', e);
+      // Non-critical, continue
     }
 
-    // Track server-side analytics (non-sensitive aggregated data)
-    trackServerAIQuery({
-      model: model.toLowerCase(),
-      query_length: sanitizedMessage.length,
-      response_length: (answer || '').length,
-      response_time_ms: latency,
-      is_dive_mode: false,
-      estimated_cost_usd: estimatedCost,
-    });
-
-    // Return response with analytics metadata (client-side will capture this)
-    const response = NextResponse.json(
+    // Return response with analytics metadata
+    const jsonResponse = NextResponse.json(
       {
         answer,
         // Include metadata for client-side analytics (respects user consent)
         _analytics: {
-          model: model.toLowerCase(),
+          model: modelKey,
+          actual_model: actualModel,
           query_length: sanitizedMessage.length,
-          response_length: (answer || '').length,
+          response_length: answer.length,
           response_time_ms: latency,
-          estimated_tokens_input: queryTokens,
-          estimated_tokens_output: answerTokens,
+          tokens_input: queryTokens,
+          tokens_output: answerTokens,
+          tokens_total: totalTokens,
           estimated_cost: estimatedCost,
+          trace_id: traceId,
         },
       },
       { headers }
     );
 
     // Flush analytics events after response is sent
-    response.headers.set('X-Analytics-Flush', 'true');
-    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+    jsonResponse.headers.set('X-Analytics-Flush', 'true');
+    flushServerEvents().catch((err) => {
+      // Suppress warning in production
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
 
-    return response;
+    return jsonResponse;
   } catch (error: any) {
-    console.error(`[AI] Error in ${model}:`, error.message || error);
+    const latency = Date.now() - t0;
+
+    wideEvent.setError({
+      type: error.name || 'APIError',
+      message: error.message || 'AI API request failed',
+      code: 'api_error',
+      domain: 'upstream_api',
+      retriable: true,
+    });
+    wideEvent.finish(500);
 
     // Track server-side AI error
     trackServerAIError({
-      model: model.toLowerCase(),
+      model: modelKey,
       error_type: error.name || 'APIError',
       is_dive_mode: false,
     });
-    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
 
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500, headers });
   }

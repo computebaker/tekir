@@ -2,24 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { trackServerAuth, flushServerEvents } from '@/lib/analytics-server';
+import { WideEvent } from '@/lib/wide-event';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(request: NextRequest) {
+  const wideEvent = WideEvent.getOrCreate();
+  wideEvent.setRequest({ method: 'POST', path: '/api/auth/signout' });
+
   try {
     // Get session token from cookie
     const sessionToken = request.cookies.get('session-token')?.value;
+
+    let userId: string | undefined;
 
     if (sessionToken) {
       // Delete session from Convex
       const session = await convex.query(api.sessions.getSessionByToken, { token: sessionToken });
 
       if (session && session._id) {
-        // Add a delete function to sessions.ts if it doesn't exist
-        // For now, we'll just let the session expire naturally
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Session signout for token:', sessionToken);
-        }
+        userId = session.userId;
+        wideEvent.setUser({ id: userId });
+        wideEvent.setSession({ id: sessionToken, duration_seconds: Math.floor((Date.now() - session._creationTime) / 1000) });
       }
     }
 
@@ -42,6 +46,10 @@ export async function POST(request: NextRequest) {
       maxAge: 0 // Expire immediately
     });
 
+    // Log successful signout
+    wideEvent.setAuth({ action: 'signout', success: true });
+    wideEvent.finish(200);
+
     // Track signout event
     trackServerAuth({
       event_type: 'signout',
@@ -51,6 +59,10 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
+    wideEvent.setError(error as Error);
+    wideEvent.setAuth({ action: 'signout', success: false, failure_reason: 'server_error' });
+    wideEvent.finish(500);
+
     if (process.env.NODE_ENV === 'development') {
       console.error('Signout error:', error);
     }

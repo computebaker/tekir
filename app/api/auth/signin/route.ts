@@ -7,6 +7,7 @@ import { getConvexClient } from '@/lib/convex-client';
 import { applyRateLimit, RateLimitPresets } from '@/lib/rate-limit';
 import { sanitizeString, sanitizeEmail } from '@/lib/sanitize';
 import { trackServerAuth, flushServerEvents } from '@/lib/analytics-server';
+import { WideEvent } from '@/lib/wide-event';
 
 // Helper function to get JWT_SECRET with validation
 function getJWTSecret(): string {
@@ -18,6 +19,10 @@ function getJWTSecret(): string {
 }
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  const wideEvent = WideEvent.getOrCreate();
+  wideEvent.setRequest({ method: 'POST', path: '/api/auth/signin' });
+
   // Apply rate limiting
   const rateLimitResponse = await applyRateLimit(req, {
     ...RateLimitPresets.auth,
@@ -25,6 +30,9 @@ export async function POST(req: NextRequest) {
   });
 
   if (rateLimitResponse) {
+    wideEvent.setError({ type: 'RateLimitError', message: 'Too many sign-in attempts', code: 'rate_limited' });
+    wideEvent.setAuth({ action: 'signin', success: false, failure_reason: 'rate_limited' });
+    wideEvent.finish(429);
     return rateLimitResponse;
   }
 
@@ -32,6 +40,9 @@ export async function POST(req: NextRequest) {
     const { emailOrUsername, password } = await req.json();
 
     if (!emailOrUsername || !password) {
+      wideEvent.setError({ type: 'ValidationError', message: 'Missing required fields', code: 'validation_error' });
+      wideEvent.setAuth({ action: 'signin', success: false, failure_reason: 'missing_fields' });
+      wideEvent.finish(400);
       return NextResponse.json(
         { error: 'Email/username and password are required' },
         { status: 400 }
@@ -61,6 +72,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user) {
+      wideEvent.setUser({ id: 'unknown' });
+      wideEvent.setAuth({
+        action: 'signin',
+        method: isEmail ? 'email' : 'username',
+        success: false,
+        failure_reason: 'user_not_found'
+      });
+      wideEvent.setError({ type: 'AuthError', message: 'User not found', code: 'user_not_found' });
+      wideEvent.finish(401);
+
       trackServerAuth({
         event_type: 'failed_signin',
         method: isEmail ? 'email' : 'username',
@@ -74,6 +95,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user.password) {
+      wideEvent.setUser({ id: user._id });
+      wideEvent.setAuth({
+        action: 'signin',
+        method: isEmail ? 'email' : 'username',
+        success: false,
+        failure_reason: 'no_password'
+      });
+      wideEvent.setError({ type: 'AuthError', message: 'No password set', code: 'no_password' });
+      wideEvent.finish(401);
+
       trackServerAuth({
         event_type: 'failed_signin',
         method: isEmail ? 'email' : 'username',
@@ -89,6 +120,16 @@ export async function POST(req: NextRequest) {
     // Verify password
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
+      wideEvent.setUser({ id: user._id });
+      wideEvent.setAuth({
+        action: 'signin',
+        method: isEmail ? 'email' : 'username',
+        success: false,
+        failure_reason: 'invalid_password'
+      });
+      wideEvent.setError({ type: 'AuthError', message: 'Invalid password', code: 'invalid_password', domain: 'authentication' });
+      wideEvent.finish(401);
+
       trackServerAuth({
         event_type: 'failed_signin',
         method: isEmail ? 'email' : 'username',
@@ -103,6 +144,16 @@ export async function POST(req: NextRequest) {
 
     // Check if email is verified
     if (!user.emailVerified) {
+      wideEvent.setUser({ id: user._id });
+      wideEvent.setAuth({
+        action: 'signin',
+        method: isEmail ? 'email' : 'username',
+        success: false,
+        failure_reason: 'email_not_verified'
+      });
+      wideEvent.setError({ type: 'AuthError', message: 'Email not verified', code: 'email_not_verified' });
+      wideEvent.finish(403);
+
       trackServerAuth({
         event_type: 'failed_signin',
         method: isEmail ? 'email' : 'username',
@@ -166,7 +217,24 @@ export async function POST(req: NextRequest) {
       path: '/',
     });
 
-    // Track successful sign in
+    // Log successful sign in with wide event
+    wideEvent.setUser({
+      id: user._id,
+      account_age_days: user.createdAt ? Math.floor((Date.now() - user.createdAt * 1000) / (1000 * 60 * 60 * 24)) : undefined,
+    });
+    wideEvent.setAuth({
+      action: 'signin',
+      method: isEmail ? 'email' : 'username',
+      success: true,
+    });
+    wideEvent.setSession({
+      id: sessionToken,
+      new: !sessionResult.isExisting,
+    });
+    wideEvent.setCustom('session_created', !sessionResult.isExisting);
+    wideEvent.finish(200);
+
+    // Track successful sign in for PostHog events
     trackServerAuth({
       event_type: 'signin',
       method: isEmail ? 'email' : 'username',
@@ -175,6 +243,11 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error) {
+    // Log error with wide event
+    wideEvent.setError(error as Error);
+    wideEvent.setAuth({ action: 'signin', success: false, failure_reason: 'server_error' });
+    wideEvent.finish(500);
+
     // Don't expose internal error details in production
     if (process.env.NODE_ENV === 'development') {
       console.error('Signin error:', error);

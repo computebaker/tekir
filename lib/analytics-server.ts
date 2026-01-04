@@ -193,6 +193,54 @@ export function trackServerAIError(properties: AIErrorEventProperties): void {
   });
 }
 
+/**
+ * Track LLM generation with native PostHog AI analytics
+ * Uses the special $ai_generation event with $ai_ prefixed properties
+ * for automatic LLM observability in PostHog
+ */
+export interface LLMServerEventProperties {
+  $ai_provider: string;
+  $ai_model: string;
+  $ai_input: string;
+  $ai_output: string;
+  $ai_latency: number;
+  $ai_tokens_input?: number;
+  $ai_tokens_output?: number;
+  $ai_tokens_total?: number;
+  $ai_trace_id?: string;
+  $ai_temperature?: number;
+  $ai_max_tokens?: number;
+  user_id?: string;
+}
+
+export function trackLLMGeneration(properties: LLMServerEventProperties): void {
+  const client = getPostHogClient();
+  if (!client) {
+    return;
+  }
+
+  client.capture({
+    distinctId: properties.user_id || 'server',
+    event: '$ai_generation',
+    properties: {
+      $ai_provider: properties.$ai_provider,
+      $ai_model: properties.$ai_model,
+      $ai_input: properties.$ai_input,
+      $ai_output: properties.$ai_output,
+      $ai_output_choices: [properties.$ai_output],
+      $ai_latency: properties.$ai_latency,
+      $ai_tokens_input: properties.$ai_tokens_input,
+      $ai_tokens_output: properties.$ai_tokens_output,
+      $ai_tokens_total: properties.$ai_tokens_total,
+      $ai_trace_id: properties.$ai_trace_id,
+      $ai_temperature: properties.$ai_temperature,
+      $ai_max_tokens: properties.$ai_max_tokens,
+      server_event: true,
+      environment: process.env.NODE_ENV || 'unknown',
+    },
+  });
+}
+
 export interface AuthEventProperties {
   event_type: 'signup' | 'signin' | 'signout' | 'failed_signup' | 'failed_signin';
   method?: string;
