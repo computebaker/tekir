@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth-provider";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Loader2, RotateCcw, Home, Sparkles, Search, Heart, Calendar, Flame, TrendingUp, Lock, Gift, Rocket } from "lucide-react";
+import posthog from "posthog-js";
 
 // Funny fake search queries for the privacy demonstration
 const FAKE_SEARCHES = [
@@ -84,6 +85,13 @@ export default function WrappedPage() {
   // Start the experience once data is loaded
   useEffect(() => {
     if (status === "authenticated" && wrappedStats !== undefined) {
+      // Capture wrapped viewed event in PostHog
+      posthog.capture('wrapped_viewed', {
+        year: 2025,
+        has_stats: !!wrappedStats?.stats,
+        is_plus_member: wrappedStats?.user?.isPlusMember || false,
+      });
+
       // Small delay before starting
       const timer = setTimeout(() => setStage("intro"), 500);
       return () => clearTimeout(timer);

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { getRedirectUrlWithFallback } from "@/lib/utils";
+import posthog from "posthog-js";
 
 export default function SignInPage() {
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -38,9 +39,20 @@ export default function SignInPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Identify user in PostHog
+        posthog.identify(emailOrUsername, {
+          email: emailOrUsername.includes('@') ? emailOrUsername : undefined,
+          username: !emailOrUsername.includes('@') ? emailOrUsername : undefined,
+        });
+
+        // Capture sign in event
+        posthog.capture('user_signed_in', {
+          method: 'email_password',
+        });
+
         // Dispatch custom event to notify AuthProvider of successful login
         window.dispatchEvent(new CustomEvent('auth-login'));
-        
+
         // Small delay to allow AuthProvider to update before redirect
         setTimeout(() => {
           const redirectUrl = getRedirectUrlWithFallback('/');

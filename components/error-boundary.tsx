@@ -4,6 +4,7 @@ import React from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/lib/toast";
+import { trackJSError } from "@/lib/posthog-analytics";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -107,7 +108,9 @@ function DefaultErrorFallback({ error, resetError }: ErrorFallbackProps) {
  * Error Boundary Component
  *
  * Catches JavaScript errors anywhere in the child component tree,
- * logs those errors, and displays a fallback UI
+ * logs those errors, and displays a fallback UI.
+ *
+ * Respects user privacy - only sends error reports if analytics consent is granted.
  */
 export class ErrorBoundary extends React.Component<
   ErrorBoundaryProps,
@@ -134,6 +137,14 @@ export class ErrorBoundary extends React.Component<
       console.error("Error Boundary caught an error:", error, errorInfo);
     }
 
+    // Track error in PostHog (only if user has consented)
+    trackJSError({
+      error_type: error.name || 'Error',
+      error_message: error.message,
+      component: errorInfo.componentStack?.split('\n')[0]?.trim() || 'Unknown',
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+
     // Show toast notification
     showToast.error(
       "Something went wrong",
@@ -144,9 +155,6 @@ export class ErrorBoundary extends React.Component<
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-
-    // TODO: Send error to error tracking service (e.g., Sentry)
-    // logErrorToService(error, errorInfo);
   }
 
   handleReset = () => {
@@ -175,5 +183,20 @@ export class ErrorBoundary extends React.Component<
 export function useErrorHandler() {
   return (error: Error) => {
     throw error;
+  };
+}
+
+/**
+ * Hook to track errors manually with consent check
+ * Use this in try-catch blocks where you want to report errors
+ */
+export function useErrorTracking() {
+  return (error: Error, context?: string) => {
+    trackJSError({
+      error_type: error.name || 'Error',
+      error_message: error.message,
+      component: context || 'Unknown',
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
   };
 }

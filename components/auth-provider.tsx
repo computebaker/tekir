@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import convex from "@/lib/convex-proxy";
+import { trackSignIn, trackSignOut, trackAuthError } from "@/lib/posthog-analytics";
 
 // Define user settings interface
 interface UserSettings {
@@ -104,6 +105,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           setUser(prevUser => {
             const prevRoles = (prevUser?.roles ?? []).join(',');
             const nextRoles = (newUser?.roles ?? []).join(',');
+            const wasPreviouslyUnauthenticated = !prevUser;
             if (!prevUser ||
               prevUser.id !== newUser.id ||
               prevUser.email !== newUser.email ||
@@ -113,6 +115,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
               prevUser.imageType !== newUser.imageType ||
               (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
               prevRoles !== nextRoles) {
+              // Track sign in if this was a new authentication
+              if (wasPreviouslyUnauthenticated) {
+                trackSignIn('jwt', false);
+                // Identify user in analytics
+                if (typeof window !== 'undefined' && (window as any).posthog) {
+                  (window as any).posthog.identify(newUser.id, {
+                    email: newUser.email,
+                    username: newUser.username,
+                    roles: newUser.roles,
+                  });
+                }
+              }
               return newUser;
             }
             return prevUser;
@@ -227,11 +241,20 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Signout error:', error);
     } finally {
+      // Track sign out event
+      trackSignOut();
+
       // Always clear local state; server cleared cookies
       setAuthToken(null);
       await convex.setAuth(async () => null);
       setUser(null);
       setStatus("unauthenticated");
+
+      // Reset analytics user identification
+      if (typeof window !== 'undefined' && (window as any).posthog) {
+        (window as any).posthog.reset();
+      }
+
       window.location.href = '/';
     }
   };

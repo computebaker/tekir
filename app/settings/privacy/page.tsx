@@ -91,6 +91,7 @@ export default function PrivacySettingsPage() {
     { href: "/settings/search", icon: Search, label: tSettings("search") },
     { href: "/settings/account", icon: User, label: tSettings("account") },
     { href: "/settings/privacy", icon: Shield, label: tSettings("privacy"), active: true },
+    { href: "/settings/analytics", icon: Info, label: tSettings("analytics") },
     { href: "/settings/about", icon: Info, label: tSettings("about") },
   ];
 

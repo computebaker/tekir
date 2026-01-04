@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import posthog from 'posthog-js';
 
 // Type definition for the Ribaunt widget element
 interface RibauntWidgetElement extends HTMLElement {
@@ -111,9 +112,14 @@ export default function CaptchaPage() {
     const verifyHandler = async (e: Event) => {
       console.log('Verify event received:', e);
       setHeading('Continuing to your destination...');
-      
+
+      // Capture captcha verified event in PostHog
+      posthog.capture('captcha_verified', {
+        return_url: returnUrl,
+      });
+
       console.log('Redirecting to:', returnUrl);
-      
+
       setTimeout(() => {
         window.location.href = returnUrl;
       }, 300);

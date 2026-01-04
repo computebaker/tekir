@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable SWC minification (faster and better than Terser)
-  swcMinify: true,
 
   images: {
     remotePatterns: [
@@ -40,8 +38,19 @@ const nextConfig = {
     NEXT_PUBLIC_I18N_CACHE_VERSION: process.env.NEXT_PUBLIC_I18N_CACHE_VERSION || `v${Date.now()}`,
   },
 
+  skipTrailingSlashRedirect: true,
+
   async rewrites() {
-    return [];
+    return [
+      {
+        source: '/analytics/static/:path*',
+        destination: 'https://us-assets.posthog.com/static/:path*',
+      },
+      {
+        source: '/analytics/:path*',
+        destination: 'https://eu.i.posthog.com/:path*',
+      }
+    ];
   },
 
   webpack: (config, { isServer }) => {

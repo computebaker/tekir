@@ -7,6 +7,7 @@ import { z } from "zod";
 import { api } from "@/convex/_generated/api";
 import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
 import { sanitizeUsername, sanitizeEmail, isValidEmail, isValidUsername } from "@/lib/sanitize";
+import { trackServerAuth, flushServerEvents } from "@/lib/analytics-server";
 
 const signupSchema = z.object({
   username: z.string().min(3).max(12).regex(/^[a-zA-Z0-9]+$/, "Username must contain only letters and numbers"),
@@ -53,6 +54,12 @@ export async function POST(request: NextRequest) {
     // Check if user already exists by email
     const existingUserByEmail = await convex.query(api.users.getUserByEmail, { email: sanitizedEmail });
     if (existingUserByEmail) {
+      trackServerAuth({
+        event_type: 'failed_signup',
+        method: 'email',
+        error_type: 'email_exists',
+      });
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json(
         { error: "User with this email already exists" },
         { status: 400 }
@@ -62,6 +69,12 @@ export async function POST(request: NextRequest) {
     // Check if user already exists by username
     const existingUserByUsername = await convex.query(api.users.getUserByUsername, { username: sanitizedUsername });
     if (existingUserByUsername) {
+      trackServerAuth({
+        event_type: 'failed_signup',
+        method: 'username',
+        error_type: 'username_exists',
+      });
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json(
         { error: "User with this username already exists" },
         { status: 400 }
@@ -120,9 +133,16 @@ export async function POST(request: NextRequest) {
     // Return user without password
     const { password: _, ...userWithoutPassword } = updatedUser;
 
+    // Track successful signup
+    trackServerAuth({
+      event_type: 'signup',
+      method: 'email',
+    });
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+
     return NextResponse.json(
-      { 
-        message: "User created successfully. Please check your email for verification code.", 
+      {
+        message: "User created successfully. Please check your email for verification code.",
         user: userWithoutPassword,
         requiresVerification: true
       },
@@ -130,6 +150,12 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
+      trackServerAuth({
+        event_type: 'failed_signup',
+        method: 'email',
+        error_type: 'validation_error',
+      });
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json(
         { error: "Invalid input", details: error.errors },
         { status: 400 }
@@ -139,6 +165,12 @@ export async function POST(request: NextRequest) {
     if (process.env.NODE_ENV === 'development') {
       console.error("Signup error:", error);
     }
+    trackServerAuth({
+      event_type: 'failed_signup',
+      method: 'email',
+      error_type: 'server_error',
+    });
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

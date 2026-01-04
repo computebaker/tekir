@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { getConvexClient } from '@/lib/convex-client';
 import { applyRateLimit, RateLimitPresets } from '@/lib/rate-limit';
 import { sanitizeString, sanitizeEmail } from '@/lib/sanitize';
+import { trackServerAuth, flushServerEvents } from '@/lib/analytics-server';
 
 // Helper function to get JWT_SECRET with validation
 function getJWTSecret(): string {
@@ -60,6 +61,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user) {
+      trackServerAuth({
+        event_type: 'failed_signin',
+        method: isEmail ? 'email' : 'username',
+        error_type: 'user_not_found',
+      });
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json(
         { error: 'Invalid email/username or password' },
         { status: 401 }
@@ -67,6 +74,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user.password) {
+      trackServerAuth({
+        event_type: 'failed_signin',
+        method: isEmail ? 'email' : 'username',
+        error_type: 'no_password',
+      });
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json(
         { error: 'Invalid email/username or password' },
         { status: 401 }
@@ -76,6 +89,12 @@ export async function POST(req: NextRequest) {
     // Verify password
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
+      trackServerAuth({
+        event_type: 'failed_signin',
+        method: isEmail ? 'email' : 'username',
+        error_type: 'invalid_password',
+      });
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json(
         { error: 'Invalid email/username or password' },
         { status: 401 }
@@ -84,6 +103,12 @@ export async function POST(req: NextRequest) {
 
     // Check if email is verified
     if (!user.emailVerified) {
+      trackServerAuth({
+        event_type: 'failed_signin',
+        method: isEmail ? 'email' : 'username',
+        error_type: 'email_not_verified',
+      });
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json(
         { error: 'Please verify your email before signing in' },
         { status: 403 }
@@ -140,6 +165,13 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
+
+    // Track successful sign in
+    trackServerAuth({
+      event_type: 'signin',
+      method: isEmail ? 'email' : 'username',
+    });
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
 
     return response;
   } catch (error) {

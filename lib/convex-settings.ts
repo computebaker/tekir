@@ -53,6 +53,10 @@ export interface UserSettings {
 
   // Logo preference
   selectedLogo?: 'tekir' | 'duman' | 'pamuk';
+
+  // Analytics preferences (privacy-first - opt-in only)
+  analyticsEnabled?: boolean;
+  sessionReplayEnabled?: boolean;
 }
 
 // Default settings values
@@ -79,6 +83,9 @@ export const DEFAULT_SETTINGS: UserSettings = {
   karakulakEnabled_grok: true,
   language: "en", // Default language: English
   selectedLogo: "tekir", // Default logo: Tekir
+  // Analytics defaults - privacy-first (opt-in only)
+  analyticsEnabled: false,
+  sessionReplayEnabled: false,
 };
 
 class ConvexSettingsManager {

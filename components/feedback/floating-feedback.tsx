@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MessageCircleMore, Check, X } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { showToast } from '@/lib/toast';
+import posthog from 'posthog-js';
 
 interface Props {
   query?: string;
@@ -48,6 +49,14 @@ export default function FloatingFeedback({ query, results, wikiData, suggestions
         body: JSON.stringify(payload()),
       });
       if (res.ok) {
+        // Capture feedback event in PostHog
+        posthog.capture('feedback_submitted', {
+          liked: liked,
+          has_comment: comment.length > 0,
+          search_engine: searchEngine,
+          search_type: searchType,
+        });
+
         setSent(true);
         setTimeout(() => {
           setOpen(false);

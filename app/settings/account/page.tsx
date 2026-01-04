@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/components/auth-provider";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 import {
   ArrowLeft,
   Search,
@@ -214,6 +215,9 @@ export default function AccountSettingsPage() {
       });
 
       if (response.ok) {
+        // Capture password change event in PostHog
+        posthog.capture('password_changed');
+
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
@@ -341,6 +345,10 @@ export default function AccountSettingsPage() {
       });
 
       if (response.ok) {
+        // Capture account deletion event in PostHog before signing out
+        posthog.capture('account_deleted');
+        posthog.reset();
+
         await signOut();
         router.push('/');
       } else {
@@ -364,6 +372,11 @@ export default function AccountSettingsPage() {
     try {
       const success = await toggleSync(!syncEnabled);
       if (success) {
+        // Capture settings sync toggle event in PostHog
+        posthog.capture('settings_sync_toggled', {
+          sync_enabled: !syncEnabled,
+        });
+
         toast.success(
           syncEnabled
             ? tAccount('messages.syncDisabled')
@@ -428,6 +441,7 @@ export default function AccountSettingsPage() {
     { href: "/settings/search", icon: Search, label: tSettings("search") },
     { href: "/settings/account", icon: User, label: tSettings("account"), active: true },
     { href: "/settings/privacy", icon: Shield, label: tSettings("privacy") },
+    { href: "/settings/analytics", icon: Info, label: tSettings("analytics") },
     { href: "/settings/about", icon: Info, label: tSettings("about") },
   ];
 

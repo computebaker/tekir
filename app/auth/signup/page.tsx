@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { getRedirectUrlWithFallback } from "@/lib/utils";
+import posthog from "posthog-js";
 
 export default function SignUpPage() {
   const [username, setUsername] = useState("");
@@ -70,6 +71,18 @@ export default function SignUpPage() {
         setError(data.error || "An error occurred");
         return;
       }
+
+      // Identify user in PostHog
+      posthog.identify(username, {
+        email: email,
+        username: username,
+      });
+
+      // Capture sign up event
+      posthog.capture('user_signed_up', {
+        method: 'email_password',
+        requires_verification: data.requiresVerification,
+      });
 
       // Redirect to email verification if signup requires verification
       if (data.requiresVerification) {

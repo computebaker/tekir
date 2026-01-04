@@ -6,6 +6,12 @@ import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { generateText, streamText } from 'ai';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
+import { calculateCost, estimateTokens, TOKEN_COSTS } from '@/lib/analytics-events';
+import {
+  trackServerAIQuery,
+  trackServerAIError,
+  flushServerEvents,
+} from '@/lib/analytics-server';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -211,6 +217,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     let answer: string;
     const t0 = Date.now();
     console.log(`[AI] Calling ${model} API`);
+    const queryTokens = estimateTokens(sanitizedMessage);
+
     switch (model.toLowerCase()) {
       case 'gemini':
         answer = await gemini(sanitizedMessage);
@@ -234,9 +242,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
         return NextResponse.json({ error: `Model '${model}' is not supported` }, { status: 404 });
     }
     const latency = Date.now() - t0;
-    console.log(`[AI] ${model} completed in ${latency}ms, response length: ${answer?.length || 0}`);
-    
-    // Fire-and-forget AI usage logging
+    const answerTokens = estimateTokens(answer || '');
+
+    // Calculate estimated cost
+    const estimatedCost = calculateCost(model.toLowerCase(), sanitizedMessage, answer || '');
+
+    console.log(`[AI] ${model} completed in ${latency}ms, response length: ${answer?.length || 0}, estimated cost: $${estimatedCost.toFixed(6)}`);
+
+    // Fire-and-forget AI usage logging to Convex
     try {
       const convex = getConvexClient();
       await convex.mutation(api.usage.logAiUsage, {
@@ -248,9 +261,51 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     } catch (e) {
       console.warn('[Convex] Failed to log AI usage:', e);
     }
-    return NextResponse.json({ answer }, { headers });
+
+    // Track server-side analytics (non-sensitive aggregated data)
+    trackServerAIQuery({
+      model: model.toLowerCase(),
+      query_length: sanitizedMessage.length,
+      response_length: (answer || '').length,
+      response_time_ms: latency,
+      is_dive_mode: false,
+      estimated_cost_usd: estimatedCost,
+    });
+
+    // Return response with analytics metadata (client-side will capture this)
+    const response = NextResponse.json(
+      {
+        answer,
+        // Include metadata for client-side analytics (respects user consent)
+        _analytics: {
+          model: model.toLowerCase(),
+          query_length: sanitizedMessage.length,
+          response_length: (answer || '').length,
+          response_time_ms: latency,
+          estimated_tokens_input: queryTokens,
+          estimated_tokens_output: answerTokens,
+          estimated_cost: estimatedCost,
+        },
+      },
+      { headers }
+    );
+
+    // Flush analytics events after response is sent
+    response.headers.set('X-Analytics-Flush', 'true');
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+
+    return response;
   } catch (error: any) {
     console.error(`[AI] Error in ${model}:`, error.message || error);
+
+    // Track server-side AI error
+    trackServerAIError({
+      model: model.toLowerCase(),
+      error_type: error.name || 'APIError',
+      is_dive_mode: false,
+    });
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500, headers });
   }
 }

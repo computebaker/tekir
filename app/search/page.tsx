@@ -18,6 +18,27 @@ import SearchTabs from "@/components/search/search-tabs";
 import WebResultItem from "@/components/search/web-result-item";
 import { SearchResultsSkeleton } from "@/components/ui/skeleton";
 import { storeRedirectUrl } from "@/lib/utils";
+import {
+  trackSearchPerformed,
+  trackSearchResultsLoaded,
+  trackSearchResultClicked,
+  trackSearchTabChanged,
+  trackSearchError,
+  trackAIQueryInitiated,
+  trackAIQueryCompleted,
+  trackAIQueryFailed,
+  trackAIResponseViewed,
+  trackAIDiveToggled,
+  trackWikipediaViewed,
+  trackWikipediaExpanded,
+  trackNewsClusterViewed,
+  trackNewsClusterExpanded,
+  trackNewsArticleClicked,
+  trackVideoClusterViewed,
+  trackVideoClusterExpanded,
+  trackVideoClicked,
+  trackPageView,
+} from "@/lib/posthog-analytics";
 
 const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
 const Footer = dynamic(() => import("@/components/footer"), { ssr: false });
@@ -751,6 +772,10 @@ function SearchPageContent() {
           try { aiAbortControllerRef.current.abort(); } catch { }
         }
         aiAbortControllerRef.current = new AbortController();
+
+        // Track AI query initiation
+        trackAIQueryInitiated(model, query.length, false);
+
         const res = await fetchWithSessionRefreshAndCache(`/api/karakulak/${model}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -774,6 +799,29 @@ function SearchPageContent() {
         setDiveSources([]);
         SearchCache.setAI(model, query, aiResult);
 
+        // Capture AI analytics events in PostHog
+        if (aiResult) {
+          const analytics = (aiData as any)._analytics;
+          // Track query completion
+          trackAIQueryCompleted({
+            model: model as any,
+            query_length: analytics?.query_length || query.length,
+            response_length: analytics?.response_length || aiResult.length,
+            response_time_ms: analytics?.response_time_ms,
+            is_dive_mode: false,
+            estimated_tokens: analytics?.estimated_tokens_output,
+          });
+          // Track response viewed
+          trackAIResponseViewed({
+            model: model as any,
+            query_length: analytics?.query_length,
+            response_length: analytics?.response_length || aiResult.length,
+            response_time_ms: analytics?.response_time_ms,
+            is_dive_mode: false,
+            estimated_tokens: analytics?.estimated_tokens_output,
+          });
+        }
+
         setAiLoading(false);
         setDiveLoading(false);
         setAiError(false);
@@ -783,6 +831,10 @@ function SearchPageContent() {
         if (process.env.NODE_ENV === 'development') {
           console.error(`AI response failed for model ${model}:`, error);
         }
+
+        // Track AI query failure
+        trackAIQueryFailed(model, 'network_error', false);
+
         if (!isRetry && model !== "gemini" && !aiModel && !aiDiveEnabled) {
           makeAIRequest("gemini", true);
         } else {
@@ -861,6 +913,10 @@ function SearchPageContent() {
           try { aiAbortControllerRef.current.abort(); } catch { }
         }
         aiAbortControllerRef.current = new AbortController();
+
+        // Track Dive query initiation
+        trackAIQueryInitiated('dive', query.length, true);
+
         const diveResponse = await fetchWithSessionRefreshAndCache('/api/dive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -884,6 +940,22 @@ function SearchPageContent() {
           setAiResponse(null);
           SearchCache.setDive(query, diveData.response, diveData.sources || []);
           setDiveError(false);
+
+          // Capture Dive AI analytics events
+          if (diveData.response) {
+            trackAIQueryCompleted({
+              model: 'dive',
+              response_length: diveData.response.length,
+              is_dive_mode: true,
+              sources_count: (diveData.sources || []).length,
+            });
+            trackAIResponseViewed({
+              model: 'dive',
+              response_length: diveData.response.length,
+              is_dive_mode: true,
+              sources_count: (diveData.sources || []).length,
+            });
+          }
         } else {
           if (process.env.NODE_ENV === 'development') {
             console.log(`Search ID changed, ignoring stale dive response`);
@@ -898,6 +970,10 @@ function SearchPageContent() {
         if (process.env.NODE_ENV === 'development') {
           console.error('Dive request failed:', error);
         }
+
+        // Track Dive query failure
+        trackAIQueryFailed('dive', 'network_error', true);
+
         setDiveLoading(false);
         setAiLoading(false);
         setDiveError(true);
@@ -923,6 +999,15 @@ function SearchPageContent() {
     if (trimmed) {
       const redirected = await handleBangRedirect(trimmed);
       if (!redirected) {
+        // Capture search event in PostHog (consent-aware)
+        trackSearchPerformed({
+          search_type: searchType,
+          search_engine: searchEngine as 'brave' | 'google' | 'you',
+          query_length: trimmed.length,
+          has_ai_enabled: aiEnabled,
+          has_dive_enabled: aiDiveEnabled,
+        });
+
         const params = new URLSearchParams();
         params.set("q", trimmed);
         router.push(`/search?${params.toString()}`);
@@ -931,6 +1016,9 @@ function SearchPageContent() {
   };
 
   const handleToggleAiDive = () => {
+    // Track Dive toggle
+    trackAIDiveToggled(!aiDiveEnabled);
+
     // Clear any in-progress request when switching modes
     aiRequestInProgressRef.current = null;
     // Abort in-flight AI/Dive request when toggling mode
@@ -1341,6 +1429,9 @@ function SearchPageContent() {
   }, []);
 
   const handleSearchTypeChange = (type: 'web' | 'images' | 'news' | 'videos') => {
+    // Track tab change in analytics
+    trackSearchTabChanged(searchType, type);
+
     // Immediately clear stale results and show loading skeletons so the UI
     // doesn't flash a "No results" state while the fetch starts.
     if (type === 'images') {

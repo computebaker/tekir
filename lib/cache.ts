@@ -25,6 +25,17 @@ interface CacheMetadata {
   searchParams?: Record<string, string>;
 }
 
+// Analytics import (dynamic to avoid SSR issues)
+let trackAPIError: ((errorType: string, url: string, statusCode?: number, userAction?: string) => void) | null = null;
+
+if (typeof window !== 'undefined') {
+  import('@/lib/posthog-analytics').then((module) => {
+    trackAPIError = module.trackAPIError;
+  }).catch(() => {
+    // Module not available, ignore
+  });
+}
+
 export class SearchCache {
   private static readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
   private static readonly MAX_CACHE_SIZE = 50; // Maximum number of cached entries per type
@@ -485,11 +496,18 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
         console.warn('Error caching response:', error);
       }
       // If json parsing failed, we can't cache, but we might have consumed the body.
-      // Ideally we should clone before reading if we aren't sure it's JSON, 
+      // Ideally we should clone before reading if we aren't sure it's JSON,
       // but here we expect JSON. If it fails, we might need to fallback or re-fetch?
       // For safety in this specific utility which expects JSON for caching:
       return originalResponse;
     }
+  }
+
+  // Track API errors for failed responses (excluding 401/403 which are handled above)
+  if (!originalResponse.ok && trackAPIError) {
+    const urlStr = typeof url === 'string' ? url : 'url' in url ? String(url.url) : 'unknown';
+    const errorType = originalResponse.status >= 500 ? 'server_error' : 'client_error';
+    trackAPIError(errorType, urlStr, originalResponse.status, cacheConfig?.searchType);
   }
 
   return originalResponse;

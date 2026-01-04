@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { load } from 'cheerio';
 import OpenAI from 'openai';
+import {
+  trackServerAIQuery,
+  trackServerAIError,
+  flushServerEvents,
+} from '@/lib/analytics-server';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -250,8 +255,18 @@ export async function POST(req: NextRequest) {
 
     const answer = llmResponse.choices[0].message.content;
 
-    return NextResponse.json({ 
-      response: answer || "The AI could not generate a response based on the provided content.", 
+    // Track server-side Dive analytics
+    trackServerAIQuery({
+      model: 'dive',
+      query_length: query.length,
+      response_length: (answer || '').length,
+      response_time_ms: totalDuration,
+      is_dive_mode: true,
+      sources_count: validPages.length,
+    });
+
+    const response = NextResponse.json({
+      response: answer || "The AI could not generate a response based on the provided content.",
       sources: validPages.map(p => ({ url: p.url, title: p.title, description: p.snippet })),
       metadata: {
         totalDuration,
@@ -262,11 +277,25 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    // Flush analytics events
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+
+    return response;
+
   } catch (error: any) {
     const totalDuration = Date.now() - startTime;
     if (process.env.NODE_ENV === 'development') {
       console.error(`[Dive] Error after ${totalDuration}ms:`, error.message || error);
     }
+
+    // Track Dive error
+    trackServerAIError({
+      model: 'dive',
+      error_type: error.name || 'DiveError',
+      is_dive_mode: true,
+    });
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

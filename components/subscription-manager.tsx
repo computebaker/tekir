@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Loader2, Sparkles, CreditCard, Calendar, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import posthog from 'posthog-js';
 
 interface SubscriptionManagerProps {
   productId?: string;
@@ -115,6 +116,11 @@ export default function SubscriptionManager({
       if (!response.ok) {
         throw new Error(data.error || t('errors.checkoutFailed'));
       }
+
+      // Capture subscription checkout started event in PostHog
+      posthog.capture('subscription_checkout_started', {
+        product_id: productId,
+      });
 
       // Redirect to Polar checkout
       window.location.href = data.checkoutUrl;

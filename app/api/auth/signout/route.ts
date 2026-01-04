@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { trackServerAuth, flushServerEvents } from '@/lib/analytics-server';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -40,6 +41,12 @@ export async function POST(request: NextRequest) {
       sameSite: 'strict',
       maxAge: 0 // Expire immediately
     });
+
+    // Track signout event
+    trackServerAuth({
+      event_type: 'signout',
+    });
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
 
     return response;
 
