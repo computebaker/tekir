@@ -70,6 +70,7 @@
     "search": "Cerca",
     "privacy": "Privacy",
     "account": "Account",
+    "analytics": "Analitiche",
     "about": "Informazioni",
     "language": "Lingua",
     "theme": "Tema",
@@ -436,6 +437,73 @@
         "syncing": "Sincronizzazione impostazioni sul server...",
         "synced": "Le impostazioni vengono automaticamente salvate e sincronizzate tra i dispositivi.",
         "localOnly": "Le impostazioni vengono automaticamente salvate nella memoria locale."
+      }
+    },
+    "analyticsPage": {
+      "metaTitle": "Impostazioni Analitiche",
+      "mobileNav": {
+        "back": "Torna alla ricerca"
+      },
+      "pageTitle": "Impostazioni Analitiche",
+      "pageDescription": "Gestisci le tue preferenze analitiche e controlla quali dati vengono raccolti.",
+      "status": {
+        "enabled": "Analitiche Attivate",
+        "disabled": "Analitiche Disattivate",
+        "enabledDescription": "Stai aiutando a migliorare Tekir condividendo dati di utilizzo anonimi.",
+        "disabledDescription": "Nessun dato analitico viene raccolto. Tekir funziona perfettamente senza analitiche."
+      },
+      "toggle": {
+        "analytics": "Attiva Analitiche",
+        "analyticsDescription": "Aiutaci a migliorare Tekir condividendo dati di utilizzo anonimi",
+        "sessionReplay": "Replay Sessione",
+        "sessionReplayDescription": "Consenti la registrazione della sessione per scopi di debug"
+      },
+      "sections": {
+        "whatWeTrack": "Cosa Tracciamo",
+        "whenEnabled": "Quando le Analitiche Sono Attivate",
+        "neverTracked": "Mai Tracciato",
+        "whyCollect": "Perché Raccogliamo le Analitiche",
+        "privacyNotice": "Nota sulla Privacy"
+      },
+      "trackedItems": {
+        "pageViews": "Visualizzazioni di pagina e pattern di navigazione",
+        "searchBehavior": "Comportamento di ricerca (filtri, schede utilizzate)",
+        "aiUsage": "Utilizzo AI e tempi di risposta",
+        "errors": "Errori e crash per il debug",
+        "sessionRecording": "Registrazioni di sessione per la risoluzione dei problemi"
+      },
+      "neverTrackedItems": {
+        "searchQueries": "Le tue query di ricerca (rimangono private)",
+        "personalInfo": "Informazioni personali (nome, email)",
+        "clickedUrls": "URL dei risultati cliccati (su cui clicchi)",
+        "trackingCookies": "Cookie di tracciamento di terze parti",
+        "dataSold": "I dati non vengono mai venduti agli inserzionisti"
+      },
+      "whyCollectPoints": [
+        "Migliorare l'accuratezza e la rilevanza della ricerca",
+        "Correggere rapidamente bug e crash",
+        "Comprendere quali funzionalità sono più preziose",
+        "Ottimizzare le prestazioni su vari dispositivi"
+      ],
+      "whyCollectDescription": "Le analitiche ci aiutano a capire come viene utilizzato Tekir così possiamo migliorarlo per tutti.",
+      "privacyNotice": "Le analitiche sono completamente opzionali. Tekir funziona completamente senza alcuna raccolta dati. Se cambi idea più tardi, puoi disattivare le analitiche in qualsiasi momento da questa pagina. Rispettiamo la tua privacy e non venderemo mai i tuoi dati a terze parti."
+    },
+    "toasts": {
+      "analyticsEnabled": {
+        "title": "Analitiche Attivate",
+        "description": "Grazie per averci aiutato a migliorare Tekir."
+      },
+      "analyticsDisabled": {
+        "title": "Analitiche Disattivate",
+        "description": "La tua preferenza analitica è stata salvata."
+      },
+      "sessionReplayRequiresAnalytics": {
+        "title": "Il Replay Sessione Richiede Analitiche",
+        "description": "Per favore attiva prima le analitiche."
+      },
+      "sessionReplayEnabled": {
+        "title": "Replay Sessione Attivato",
+        "description": "La registrazione della sessione è ora attivata."
       }
     }
   },
