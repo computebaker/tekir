@@ -70,6 +70,7 @@
     "search": "Arama",
     "privacy": "Gizlilik",
     "account": "Hesap",
+    "analytics": "Analitik",
     "about": "Hakkında",
     "language": "Dil",
     "theme": "Tema",
@@ -436,6 +437,73 @@
         "syncing": "Ayarlar sunucuya senkronize ediliyor...",
         "synced": "Ayarların otomatik olarak kaydedilir ve cihazların arasında senkronize edilir.",
         "localOnly": "Ayarların otomatik olarak yerel depolamaya kaydedilir."
+      }
+    },
+    "analyticsPage": {
+      "metaTitle": "Analitik Ayarları",
+      "mobileNav": {
+        "back": "Aramaya Dön"
+      },
+      "pageTitle": "Analitik Ayarları",
+      "pageDescription": "Analitik tercihlerinizi yönetin ve hangi verilerin toplanacağını kontrol edin.",
+      "status": {
+        "enabled": "Analitik Etkin",
+        "disabled": "Analitik Devre Dışı",
+        "enabledDescription": "Tekir'i geliştirmemize yardımcı olduğunuz için anonim kullanım verileri paylaşıyorsunuz.",
+        "disabledDescription": "Herhangi bir analitik verisi toplanmıyor. Tekir analitik olmadan mükemmel çalışır."
+      },
+      "toggle": {
+        "analytics": "Analitiği Etkinleştir",
+        "analyticsDescription": "Anonim kullanım verilerini paylaşarak Tekir'i geliştirmemize yardımcı olun",
+        "sessionReplay": "Oturum Kaydı",
+        "sessionReplayDescription": "Hata ayıklama için oturum kaydına izin verir"
+      },
+      "sections": {
+        "whatWeTrack": "Ne Takip Ediyoruz",
+        "whenEnabled": "Analitik Etkin Olduğunda",
+        "neverTracked": "Asla Takip Edilmez",
+        "whyCollect": "Neden Analitik Topluyoruz",
+        "privacyNotice": "Gizlilik Bildirimi"
+      },
+      "trackedItems": {
+        "pageViews": "Sayfa görüntülemeleri ve gezinme desenleri",
+        "searchBehavior": "Arama davranışı (kullanılan filtreler, sekmeler)",
+        "aiUsage": "AI kullanımı ve yanıt süreleri",
+        "errors": "Hata ayıklama için hatalar ve çökmeler",
+        "sessionRecording": "Sorun giderme için oturum kayıtları"
+      },
+      "neverTrackedItems": {
+        "searchQueries": "Arama sorgularınız (özel kalır)",
+        "personalInfo": "Kişisel bilgiler (isim, e-posta)",
+        "clickedUrls": "Tıklanan sonuç URL'leri (ne tıkladığınız)",
+        "trackingCookies": "Üçüncü taraf takip çerezleri",
+        "dataSold": "Veriler asla reklamvericilere satılmaz"
+      },
+      "whyCollectPoints": [
+        "Arama doğruluğunu ve alakağını iyileştir",
+        "Hataları ve çökmeleri hızlıca düzelt",
+        "Hangi özelliklerin en değerli olduğunu anlayın",
+        "Cihazlar arasında performansı optimize edin"
+      ],
+      "whyCollectDescription": "Analitik, Tekir'in nasıl kullanıldığını anlamamıza ve herkes için daha iyi hale getirmemize yardımcı olur.",
+      "privacyNotice": "Analitik tamamen isteğe bağlıdır. Tekir herhangi bir veri toplama olmadan tam olarak çalışır. Daha sonra fikrinizi değiştirirseniz, analitiği istediğiniz zaman bu sayfadan devre dışı bırakabilirsiniz. Gizliliğinize saygı duyuyoruz ve verilerinizi üçüncü şahaslara asla satmıyoruz."
+    },
+    "toasts": {
+      "analyticsEnabled": {
+        "title": "Analitik Etkinleştirildi",
+        "description": "Tekir'i geliştirmemize yardımcı olduğunuz için teşekkürler."
+      },
+      "analyticsDisabled": {
+        "title": "Analitik Devre Dışı Bırakıldı",
+        "description": "Analitik tercihiniz kaydedildi."
+      },
+      "sessionReplayRequiresAnalytics": {
+        "title": "Oturum Kaydı Analitik Gerektirir",
+        "description": "Lütfen önce analitiği etkinleştirin."
+      },
+      "sessionReplayEnabled": {
+        "title": "Oturum Kaydı Etkinleştirildi",
+        "description": "Oturum kaydı artık etkin."
       }
     }
   },
