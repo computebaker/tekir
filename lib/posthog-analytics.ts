@@ -61,11 +61,13 @@ function getUserId(): string | null {
 
 /**
  * Check if analytics consent is granted
+ * Defaults to true (opt-out) if not explicitly set
  */
 export function hasAnalyticsConsent(): boolean {
   if (typeof window === 'undefined') return false;
   const consent = localStorage.getItem('analyticsEnabled');
-  return consent === 'true';
+  // Default to true if not explicitly set (opt-out model)
+  return consent === null || consent === 'true';
 }
 
 /**

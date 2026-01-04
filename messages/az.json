@@ -70,6 +70,7 @@
     "search": "Axtarış",
     "privacy": "Gizlilik",
     "account": "Hesab",
+    "analytics": "Analitika",
     "about": "Haqqında",
     "language": "Dil",
     "theme": "Mövzu",
@@ -436,6 +437,73 @@
         "syncing": "Ayarlar serverə sinxronlaşdırılır...",
         "synced": "Ayarlar avtomatik olaraq saxlanılır və cihazlar arasında sinxronlaşdırılır.",
         "localOnly": "Ayarlar avtomatik olaraq yalnız yerli yaddaşa saxlanılır."
+      }
+    },
+    "analyticsPage": {
+      "metaTitle": "Analitika Ayarları",
+      "mobileNav": {
+        "back": "Axtarışa qayıt"
+      },
+      "pageTitle": "Analitika Ayarları",
+      "pageDescription": "Analitika üstünlüklərinizi idarə edin və hansı məlumatların toplanıldığını nəzarətdə saxlayın.",
+      "status": {
+        "enabled": "Analitika Aktivdir",
+        "disabled": "Analitika Söndürülüb",
+        "enabledDescription": "Anonim istifadə məlumatlarını paylaşaraq Tekir-i yaxşılaşdırmağa kömək edirsiniz.",
+        "disabledDescription": "Heç bir analitika məlumatı toplanmır. Tekir analitika olmadan mükəmməl işləyir."
+      },
+      "toggle": {
+        "analytics": "Analitikanı Aktiv Et",
+        "analyticsDescription": "Anonim istifadə məlumatlarını paylaşaraq Tekir-i yaxşılaşdırmağa kömək edin",
+        "sessionReplay": "Sesiya Yazısı",
+        "sessionReplayDescription": "Sazlama məqsədləri üçün sesiya yazısına icazə verin"
+      },
+      "sections": {
+        "whatWeTrack": "Nəyi İzləyirik",
+        "whenEnabled": "Analitika Aktiv Olanda",
+        "neverTracked": "Heç Vaxt İzlənməyib",
+        "whyCollect": "Niyə Analitika Toplayırıq",
+        "privacyNotice": "Məxfilik Qeydi"
+      },
+      "trackedItems": {
+        "pageViews": "Səhifə baxışları və naviqasiya nümunələri",
+        "searchBehavior": "Axtarış davranışı (istifadə edilən filterlər, vərəqlər)",
+        "aiUsage": "AI istifadəsi və cavab müddəti",
+        "errors": "Sazlama üçün səhvlər və çökmələr",
+        "sessionRecording": "Problem həlli üçün sesiya yazıları"
+      },
+      "neverTrackedItems": {
+        "searchQueries": "Axtarış sorğularınız (məxfi qalır)",
+        "personalInfo": "Şəxsi məlumatlar (ad, e-poçt)",
+        "clickedUrls": "Basılmış nəticə URL-ləri (nəyə basdığınız)",
+        "trackingCookies": "Üçüncü tərəf izləmə kukiləri",
+        "dataSold": "Məlumatlar heç vaxt reklam verənlərə satılmır"
+      },
+      "whyCollectPoints": [
+        "Axtarış dəqiqliyini və əlaqəsini yaxşılaşdırmaq",
+        "Səhvləri və çökmələri tez düzəltmək",
+        "Hansı funksiyaların daha qiymətli olduğunu başa düşmək",
+        "Müxtəlif cihazlarda performansı optimallaşdırmaq"
+      ],
+      "whyCollectDescription": "Analitika bizə Tekir-in necə istifadə olunduğunu başa düşməyə kömək edir ki, onu hər kəs üçün daha yaxşı edə bilək.",
+      "privacyNotice": "Analitika tamamilə ixtiyaridir. Tekir heç bir məlumat toplanması olmadan tam funksionaldır. Sonra fikrinizi dəyişsəniz, analitikanı bu səhifədən istənilən vaxt söndürə bilərsiniz. Məxfiliyinizə hörmət edirik və məlumatlarınızı heç vaxt üçüncü tərəflərə satmayacağıq."
+    },
+    "toasts": {
+      "analyticsEnabled": {
+        "title": "Analitika Aktivdir",
+        "description": "Tekir-i yaxşılaşdırmağa kömək etdiyiniz üçün təşəkkürlər."
+      },
+      "analyticsDisabled": {
+        "title": "Analitika Söndürüldü",
+        "description": "Analitika üstünlüyünüz saxlanıldı."
+      },
+      "sessionReplayRequiresAnalytics": {
+        "title": "Sesiya Yazısı Analitika Tələb Edir",
+        "description": "Zəhmət olmasa əvvəlcə analitikanı aktiv edin."
+      },
+      "sessionReplayEnabled": {
+        "title": "Sesiya Yazısı Aktivdir",
+        "description": "Sesiya yazısı indi aktivdir."
       }
     }
   },

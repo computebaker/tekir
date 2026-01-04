@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Cloud,
   Info,
+  BarChart3
 } from "lucide-react";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
 
@@ -441,7 +442,7 @@ export default function AccountSettingsPage() {
     { href: "/settings/search", icon: Search, label: tSettings("search") },
     { href: "/settings/account", icon: User, label: tSettings("account"), active: true },
     { href: "/settings/privacy", icon: Shield, label: tSettings("privacy") },
-    { href: "/settings/analytics", icon: Info, label: tSettings("analytics") },
+    { href: "/settings/analytics", icon: BarChart3, label: tSettings("analytics") },
     { href: "/settings/about", icon: Info, label: tSettings("about") },
   ];
 

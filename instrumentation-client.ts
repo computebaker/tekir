@@ -8,7 +8,8 @@ import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals';
 const getAnalyticsConsent = (): boolean => {
   if (typeof window === 'undefined') return false;
   const consent = localStorage.getItem('analyticsEnabled');
-  return consent === 'true';
+  // Default to true if not explicitly set (opt-out model)
+  return consent === null || consent === 'true';
 };
 
 const getSessionReplayConsent = (): boolean => {

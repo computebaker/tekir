@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, Search, User, Shield, MessageCircleMore, Lock, MapPin, X, Info } from "lucide-react";
+import { ChevronDown, Search, User, Shield, MessageCircleMore, Lock, MapPin, X, Info, BarChart3 } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import SearchCache from "@/lib/cache";
@@ -426,7 +426,7 @@ export default function SearchSettingsPage() {
     { href: "/settings/search", icon: Search, label: tSettings('search'), active: true },
     { href: "/settings/account", icon: User, label: tSettings('account') },
     { href: "/settings/privacy", icon: Shield, label: tSettings('privacy') },
-    { href: "/settings/analytics", icon: Info, label: tSettings('analytics') },
+    { href: "/settings/analytics", icon: BarChart3, label: tSettings('analytics') },
     { href: "/settings/about", icon: Info, label: tSettings('about') },
   ];
 

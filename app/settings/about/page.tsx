@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Search, User, Shield, Info } from "lucide-react";
+import { Search, User, Shield, Info, BarChart3 } from "lucide-react";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
 
 export default function AboutPage() {
@@ -18,7 +18,7 @@ export default function AboutPage() {
     { href: "/settings/search", icon: Search, label: tSettings("search") },
     { href: "/settings/account", icon: User, label: tSettings("account") },
     { href: "/settings/privacy", icon: Shield, label: tSettings("privacy") },
-    { href: "/settings/analytics", icon: Info, label: tSettings("analytics") },
+    { href: "/settings/analytics", icon: BarChart3, label: tSettings("analytics") },
     { href: "/settings/about", icon: Info, label: tSettings("about"), active: true },
   ];
 

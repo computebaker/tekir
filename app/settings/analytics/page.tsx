@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Shield, Eye, EyeOff, Info, Trash2, CheckCircle2, BarChart3, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Shield, Eye, EyeOff, Info, CheckCircle2, User, BarChart3, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
@@ -14,6 +13,8 @@ import { showToast } from "@/lib/toast";
 
 export default function AnalyticsSettingsPage() {
   const tSettings = useTranslations("settings");
+  const tAnalytics = useTranslations("settings.analyticsPage");
+  const tToasts = useTranslations("settings.toasts");
 
   const { settings, updateSetting } = useSettings();
 
@@ -24,13 +25,13 @@ export default function AnalyticsSettingsPage() {
     {
       href: "/",
       icon: Search,
-      label: "Back to Search",
+      label: tAnalytics("mobileNav.back"),
     },
   ];
 
   const sidebarItems: SettingsNavItem[] = [
     { href: "/settings/search", icon: Search, label: tSettings("search") },
-    { href: "/settings/account", icon: Eye, label: tSettings("account") },
+    { href: "/settings/account", icon: User, label: tSettings("account") },
     { href: "/settings/privacy", icon: Shield, label: tSettings("privacy") },
     { href: "/settings/analytics", icon: BarChart3, label: tSettings("analytics"), active: true },
     { href: "/settings/about", icon: Info, label: tSettings("about") },
@@ -48,13 +49,13 @@ export default function AnalyticsSettingsPage() {
 
     if (enabled) {
       showToast.success(
-        "Analytics Enabled",
-        "Thank you for helping us improve Tekir."
+        tToasts("analyticsEnabled.title"),
+        tToasts("analyticsEnabled.description")
       );
     } else {
       showToast.success(
-        "Analytics Disabled",
-        "Your analytics preference has been saved."
+        tToasts("analyticsDisabled.title"),
+        tToasts("analyticsDisabled.description")
       );
     }
   };
@@ -64,8 +65,8 @@ export default function AnalyticsSettingsPage() {
     // Session replay requires analytics to be enabled
     if (enabled && !analyticsEnabled) {
       showToast.error(
-        "Session Replay Requires Analytics",
-        "Please enable analytics first."
+        tToasts("sessionReplayRequiresAnalytics.title"),
+        tToasts("sessionReplayRequiresAnalytics.description")
       );
       return;
     }
@@ -77,21 +78,8 @@ export default function AnalyticsSettingsPage() {
 
     if (enabled) {
       showToast.success(
-        "Session Replay Enabled",
-        "Session recording is now enabled."
-      );
-    }
-  };
-
-  // Clear all analytics data
-  const handleClearData = () => {
-    if (typeof window !== 'undefined' && (window as any).posthog) {
-      (window as any).posthog.reset();
-      localStorage.removeItem('analyticsEnabled');
-      localStorage.removeItem('sessionReplayEnabled');
-      showToast.success(
-        "Local Data Cleared",
-        "Local analytics identifiers have been reset."
+        tToasts("sessionReplayEnabled.title"),
+        tToasts("sessionReplayEnabled.description")
       );
     }
   };
@@ -99,7 +87,7 @@ export default function AnalyticsSettingsPage() {
   // Set page title
   useState(() => {
     if (typeof document !== 'undefined') {
-      document.title = `Analytics Settings | Tekir`;
+      document.title = `${tAnalytics("metaTitle")} | Tekir`;
     }
   });
 
@@ -113,9 +101,9 @@ export default function AnalyticsSettingsPage() {
       <div className="space-y-8">
         {/* Page Title and Description */}
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Analytics Settings</h2>
+          <h2 className="text-3xl font-bold tracking-tight">{tAnalytics("pageTitle")}</h2>
           <p className="text-muted-foreground mt-2">
-            Manage your analytics preferences and control what data is collected.
+            {tAnalytics("pageDescription")}
           </p>
         </div>
 
@@ -134,13 +122,13 @@ export default function AnalyticsSettingsPage() {
             <div className="flex-1">
               <h3 className="font-semibold text-lg mb-2">
                 {analyticsEnabled
-                  ? "Analytics Enabled"
-                  : "Analytics Disabled"}
+                  ? tAnalytics("status.enabled")
+                  : tAnalytics("status.disabled")}
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
                 {analyticsEnabled
-                  ? "You're helping us improve Tekir by sharing anonymous usage data."
-                  : "No analytics data is being collected. Tekir works perfectly without analytics."}
+                  ? tAnalytics("status.enabledDescription")
+                  : tAnalytics("status.disabledDescription")}
               </p>
 
               {/* Main Analytics Toggle */}
@@ -149,10 +137,10 @@ export default function AnalyticsSettingsPage() {
                   <Eye className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <Label htmlFor="analytics-toggle" className="font-medium">
-                      Enable Analytics
+                      {tAnalytics("toggle.analytics")}
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Help us improve Tekir by sharing anonymous usage data
+                      {tAnalytics("toggle.analyticsDescription")}
                     </p>
                   </div>
                 </div>
@@ -170,10 +158,10 @@ export default function AnalyticsSettingsPage() {
                     <Shield className="w-5 h-5 text-muted-foreground" />
                     <div>
                       <Label htmlFor="replay-toggle" className="font-medium">
-                        Session Replay
+                        {tAnalytics("toggle.sessionReplay")}
                       </Label>
                       <p className="text-sm text-muted-foreground">
-                        Allow session recording for debugging purposes
+                        {tAnalytics("toggle.sessionReplayDescription")}
                       </p>
                     </div>
                   </div>
@@ -192,35 +180,35 @@ export default function AnalyticsSettingsPage() {
         <div className="rounded-lg border bg-card p-6">
           <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
             <Info className="w-5 h-5 text-primary" />
-            What We Track
+            {tAnalytics("sections.whatWeTrack")}
           </h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <h4 className="font-medium mb-3 text-green-600 dark:text-green-400 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
-                When Analytics is Enabled
+                {tAnalytics("sections.whenEnabled")}
               </h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
-                  <span>Page views and navigation patterns</span>
+                  <span>{tAnalytics("trackedItems.pageViews")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
-                  <span>Search behavior (filters, tabs used)</span>
+                  <span>{tAnalytics("trackedItems.searchBehavior")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
-                  <span>AI usage and response times</span>
+                  <span>{tAnalytics("trackedItems.aiUsage")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
-                  <span>Errors and crashes for debugging</span>
+                  <span>{tAnalytics("trackedItems.errors")}</span>
                 </li>
                 {sessionReplayEnabled && (
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
-                    <span>Session recordings for troubleshooting</span>
+                    <span>{tAnalytics("trackedItems.sessionRecording")}</span>
                   </li>
                 )}
               </ul>
@@ -228,28 +216,28 @@ export default function AnalyticsSettingsPage() {
             <div>
               <h4 className="font-medium mb-3 text-red-600 dark:text-red-400 flex items-center gap-2">
                 <EyeOff className="w-4 h-4" />
-                Never Tracked
+                {tAnalytics("sections.neverTracked")}
               </h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <EyeOff className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                  <span>Your search queries (remains private)</span>
+                  <span>{tAnalytics("neverTrackedItems.searchQueries")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <EyeOff className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                  <span>Personal information (name, email)</span>
+                  <span>{tAnalytics("neverTrackedItems.personalInfo")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <EyeOff className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                  <span>Clicked result URLs (what you click on)</span>
+                  <span>{tAnalytics("neverTrackedItems.clickedUrls")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <EyeOff className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                  <span>Third-party tracking cookies</span>
+                  <span>{tAnalytics("neverTrackedItems.trackingCookies")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <EyeOff className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                  <span>Data is never sold to advertisers</span>
+                  <span>{tAnalytics("neverTrackedItems.dataSold")}</span>
                 </li>
               </ul>
             </div>
@@ -258,69 +246,28 @@ export default function AnalyticsSettingsPage() {
 
         {/* Why We Collect Data */}
         <div className="rounded-lg border bg-card p-6">
-          <h3 className="font-semibold text-lg mb-4">Why We Collect Analytics</h3>
+          <h3 className="font-semibold text-lg mb-4">{tAnalytics("sections.whyCollect")}</h3>
           <p className="text-muted-foreground mb-4">
-            Analytics help us understand how Tekir is being used so we can make it better for everyone.
+            {tAnalytics("whyCollectDescription")}
           </p>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-              <span>Improve search accuracy and relevance</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-              <span>Fix bugs and crashes quickly</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-              <span>Understand which features are most valuable</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-              <span>Optimize performance across devices</span>
-            </li>
+            {tAnalytics.raw("whyCollectPoints").map((point: string, index: number) => (
+              <li key={index} className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                <span>{point}</span>
+              </li>
+            ))}
           </ul>
-        </div>
-
-        {/* Data Management */}
-        <div className="rounded-lg border bg-card p-6">
-          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Trash2 className="w-5 h-5 text-muted-foreground" />
-            Data Management
-          </h3>
-          <p className="text-muted-foreground mb-6">
-            You can clear your local analytics identifiers at any time. This resets the random ID associated
-            with your device. To request deletion of server-side data, please contact us.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <Button
-              variant="destructive"
-              onClick={handleClearData}
-              className="gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear Local Analytics Data
-            </Button>
-            <a
-              href="mailto:support@tekir.co?subject=Delete%20My%20Analytics%20Data"
-              className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-background hover:bg-muted rounded-md text-sm font-medium transition-colors"
-            >
-              <Shield className="w-4 h-4" />
-              Request Server Data Deletion
-            </a>
-          </div>
         </div>
 
         {/* Privacy Notice */}
         <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 p-6">
           <h3 className="font-semibold text-lg mb-2 flex items-center gap-2 text-amber-800 dark:text-amber-200">
             <Info className="w-5 h-5" />
-            Privacy Notice
+            {tAnalytics("sections.privacyNotice")}
           </h3>
           <p className="text-sm text-amber-700 dark:text-amber-300">
-            Analytics are completely optional. Tekir functions fully without any data collection.
-            If you change your mind later, you can disable analytics at any time from this page.
-            We respect your privacy and will never sell your data to third parties.
+            {tAnalytics("privacyNotice")}
           </p>
         </div>
       </div>

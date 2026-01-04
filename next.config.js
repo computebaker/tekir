@@ -44,7 +44,7 @@ const nextConfig = {
     return [
       {
         source: '/analytics/static/:path*',
-        destination: 'https://us-assets.posthog.com/static/:path*',
+        destination: 'https://eu-assets.i.posthog.com/static/:path*',
       },
       {
         source: '/analytics/:path*',

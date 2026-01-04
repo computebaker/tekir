@@ -70,6 +70,7 @@
     "search": "Suchen",
     "privacy": "Privatsphäre",
     "account": "Konto",
+    "analytics": "Analytik",
     "about": "Über",
     "language": "Sprache",
     "theme": "Thema",
@@ -436,6 +437,73 @@
         "syncing": "Synchronisiere Einstellungen mit Server...",
         "synced": "Einstellungen werden automatisch gespeichert und auf allen Geräten synchronisiert.",
         "localOnly": "Einstellungen werden automatisch in Ihrem lokalen Speicher gespeichert."
+      }
+    },
+    "analyticsPage": {
+      "metaTitle": "Analytik-Einstellungen",
+      "mobileNav": {
+        "back": "Zurück zur Suche"
+      },
+      "pageTitle": "Analytik-Einstellungen",
+      "pageDescription": "Verwalten Sie Ihre Analytics-Präferenzen und kontrollieren Sie, welche Daten gesammelt werden.",
+      "status": {
+        "enabled": "Analytik Aktiviert",
+        "disabled": "Analytik Deaktiviert",
+        "enabledDescription": "Sie helfen uns, Tekir zu verbessern, indem Sie anonyme Nutzungsdaten teilen.",
+        "disabledDescription": "Es werden keine Analytics-Daten gesammelt. Tekir funktioniert perfekt ohne Analytics."
+      },
+      "toggle": {
+        "analytics": "Analytik Aktivieren",
+        "analyticsDescription": "Helfen Sie uns, Tekir zu verbessern, indem Sie anonyme Nutzungsdaten teilen",
+        "sessionReplay": "Sitzungs-Wiederholung",
+        "sessionReplayDescription": "Sitzungsaufzeichnung zu Debugging-Zwecken zulassen"
+      },
+      "sections": {
+        "whatWeTrack": "Was Wir Tracken",
+        "whenEnabled": "Wenn Analytik Aktiviert Ist",
+        "neverTracked": "Nie Getrackt",
+        "whyCollect": "Warum Wir Analytics Sammeln",
+        "privacyNotice": "Datenschutz-Hinweis"
+      },
+      "trackedItems": {
+        "pageViews": "Seitenaufrufe und Navigationsmuster",
+        "searchBehavior": "Suchverhalten (verwendete Filter, Tabs)",
+        "aiUsage": "KI-Nutzung und Antwortzeiten",
+        "errors": "Fehler und Abstürze zum Debuggen",
+        "sessionRecording": "Sitzungsaufzeichnungen zur Fehlerbehebung"
+      },
+      "neverTrackedItems": {
+        "searchQueries": "Ihre Suchanfragen (bleiben privat)",
+        "personalInfo": "Persönliche Informationen (Name, E-Mail)",
+        "clickedUrls": "Angeklickte Ergebnis-URLs (was Sie anklicken)",
+        "trackingCookies": "Drittanbieter-Tracking-Cookies",
+        "dataSold": "Daten werden niemals an Werbetreibende verkauft"
+      },
+      "whyCollectPoints": [
+        "Suchgenauigkeit und -relevanz verbessern",
+        "Fehler und Abstürze schnell beheben",
+        "Verstehen, welche Funktionen am wertvollsten sind",
+        "Leistung über verschiedene Geräte hinweg optimieren"
+      ],
+      "whyCollectDescription": "Analytics helfen uns zu verstehen, wie Tekir verwendet wird, damit wir es für alle besser machen können.",
+      "privacyNotice": "Analytics sind völlig optional. Tekir funktioniert vollständig ohne jede Datensammlung. Wenn Sie Ihre Meinung später ändern, können Sie Analytics jederzeit von dieser Seite aus deaktivieren. Wir respektieren Ihre Privatsphäre und werden Ihre Daten niemals an Dritte verkaufen."
+    },
+    "toasts": {
+      "analyticsEnabled": {
+        "title": "Analytik Aktiviert",
+        "description": "Danke, dass Sie uns helfen, Tekir zu verbessern."
+      },
+      "analyticsDisabled": {
+        "title": "Analytik Deaktiviert",
+        "description": "Ihre Analytics-Präferenz wurde gespeichert."
+      },
+      "sessionReplayRequiresAnalytics": {
+        "title": "Sitzungs-Wiederholung Erfordert Analytics",
+        "description": "Bitte aktivieren Sie zuerst Analytics."
+      },
+      "sessionReplayEnabled": {
+        "title": "Sitzungs-Wiederholung Aktiviert",
+        "description": "Sitzungsaufzeichnung ist jetzt aktiviert."
       }
     }
   },
