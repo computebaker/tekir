@@ -52,8 +52,8 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
   // Auto-capture
   autocapture: false, // Disable autocapture, we'll manually track
 
-  // Error tracking
-  capture_exceptions: false, // We'll handle this manually with consent check
+  // Error tracking - enabled with consent check in before_send
+  capture_exceptions: true, // Auto-capture exceptions when consent is given
 
   // Session replay
   session_recording: {

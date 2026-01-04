@@ -71,3 +71,53 @@ export async function register() {
     console.log('[OpenTelemetry] Instrumentation registered');
   }
 }
+
+// Server-side error tracking
+export const onRequestError = async (err: Error, request: Request, context: any) => {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    try {
+      const { getPostHogServer } = await import('./lib/posthog-server');
+      const posthog = getPostHogServer();
+      
+      let distinctId: string | null = null;
+      
+      if (request.headers) {
+        const cookieHeader = request.headers.get('cookie');
+        
+        if (cookieHeader) {
+          // Normalize multiple cookie arrays to string
+          const cookieString = Array.isArray(cookieHeader) 
+            ? cookieHeader.join('; ') 
+            : cookieHeader;
+
+          const postHogCookieMatch = cookieString.match(/ph_phc_.*?_posthog=([^;]+)/);
+
+          if (postHogCookieMatch && postHogCookieMatch[1]) {
+            try {
+              const decodedCookie = decodeURIComponent(postHogCookieMatch[1]);
+              const postHogData = JSON.parse(decodedCookie);
+              distinctId = postHogData.distinct_id;
+            } catch (e) {
+              console.error('[PostHog] Error parsing PostHog cookie:', e);
+            }
+          }
+        }
+      }
+
+      await posthog.captureException(err, distinctId || undefined, {
+        $exception_type: err.name,
+        $exception_message: err.message,
+        $exception_stack: err.stack,
+        url: (request as any).url || 'unknown',
+        method: request.method,
+      });
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[PostHog] Captured server-side exception:', err.message);
+      }
+    } catch (captureError) {
+      console.error('[PostHog] Failed to capture exception:', captureError);
+    }
+  }
+};
+
