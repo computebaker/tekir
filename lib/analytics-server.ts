@@ -215,6 +215,10 @@ export interface LLMServerEventProperties {
   $ai_temperature?: number;
   $ai_max_tokens?: number;
   user_id?: string;
+  // User properties for context
+  user_name?: string;
+  user_email?: string;
+  user_avatar?: string;
 }
 
 export function trackLLMGeneration(properties: LLMServerEventProperties): void {
@@ -223,33 +227,58 @@ export function trackLLMGeneration(properties: LLMServerEventProperties): void {
     return;
   }
 
+  // Use user_id as distinct ID if available, otherwise fall back to 'server'
+  const distinctId = properties.user_id || 'server';
+
+  // Build person/user properties to set on the PostHog profile
+  const userProperties: Record<string, any> = {};
+  if (properties.user_id) {
+    if (properties.user_name) {
+      userProperties.name = properties.user_name;
+    }
+    if (properties.user_email) {
+      userProperties.email = properties.user_email;
+    }
+    if (properties.user_avatar) {
+      userProperties.avatar = properties.user_avatar;
+    }
+  }
+
+  // Build event properties with user context
+  const eventProperties: Record<string, any> = {
+    $ai_provider: properties.$ai_provider,
+    $ai_model: properties.$ai_model,
+    // PostHog expects OpenAI-compatible message format for proper display
+    $ai_input: [
+      { role: 'user', content: properties.$ai_input }
+    ],
+    // Output choices - just the content strings
+    $ai_output_choices: [properties.$ai_output],
+    $ai_latency: properties.$ai_latency / 1000, // Convert ms to seconds for PostHog
+    // Token counts
+    $ai_input_tokens: properties.$ai_tokens_input,
+    $ai_output_tokens: properties.$ai_tokens_output,
+    // Cost in USD - PostHog uses these for LLM cost dashboards
+    $ai_input_cost_usd: properties.$ai_input_cost_usd,
+    $ai_output_cost_usd: properties.$ai_output_cost_usd,
+    $ai_total_cost_usd: properties.$ai_total_cost_usd,
+    $ai_trace_id: properties.$ai_trace_id,
+    // Additional metadata
+    temperature: properties.$ai_temperature,
+    max_tokens: properties.$ai_max_tokens,
+    server_event: true,
+    environment: process.env.NODE_ENV || 'unknown',
+  };
+
+  // Set user properties on the PostHog profile if available
+  if (Object.keys(userProperties).length > 0) {
+    eventProperties.$set = userProperties;
+  }
+
   client.capture({
-    distinctId: properties.user_id || 'server',
+    distinctId,
     event: '$ai_generation',
-    properties: {
-      $ai_provider: properties.$ai_provider,
-      $ai_model: properties.$ai_model,
-      // PostHog expects OpenAI-compatible message format for proper display
-      $ai_input: [
-        { role: 'user', content: properties.$ai_input }
-      ],
-      // Output choices - just the content strings
-      $ai_output_choices: [properties.$ai_output],
-      $ai_latency: properties.$ai_latency / 1000, // Convert ms to seconds for PostHog
-      // Token counts
-      $ai_input_tokens: properties.$ai_tokens_input,
-      $ai_output_tokens: properties.$ai_tokens_output,
-      // Cost in USD - PostHog uses these for LLM cost dashboards
-      $ai_input_cost_usd: properties.$ai_input_cost_usd,
-      $ai_output_cost_usd: properties.$ai_output_cost_usd,
-      $ai_total_cost_usd: properties.$ai_total_cost_usd,
-      $ai_trace_id: properties.$ai_trace_id,
-      // Additional metadata
-      temperature: properties.$ai_temperature,
-      max_tokens: properties.$ai_max_tokens,
-      server_event: true,
-      environment: process.env.NODE_ENV || 'unknown',
-    },
+    properties: eventProperties,
   });
 }
 

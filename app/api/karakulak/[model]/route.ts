@@ -123,6 +123,38 @@ async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
   }
 }
 
+// Helper to get full user data including name and avatar
+interface UserData {
+  id: string;
+  name?: string;
+  email?: string;
+  image?: string;
+}
+
+async function getUserDataFromRequest(req: NextRequest): Promise<UserData | null> {
+  try {
+    const sessionToken = req.cookies.get('session-token')?.value;
+    if (!sessionToken) return null;
+
+    const convex = getConvexClient();
+    const session = await convex.query(api.sessions.getSessionByToken, { token: sessionToken });
+    if (!session?.userId) return null;
+
+    // Fetch full user data
+    const user = await convex.query(api.users.getUserById, { id: session.userId });
+    if (!user) return null;
+
+    return {
+      id: user._id,
+      name: user.name || user.username,
+      email: user.email,
+      image: user.image,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
   // Generate a unique trace ID for this request
   const traceId = randomUUID();
@@ -140,11 +172,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
   wideEvent.setRequest({ method: 'POST', path: `/api/karakulak/${model}` });
   wideEvent.setCustom('trace_id', traceId);
 
-  // Get user context
-  const userId = await getUserIdFromRequest(req);
-  if (userId) {
-    wideEvent.setUser({ id: userId });
-  }
+  // Capture session token (used to attribute guest users) and
+  // start fetching user data in background (don't await - it's non-critical)
+  // This will be resolved by the time we send analytics, but won't block AI response
+  const sessionToken = req.cookies.get('session-token')?.value;
+  const userDataPromise = getUserDataFromRequest(req).catch(() => null);
+  let userData: UserData | null = null;
 
   // Validate model parameter
   const validModels: ModelKey[] = ['gemini', 'llama', 'mistral', 'chatgpt', 'grok', 'claude'];
@@ -244,6 +277,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     }
     wideEvent.finish(200);
 
+    // Resolve user data with timeout (max 500ms) to ensure analytics don't block response
+    try {
+      userData = await Promise.race([
+        userDataPromise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 500))
+      ]);
+    } catch {
+      userData = null;
+    }
+
+    // Build analytics identity: prefer logged-in user, else attribute to guest session if available
+    let analyticsDistinctId: string | undefined = undefined;
+    let analyticsUserName: string | undefined = undefined;
+    if (userData && userData.id) {
+      analyticsDistinctId = userData.id;
+      analyticsUserName = userData.name;
+    } else if (sessionToken) {
+      // Use a deterministic guest id derived from the session token (shortened)
+      analyticsDistinctId = `guest_${sessionToken.slice(0, 8)}`;
+      analyticsUserName = 'Guest';
+    }
+
     // Track with native PostHog LLM analytics
     trackLLMGeneration({
       $ai_provider: MODEL_CONFIG[modelKey].provider,
@@ -258,7 +313,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
       $ai_trace_id: traceId,
       $ai_temperature: generationConfig.temperature,
       $ai_max_tokens: generationConfig.max_tokens,
-      user_id: userId || undefined,
+      user_id: analyticsDistinctId || undefined,
+      user_name: analyticsUserName || userData?.name || undefined,
+      user_email: userData?.email || undefined,
+      user_avatar: userData?.image || undefined,
     });
 
     // Fire-and-forget AI usage logging to Convex
