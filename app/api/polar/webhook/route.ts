@@ -4,6 +4,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
+import { handleAPIError } from '@/lib/api-error-tracking';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -58,9 +59,12 @@ export async function POST(req: NextRequest) {
     
     if (!webhookSecret) {
       console.error('[Webhook] POLAR_WEBHOOK_SECRET not configured');
-      return NextResponse.json(
-        { error: 'Webhook secret not configured' },
-        { status: 500, headers }
+      return handleAPIError(
+        new Error('Webhook secret not configured'),
+        req,
+        '/api/polar/webhook',
+        'POST',
+        500
       );
     }
 
@@ -84,15 +88,21 @@ export async function POST(req: NextRequest) {
             console.log('[Webhook] DEV MODE: Parsed event type:', event.type);
           } catch (parseError) {
             console.error('[Webhook] DEV MODE: Failed to parse body:', parseError);
-            return NextResponse.json(
-              { error: 'Invalid webhook signature and unable to parse body' },
-              { status: 403, headers }
+            return handleAPIError(
+              new Error('Invalid webhook signature and unable to parse body'),
+              req,
+              '/api/polar/webhook',
+              'POST',
+              403
             );
           }
         } else {
-          return NextResponse.json(
-            { error: 'Invalid webhook signature' },
-            { status: 403, headers }
+          return handleAPIError(
+            new Error('Invalid webhook signature'),
+            req,
+            '/api/polar/webhook',
+            'POST',
+            403
           );
         }
       } else {
@@ -180,6 +190,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, webhookId }, { headers });
   } catch (error) {
     console.error(`[Webhook ${webhookId}] Processing error:`, error);
+    handleAPIError(error, req, '/api/polar/webhook', 'POST', 500);
     return NextResponse.json(
       { 
         error: 'Webhook processing failed',

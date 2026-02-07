@@ -7,6 +7,7 @@ import { ConvexProvider } from "convex/react";
 import convex from "@/lib/convex-proxy";
 import { useEffect } from 'react';
 import { prefetchBangs } from '@/utils/bangs';
+import { initGlobalErrorHandlers } from '@/lib/client-error-tracking';
 import { Toaster } from "@/components/toaster";
 
 // Helper functions for cookie manipulation using document.cookie
@@ -43,6 +44,7 @@ export default function ClientLayout({
   // Prefetch bangs when the app initializes
   useEffect(() => {
     prefetchBangs();
+    initGlobalErrorHandlers(); // Initialize global error handlers once
   }, []);
 
   useEffect(() => {

@@ -458,6 +458,16 @@ export function trackJSError(properties: ErrorEventProperties): void {
   });
 }
 
+export function trackAntiAbuseEvent(
+  action: string,
+  properties?: Record<string, string | number | boolean | null | undefined>
+): void {
+  captureEvent('antiabuse_event', {
+    action,
+    ...properties,
+  });
+}
+
 export function trackAPIError(
   errorType: string,
   url: string,
@@ -622,6 +632,7 @@ export const analytics = {
 
   // Errors
   trackJSError,
+  trackAntiAbuseEvent,
   trackAPIError,
 
   // Page

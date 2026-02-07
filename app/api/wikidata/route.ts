@@ -5,6 +5,7 @@ import {
   trackAPIError,
   flushServerEvents,
 } from '@/lib/analytics-server';
+import { handleAPIError as handleAPIErrorTracking } from '@/lib/api-error-tracking';
 
 const USER_AGENT = 'Tekir/1.0 (https://tekir.co/)';
 
@@ -135,7 +136,15 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const title = String(url.searchParams.get('title') || url.searchParams.get('q') || '');
     const lang = validateLanguage(url.searchParams.get('lang'));
-    if (!title) return NextResponse.json({ error: 'missing title' }, { status: 400 });
+    if (!title) {
+      return handleAPIErrorTracking(
+        new Error('missing title'),
+        req,
+        '/api/wikidata',
+        'GET',
+        400
+      );
+    }
 
     const summary = await getSummary(title, lang).catch(() => null);
     const qid = await getQidFromTitle(title, lang).catch(() => null);

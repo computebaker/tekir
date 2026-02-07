@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
+import { handleAPIError } from '@/lib/api-error-tracking';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,9 +14,12 @@ export async function GET(request: NextRequest) {
     const units = searchParams.get("units") || "metric";
 
     if (!lat || !lon) {
-      return NextResponse.json(
-        { error: "Latitude and longitude are required" },
-        { status: 400 }
+      return handleAPIError(
+        new Error("Latitude and longitude are required"),
+        request,
+        '/api/weather/current',
+        'GET',
+        400
       );
     }
 
@@ -40,9 +44,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(weatherData);
   } catch (error) {
     console.error("Weather API error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch weather data" },
-      { status: 500 }
-    );
+    return handleAPIError(error, request, '/api/weather/current', 'GET', 500);
   }
 }

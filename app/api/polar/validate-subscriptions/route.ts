@@ -3,6 +3,7 @@ import { getCustomerSubscriptions } from '@/lib/polar';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { handleAPIError } from '@/lib/api-error-tracking';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -34,9 +35,12 @@ export async function POST(req: NextRequest) {
 
     if (!expectedSecret || cronSecret !== expectedSecret) {
       console.error('[Polar Validation] Invalid or missing cron secret');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401, headers }
+      return handleAPIError(
+        new Error('Invalid or missing cron secret'),
+        req,
+        '/api/polar/validate-subscriptions',
+        'POST',
+        401
       );
     }
 

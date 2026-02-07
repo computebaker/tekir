@@ -39,6 +39,7 @@ import {
   trackVideoClicked,
   trackPageView,
 } from "@/lib/posthog-analytics";
+import { trackAsyncError, trackNetworkError } from '@/lib/client-error-tracking';
 
 const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
 const Footer = dynamic(() => import("@/components/footer"), { ssr: false });
@@ -378,6 +379,12 @@ function SearchPageContent() {
           if (process.env.NODE_ENV === 'development') {
             console.error(`Search failed for engine "${engine}":`, error);
           }
+          // Track the error with context
+          trackAsyncError(error, {
+            operation: `search_${engine}`,
+            component: 'SearchPage',
+            metadata: { query: currentQuery, searchType }
+          });
           if (isMounted) {
             // TODO: Consider adding error state to show user-friendly messages
             // For now, errors are logged but not shown to avoid breaking existing UX
@@ -464,6 +471,11 @@ function SearchPageContent() {
               if (process.env.NODE_ENV === 'development') {
                 console.error('Image retry failed:', err);
               }
+              trackAsyncError(err, {
+                operation: 'images_retry',
+                component: 'SearchPage',
+                metadata: { query }
+              });
             } finally {
               setImageLoading(false);
             }
@@ -479,6 +491,7 @@ function SearchPageContent() {
         if (process.env.NODE_ENV === 'development') {
           console.error("Image search failed:", error);
         }
+        trackNetworkError(error, imagesUrl, 'GET');
       })
       .finally(() => {
         // If a retry is in progress, its own finally will update loading; avoid clobbering
@@ -548,6 +561,11 @@ function SearchPageContent() {
               if (process.env.NODE_ENV === 'development') {
                 console.error('Video retry failed:', err);
               }
+              trackAsyncError(err, {
+                operation: 'videos_retry',
+                component: 'SearchPage',
+                metadata: { query }
+              });
             } finally {
               setVideoLoading(false);
             }
@@ -562,6 +580,7 @@ function SearchPageContent() {
         if (process.env.NODE_ENV === 'development') {
           console.error("Video search failed:", error);
         }
+        trackNetworkError(error, videosUrl, 'GET');
       })
       .finally(() => {
         if (!videoRetryRef.current) setVideoLoading(false);
@@ -646,6 +665,11 @@ function SearchPageContent() {
               if (process.env.NODE_ENV === 'development') {
                 console.error('News retry failed:', err);
               }
+              trackAsyncError(err, {
+                operation: 'news_retry',
+                component: 'SearchPage',
+                metadata: { query }
+              });
             } finally {
               setNewsLoading(false);
             }
@@ -660,6 +684,7 @@ function SearchPageContent() {
         if (process.env.NODE_ENV === 'development') {
           console.error("News search failed:", error);
         }
+        trackNetworkError(error, newsUrl, 'GET');
       })
       .finally(() => {
         if (!newsRetryRef.current) setNewsLoading(false);
@@ -711,6 +736,11 @@ function SearchPageContent() {
           if (process.env.NODE_ENV === 'development') {
             console.error("Image search failed:", error);
           }
+          trackNetworkError(
+            error,
+            `/api/images/${imageEngine}?q=${encodeURIComponent(query)}`,
+            'GET'
+          );
         })
         .finally(() => setImageLoading(false));
       return () => {

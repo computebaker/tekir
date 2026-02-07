@@ -4,6 +4,7 @@ import { getJWTUser } from '@/lib/jwt-auth';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { handleAPIError } from '@/lib/api-error-tracking';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -41,9 +42,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user.polarCustomerId) {
-      return NextResponse.json(
-        { error: 'No subscription found for this user' },
-        { status: 400, headers }
+      return handleAPIError(
+        new Error('No subscription found for this user'),
+        req,
+        '/api/polar/portal',
+        'POST',
+        400
       );
     }
 
@@ -65,9 +69,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (!result.success || !result.portalUrl) {
-      return NextResponse.json(
-        { error: result.error || 'Failed to create customer portal session' },
-        { status: 500, headers }
+      return handleAPIError(
+        new Error(result.error || 'Failed to create customer portal session'),
+        req,
+        '/api/polar/portal',
+        'POST',
+        500
       );
     }
 
@@ -80,7 +87,7 @@ export async function POST(req: NextRequest) {
       { headers }
     );
   } catch (error) {
-    console.error('[Polar] Portal link error:', error);
+    handleAPIError(error, req, '/api/polar/portal', 'POST', 500);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500, headers }

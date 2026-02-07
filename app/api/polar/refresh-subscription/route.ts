@@ -4,6 +4,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { polar } from "@/lib/polar";
+import { handleAPIError } from "@/lib/api-error-tracking";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -108,12 +109,24 @@ export async function POST(req: NextRequest) {
     console.info("[polar.refresh-subscription] start");
     const jwtUser = await getJWTUser(req);
     if (!jwtUser) {
-      return NextResponse.json<RefreshResult>({ ok: false, message: "Authentication required" }, { status: 401, headers });
+      return handleAPIError(
+        new Error("Authentication required"),
+        req,
+        '/api/polar/refresh-subscription',
+        'POST',
+        401
+      );
     }
 
     const cronSecret = process.env.CONVEX_CRON_SECRET;
     if (!cronSecret) {
-      return NextResponse.json<RefreshResult>({ ok: false, message: "Server not configured" }, { status: 500, headers });
+      return handleAPIError(
+        new Error("Server not configured"),
+        req,
+        '/api/polar/refresh-subscription',
+        'POST',
+        500
+      );
     }
 
     const user = await convex.query(api.users.getUserById, {
@@ -121,7 +134,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json<RefreshResult>({ ok: false, message: "User not found" }, { status: 404, headers });
+      return handleAPIError(
+        new Error("User not found"),
+        req,
+        '/api/polar/refresh-subscription',
+        'POST',
+        404
+      );
     }
 
     let customerId: string | null = user.polarCustomerId ?? null;
@@ -206,6 +225,7 @@ export async function POST(req: NextRequest) {
     console.error("[polar.refresh-subscription] error", {
       message: error instanceof Error ? error.message : "Unknown error",
     });
+    handleAPIError(error, req, '/api/polar/refresh-subscription', 'POST', 500);
     return NextResponse.json<RefreshResult>(
       { ok: false, message: error instanceof Error ? error.message : "Unknown error" },
       { status: 500, headers }

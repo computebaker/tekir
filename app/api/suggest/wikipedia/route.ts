@@ -3,6 +3,7 @@ import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import OpenAI from 'openai';
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
+import { handleAPIError } from '@/lib/api-error-tracking';
 import { randomUUID } from 'crypto';
 
 // Country code to language code mapping for Wikipedia
@@ -213,7 +214,7 @@ export async function GET(req: NextRequest) {
     wideEvent.setError({ type: error instanceof Error ? error.name : 'UnknownError', message: error instanceof Error ? error.message : 'Internal Server Error', code: 'suggest_error' });
     wideEvent.setCustom('latency_ms', duration);
     wideEvent.finish(500);
-    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+    handleAPIError(error, req, '/api/suggest/wikipedia', 'GET', 500);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

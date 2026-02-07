@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
+import { handleAPIError } from '@/lib/api-error-tracking';
 import { randomUUID } from 'crypto';
 
 async function brave(query: string, count: number = 4, country?: string, lang?: string, safesearch?: string) {
@@ -139,7 +140,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
         wideEvent.setError({ type: error instanceof Error ? error.name : 'UnknownError', message: error instanceof Error ? error.message : 'Internal Server Error', code: 'autocomplete_error' });
         wideEvent.setCustom('latency_ms', duration);
         wideEvent.finish(500);
-        flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+        handleAPIError(error, req, `/api/autocomplete/${provider}`, 'GET', 500);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

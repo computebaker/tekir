@@ -4,6 +4,7 @@ import { getJWTUser } from '@/lib/jwt-auth';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { handleAPIError } from '@/lib/api-error-tracking';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -70,9 +71,12 @@ export async function GET(req: NextRequest) {
 
     if (!result.success) {
       console.error(`[Polar] Failed to fetch subscriptions for customer ${user.polarCustomerId}`);
-      return NextResponse.json(
-        { error: 'Failed to fetch subscription details' },
-        { status: 500, headers }
+      return handleAPIError(
+        new Error('Failed to fetch subscription details'),
+        req,
+        '/api/polar/subscription',
+        'GET',
+        500
       );
     }
 
@@ -128,9 +132,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     console.error(`[Polar] Subscription fetch error:`, error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500, headers }
-    );
+    return handleAPIError(error, req, '/api/polar/subscription', 'GET', 500);
   }
 }
