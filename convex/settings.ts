@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireUserWithToken } from "./auth";
 
 const userSettingsResponse = v.object({
@@ -10,6 +11,15 @@ const userSettingsResponse = v.object({
 
 const isUnauthorizedError = (error: unknown) =>
   error instanceof Error && (error.message.startsWith("Unauthorized") || error.message.startsWith("Forbidden"));
+
+const scheduleLog = (
+  ctx: unknown,
+  args: { level: string; message: string; metadataJson?: string }
+) => {
+  const scheduler = (ctx as { scheduler?: { runAfter: Function } }).scheduler;
+  if (!scheduler) return;
+  scheduler.runAfter(0, internal.logging.logServerEvent, args);
+};
 
 // Query to get user settings with real-time subscription
 export const getUserSettings = query({
@@ -29,11 +39,14 @@ export const getUserSettings = query({
       };
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        console.error('[Convex Settings] Auth error:', error instanceof Error ? error.message : error);
-        // Only log that auth token was present, not its contents - security best practice
-        console.error('[Convex Settings] Args:', {
-          userId: args.userId,
-          hasToken: !!args.authToken
+        scheduleLog(ctx, {
+          level: 'error',
+          message: '[Convex Settings] Auth error',
+          metadataJson: JSON.stringify({
+            error: error instanceof Error ? error.message : String(error),
+            userId: args.userId,
+            hasToken: Boolean(args.authToken),
+          }),
         });
         return null;
       }

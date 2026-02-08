@@ -3,7 +3,6 @@ import { Viewport } from 'next';
 import ClientLayout from '@/components/client-layout';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Inter } from 'next/font/google';
-import Script from "next/script";
 
 const inter = Inter({
   subsets: ['latin'],
@@ -28,10 +27,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {process.env.NODE_ENV === "development" && (
-          <Script
+          <script
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
-            strategy="beforeInteractive"
+            defer
           />
         )}
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -43,6 +42,12 @@ export default function RootLayout({
             default-src 'self' 'unsafe-inline' 'unsafe-eval' *.unpkg.com;
             script-src 'self' 'unsafe-inline' 'unsafe-eval' *.unpkg.com;
             style-src 'self' 'unsafe-inline';
+            img-src 'self' data: https: blob:;
+            font-src 'self' data:;
+            connect-src 'self' https: wss: blob:;
+            base-uri 'self';
+            object-src 'none';
+            frame-ancestors 'none';
           " />
         ) : (
           <meta httpEquiv="Content-Security-Policy" content="
@@ -52,6 +57,9 @@ export default function RootLayout({
             img-src 'self' data: https: blob:;
             font-src 'self' data:;
             connect-src 'self' https: wss: blob:;
+            base-uri 'self';
+            object-src 'none';
+            frame-ancestors 'none';
           " />
         )}
         <link rel="icon" href="/favicon.ico" />
@@ -67,6 +75,9 @@ export default function RootLayout({
         <link rel="preload" href="/favicon.ico" as="image" type="image/x-icon" />
       </head>
       <body className={inter.className}>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+          Skip to main content
+        </a>
         <ErrorBoundary>
           <ClientLayout>
             {children}

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { yyyymmdd } from "./usage";
 import { requireAdmin, requireAuth } from "./auth";
 
@@ -11,6 +12,15 @@ const RATE_LIMITS = {
   SESSION_EXPIRATION_SECONDS: 24 * 60 * 60, // 24 hours
   RESET_INTERVAL_MS: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 } as const;
+
+const scheduleLog = (
+  ctx: unknown,
+  args: { level: string; message: string; metadataJson?: string }
+) => {
+  const scheduler = (ctx as { scheduler?: { runAfter: Function } }).scheduler;
+  if (!scheduler) return;
+  scheduler.runAfter(0, internal.logging.logServerEvent, args);
+};
 
 // Helper to get user limit based on roles
 async function getUserLimit(ctx: any, userId: any): Promise<number> {
@@ -27,7 +37,13 @@ async function getUserLimit(ctx: any, userId: any): Promise<number> {
       }
     }
   } catch (error) {
-    console.error('Error fetching user for rate limit:', error);
+    scheduleLog(ctx, {
+      level: 'error',
+      message: 'Error fetching user for rate limit',
+      metadataJson: JSON.stringify({
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    });
   }
 
   return RATE_LIMITS.AUTHENTICATED_DAILY_LIMIT;
@@ -393,7 +409,10 @@ export const getOrCreateSessionToken = mutation({
             await ctx.db.patch(existingUserSession._id, { expiresAt, deviceId: existingUserSession.deviceId || args.deviceId });
           } catch (error) {
             // If patch fails, still return the existing token
-            console.warn("Failed to extend session expiration, but returning existing token");
+            scheduleLog(ctx, {
+              level: 'warn',
+              message: 'Failed to extend session expiration, but returning existing token',
+            });
           }
         }
 
@@ -469,7 +488,10 @@ export const getOrCreateSessionToken = mutation({
             await ctx.db.patch(existingIpSession._id, { expiresAt, deviceId: existingIpSession.deviceId || args.deviceId });
           } catch (error) {
             // If patch fails, still return the existing token
-            console.warn("Failed to extend session expiration, but returning existing token");
+            scheduleLog(ctx, {
+              level: 'warn',
+              message: 'Failed to extend session expiration, but returning existing token',
+            });
           }
         }
 
@@ -531,7 +553,13 @@ export const cleanExpiredSessions = mutation({
         deletedCount++;
       } catch (error) {
         // If deletion fails (e.g., already deleted), continue with others
-        console.warn(`Failed to delete expired session ${session._id}:`, error);
+        scheduleLog(ctx, {
+          level: 'warn',
+          message: `Failed to delete expired session ${session._id}`,
+          metadataJson: JSON.stringify({
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        });
       }
     }
 
@@ -577,7 +605,13 @@ export const resetDailyRequestCounts = mutation({
           await ctx.db.patch(session._id, { requestCount: 0 });
           resetCount++;
         } catch (error) {
-          console.warn(`Failed to reset request count for session ${session._id}:`, error);
+          scheduleLog(ctx, {
+            level: 'warn',
+            message: `Failed to reset request count for session ${session._id}`,
+            metadataJson: JSON.stringify({
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          });
         }
       }
 
@@ -586,7 +620,10 @@ export const resetDailyRequestCounts = mutation({
 
       // Safety break to prevent timeouts
       if (resetCount > 5000) {
-        console.warn("Reset limit reached for single execution");
+        scheduleLog(ctx, {
+          level: 'warn',
+          message: 'Reset limit reached for single execution',
+        });
         return {
           resetCount,
           hasMore: true
@@ -635,7 +672,10 @@ export const resetDailyRequestCountsInternal = internalMutation({
 
       // Safety check: prevent runaway loops
       if (resetCount > 10000) {
-        console.warn("Reset limit reached for single execution");
+        scheduleLog(ctx, {
+          level: 'warn',
+          message: 'Reset limit reached for single execution',
+        });
         return {
           resetCount,
           hasMore: true

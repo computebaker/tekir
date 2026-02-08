@@ -66,6 +66,20 @@ export function captureServerEvent(
 }
 
 /**
+ * Generic server-side log passthrough to PostHog
+ */
+export function trackServerLog(
+  message: string,
+  properties?: ServerEventProperties,
+  distinctId?: string
+): void {
+  captureServerEvent('server_log', {
+    message,
+    ...properties,
+  }, distinctId);
+}
+
+/**
  * Flush pending events immediately
  * Use this for critical events or before process exit
  */

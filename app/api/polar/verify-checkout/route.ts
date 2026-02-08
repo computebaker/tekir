@@ -4,6 +4,7 @@ import { getJWTUser } from '@/lib/jwt-auth';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { captureServerEvent, type ServerEventProperties } from '@/lib/analytics-server';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -23,11 +24,23 @@ export async function POST(req: NextRequest) {
     'X-XSS-Protection': '1; mode=block',
   };
 
+  const logPolarEvent = (
+    event: string,
+    properties?: ServerEventProperties,
+    distinctId?: string
+  ) => {
+    captureServerEvent(`polar_verify_checkout_${event}`, {
+      endpoint: '/api/polar/verify-checkout',
+      ...properties,
+    }, distinctId);
+  };
+
   try {
     // Get authenticated user
     const user = await getJWTUser(req);
     
     if (!user) {
+      logPolarEvent('authentication_required');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401, headers }
@@ -40,6 +53,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!convexUser) {
+      logPolarEvent('user_not_found', { user_authenticated: true }, user.userId);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404, headers }
@@ -51,7 +65,7 @@ export async function POST(req: NextRequest) {
     const alreadyHasPaidRole = currentRoles.some(role => role.toLowerCase() === 'paid');
 
     if (alreadyHasPaidRole) {
-      console.log('User already has paid role, verification complete');
+      logPolarEvent('already_has_paid_role', { already_has_paid_role: true }, user.userId);
       return NextResponse.json(
         {
           success: true,
@@ -70,7 +84,7 @@ export async function POST(req: NextRequest) {
     // If no polarCustomerId, try to find it by searching Polar customers by email
     if (!customerId && convexUser.email) {
       try {
-        console.log('Looking up customer by email:', convexUser.email);
+        logPolarEvent('lookup_customer_by_email', {}, user.userId);
         
         // Search for customer by email
         const customersResult = await polar.customers.list({
@@ -87,7 +101,7 @@ export async function POST(req: NextRequest) {
         if (customersList.length > 0) {
           const customer = customersList[0];
           customerId = customer.id;
-          console.log('Found customer ID:', customerId);
+          logPolarEvent('customer_id_found', {}, user.userId);
           
           // Update user with the found customer ID
           await convex.mutation(api.users.updateUser, {
@@ -102,6 +116,7 @@ export async function POST(req: NextRequest) {
 
     // If still no customer ID found, return retry message
     if (!customerId) {
+      logPolarEvent('customer_id_missing', {}, user.userId);
       return NextResponse.json(
         {
           success: false,
@@ -116,6 +131,7 @@ export async function POST(req: NextRequest) {
     const subscriptionsResult = await getCustomerSubscriptions(customerId);
 
     if (!subscriptionsResult.success) {
+      logPolarEvent('subscriptions_fetch_failed', {}, user.userId);
       return NextResponse.json(
         { error: 'Failed to fetch subscriptions' },
         { status: 500, headers }
@@ -126,6 +142,9 @@ export async function POST(req: NextRequest) {
     const hasActiveSubscription = subscriptionsResult.subscriptions.length > 0;
 
     if (hasActiveSubscription) {
+      logPolarEvent('active_subscription_found', {
+        subscriptions_count: subscriptionsResult.subscriptions.length,
+      }, user.userId);
       // Grant "paid" role if not already present
       const currentRoles = Array.isArray(convexUser.roles) ? convexUser.roles : [];
       const hasPaidRole = currentRoles.some(role => role.toLowerCase() === 'paid');
@@ -136,8 +155,8 @@ export async function POST(req: NextRequest) {
           id: user.userId as Id<'users'>,
           roles: updatedRoles,
         });
-        
-        console.log('Granted paid role to user:', user.userId);
+
+        logPolarEvent('granted_paid_role', {}, user.userId);
       }
 
       return NextResponse.json(
@@ -153,6 +172,7 @@ export async function POST(req: NextRequest) {
         { headers }
       );
     } else {
+      logPolarEvent('no_active_subscription', {}, user.userId);
       // No active subscription found, but customer exists
       // This might mean payment is still processing
       return NextResponse.json(

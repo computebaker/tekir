@@ -9,6 +9,7 @@ import {
   trackServerSearch,
   trackAPIError,
   flushServerEvents,
+  trackServerLog,
 } from '@/lib/analytics-server';
 
 async function fetchFaviconsForResults(items: Array<{ url: string; favicon?: string }>) {
@@ -400,13 +401,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const lang = req.nextUrl.searchParams.get('lang') || req.nextUrl.searchParams.get('language') || undefined;
 
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[Search] ${provider} request: query length=${query?.length || 0}`);
+    trackServerLog('search_request_received', {
+      provider,
+      query_length: query?.length || 0,
+    });
   }
 
   const rateLimitResult = await checkRateLimit(req, '/api/pars');
   if (!rateLimitResult.success) {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Search] Rate limit exceeded for ${provider}`);
+      trackServerLog('search_rate_limit_exceeded', {
+        provider,
+      });
     }
     return rateLimitResult.response!;
   }
@@ -431,7 +437,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   let news: any[] = [];
   let totalResultsCount = 0;
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[Search] Calling ${provider} API`);
+    trackServerLog('search_provider_call', {
+      provider,
+    });
   }
 
   try {
@@ -454,7 +462,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
         return NextResponse.json({ error: 'Authentication required for Google search.' }, { status: 401 });
       }
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Search] Authenticated user for Google`);
+        trackServerLog('search_google_authenticated', {
+          provider,
+        }, authUser.userId);
       }
       const googleRes = await getGoogle(query, country, safesearch, lang);
       results = googleRes.results;
@@ -506,7 +516,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
 
   const responseTime = Date.now() - now;
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[Search] ${provider} completed in ${responseTime}ms`);
+    trackServerLog('search_provider_completed', {
+      provider,
+      response_time_ms: responseTime,
+    });
   }
 
   // Track successful search with PostHog

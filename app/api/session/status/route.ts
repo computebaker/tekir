@@ -5,7 +5,7 @@ import { getJWTUser } from '@/lib/jwt-auth';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
 import { WideEvent } from '@/lib/wide-event';
-import { flushServerEvents } from '@/lib/analytics-server';
+import { flushServerEvents, trackServerLog } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
 
 export async function GET(req: NextRequest) {
@@ -16,12 +16,16 @@ export async function GET(req: NextRequest) {
   wideEvent.setRequest({ method: 'GET', path: '/api/session/status' });
   wideEvent.setCustom('trace_id', traceId);
   
-  console.log(`[Session] Status check request`);
+  trackServerLog('session_status_check_request', {
+    trace_id: traceId,
+  });
 
   try {
     const token = req.cookies.get('session-token')?.value;
     if (!token) {
-      console.log(`[Session] No session token provided`);
+      trackServerLog('session_token_missing', {
+        trace_id: traceId,
+      });
       wideEvent.setError({ type: 'SessionError', message: 'Session token required', code: 'no_token' });
       wideEvent.finish(401);
       flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
@@ -52,11 +56,17 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(`[Session] JWT auth status: ${isActuallyAuthenticated}, userId: ${jwtUser?.userId || 'none'}`);
+    trackServerLog('session_jwt_auth_status', {
+      trace_id: traceId,
+      is_authenticated: isActuallyAuthenticated,
+      has_user_id: Boolean(jwtUser?.userId),
+    }, jwtUser?.userId);
 
     const s: any = await getRateLimitStatus(token);
     if (!s || !s.isValid) {
-      console.log(`[Session] Invalid or expired session token`);
+      trackServerLog('session_token_invalid', {
+        trace_id: traceId,
+      }, jwtUser?.userId);
       wideEvent.setError({ type: 'SessionError', message: 'Invalid or expired session token', code: 'invalid_token' });
       wideEvent.setCustom('latency_ms', Date.now() - startTime);
       wideEvent.finish(401);
@@ -64,7 +74,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
     }
 
-    console.log(`[Session] Session valid, current count: ${s.currentCount}, remaining: ${s.remaining}`);
+    trackServerLog('session_token_valid', {
+      trace_id: traceId,
+      current_count: s.currentCount,
+      remaining: s.remaining,
+    }, jwtUser?.userId);
 
   // Use JWT only for auth status; use live roles from DB for limit decisions.
   const limit = getUserRateLimit(isActuallyAuthenticated, liveRoles);
@@ -86,7 +100,12 @@ export async function GET(req: NextRequest) {
     }
     remaining = Math.max(0, remaining);
 
-    console.log(`[Session] Rate limit status: limit=${limit}, remaining=${remaining}, current=${current}`);
+    trackServerLog('session_rate_limit_status', {
+      trace_id: traceId,
+      limit,
+      remaining,
+      current,
+    }, jwtUser?.userId);
     
     wideEvent.setCustom('limit', limit);
     wideEvent.setCustom('remaining', remaining);

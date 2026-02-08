@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/components/auth-provider";
 import { useSettings } from "@/lib/settings";
-import { HeroSection } from "@/components/home/hero-section";
 import { useSearchSuggestions, Suggestion } from "@/hooks/use-search-suggestions";
 import { cn } from "@/lib/utils";
 import { Search, MessageCircleMore, RefreshCw } from "lucide-react";
@@ -14,6 +13,10 @@ import { Search, MessageCircleMore, RefreshCw } from "lucide-react";
 const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
 const WeatherWidget = dynamic(() => import("@/components/weather-widget"), { ssr: false });
 const MainFooter = dynamic(() => import("@/components/main-footer"));
+const HeroSection = dynamic(
+  () => import("@/components/home/hero-section").then((mod) => mod.HeroSection),
+  { ssr: false }
+);
 
 export default function Home() {
   const tHome = useTranslations("home");
@@ -43,6 +46,7 @@ export default function Home() {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const heroFormRef = useRef<HTMLFormElement>(null);
   const mainRef = useRef<HTMLElement>(null);
+  const lastSearchAtRef = useRef(0);
 
   // Lock raised state while submitting so it doesn't animate back before redirect
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,6 +88,16 @@ export default function Home() {
   // Determine effective preference
   const effectiveShowRecs: boolean | null = localShowRecs !== null ? localShowRecs : (isInitialized ? (settings.showRecommendations ?? false) : null);
 
+  const closeSuggestionsAndInput = useCallback((blurInput: boolean) => {
+    if (showSuggestions) {
+      setShowSuggestions(false);
+    }
+    if (blurInput && isHeroInputFocused) {
+      setIsHeroInputFocused(false);
+      try { searchInputRef.current?.blur(); } catch { }
+    }
+  }, [isHeroInputFocused, showSuggestions]);
+
   // Use custom hook for suggestions
   const {
     suggestions,
@@ -118,7 +132,6 @@ export default function Home() {
 
   // Placeholder for handleBangRedirect
   const handleBangRedirect = async (query: string): Promise<boolean> => {
-    console.log(`Placeholder: handleBangRedirect for "${query}"`);
     if (query.startsWith("!g ")) {
       window.location.href = `https://google.com/search?q=${encodeURIComponent(query.substring(3))}`;
       return true;
@@ -216,9 +229,7 @@ export default function Home() {
           try { searchInputRef.current?.blur(); } catch { }
         }
 
-        if (showSuggestions) {
-          setShowSuggestions(false);
-        }
+        closeSuggestionsAndInput(true);
       }
     };
     document.addEventListener('touchstart', handler, { passive: true });
@@ -227,7 +238,7 @@ export default function Home() {
       document.removeEventListener('touchstart', handler as any);
       document.removeEventListener('mousedown', handler as any);
     };
-  }, [isMobile, isFocusLocked, isHeroInputFocused, showSuggestions]);
+  }, [isMobile, isFocusLocked, isHeroInputFocused, showSuggestions, closeSuggestionsAndInput]);
 
   // Track mobile viewport and virtual keyboard visibility
   useEffect(() => {
@@ -280,6 +291,10 @@ export default function Home() {
     setShowSuggestions(false);
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
+
+    const now = Date.now();
+    if (now - lastSearchAtRef.current < 800) return;
+    lastSearchAtRef.current = now;
 
     if (isMobile && isHeroInputFocused) setIsSubmitting(true);
     const isBangRedirected = await handleBangRedirect(trimmed);
@@ -385,7 +400,7 @@ export default function Home() {
     document.title = tHome("metaTitle");
   }, [tHome]);
 
-  // Click outside handler for suggestions and input focus
+  // Click outside handler + global keydown listener
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -394,24 +409,10 @@ export default function Home() {
       const clickedInsideForm = heroFormRef.current?.contains(target);
 
       if (!clickedInsideSuggestions && !clickedInsideInput && !clickedInsideForm) {
-        if (showSuggestions) {
-          setShowSuggestions(false);
-        }
-        if (isHeroInputFocused) {
-          setIsHeroInputFocused(false);
-          try { searchInputRef.current?.blur(); } catch { }
-        }
+        closeSuggestionsAndInput(true);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showSuggestions, isHeroInputFocused]);
-
-  // Global keydown listener to auto-focus search input and capture typing
-  useEffect(() => {
     const handleGlobalKeydown = (ev: KeyboardEvent) => {
       if (document.activeElement === searchInputRef.current) return;
       if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph', 'CapsLock', 'Tab', 'Escape'].includes(ev.key)) {
@@ -440,9 +441,14 @@ export default function Home() {
       setSearchQuery(prev => prev + ev.key);
       ev.preventDefault();
     };
+
+    document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('keydown', handleGlobalKeydown);
-    return () => window.removeEventListener('keydown', handleGlobalKeydown);
-  }, []);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleGlobalKeydown);
+    };
+  }, [closeSuggestionsAndInput]);
 
   useEffect(() => {
     if (!isHeroInputFocused || !canShowRecommendations) return;
@@ -452,7 +458,7 @@ export default function Home() {
   }, [isHeroInputFocused, canShowRecommendations, showSuggestions, recLoading, recs.length]);
 
   return (
-    <main ref={mainRef} className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
+    <main id="main-content" ref={mainRef} className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
       {/* Top Right Welcome + Profile (only when not scrolled) */}
       <div
         className="fixed top-4 right-4 z-50"
@@ -505,12 +511,16 @@ export default function Home() {
         unlockingRef={unlockingRef}
         pushedStateRef={pushedStateRef}
         hasBang={hasBang}
+        isDropdownOpen={shouldRenderDropdown}
       />
 
       {/* Suggestions Dropdown */}
       {shouldRenderDropdown && (
         <div
           ref={suggestionsRef}
+          id="home-suggestions"
+          role="listbox"
+          aria-label={tSearch("relatedSearches")}
           className={cn(
             "absolute w-full max-w-3xl bg-card/85 backdrop-blur-xl border border-border/50 shadow-2xl z-40 ring-1 ring-black/5 dark:ring-white/10",
             isMobile ? "rounded-3xl px-1.5 py-1.5" : "rounded-2xl overflow-hidden",
@@ -569,6 +579,8 @@ export default function Home() {
               <button
                 type="button"
                 key={`${suggestion.query}-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();

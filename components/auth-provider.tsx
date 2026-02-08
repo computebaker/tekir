@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import convex from "@/lib/convex-proxy";
-import { trackSignIn, trackSignOut, trackAuthError } from "@/lib/posthog-analytics";
+import { trackClientLog, trackSignIn, trackSignOut, trackAuthError } from "@/lib/posthog-analytics";
 
 // Define user settings interface
 interface UserSettings {
@@ -153,7 +153,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
       // Retry logic for transient network issues on initial check
       if (!initialCheckDoneRef.current && retryCount < 2) {
-        console.log(`Retrying auth check (${retryCount + 1}/2)...`);
+        trackClientLog('auth_check_retry', {
+          attempt: retryCount + 1,
+          max_attempts: 2,
+        });
         isCheckingRef.current = false;
         // Exponential backoff: 500ms, then 1000ms
         await new Promise(resolve => setTimeout(resolve, 500 * (retryCount + 1)));

@@ -5,8 +5,20 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { polar } from "@/lib/polar";
 import { handleAPIError } from "@/lib/api-error-tracking";
+import { captureServerEvent, type ServerEventProperties } from "@/lib/analytics-server";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+const logPolarEvent = (
+  event: string,
+  properties?: ServerEventProperties,
+  distinctId?: string
+) => {
+  captureServerEvent(`polar_refresh_subscription_${event}`, {
+    endpoint: '/api/polar/refresh-subscription',
+    ...properties,
+  }, distinctId);
+};
 
 type RefreshResult = {
   ok: true;
@@ -24,24 +36,24 @@ async function getCustomerIdByEmail(email: string): Promise<string | null> {
   const customers: any[] = [];
   try {
     const result: any = await (polar as any).customers.list({ email });
-    console.info("[polar.refresh-subscription] customers.list(email) result shape", {
-      isAsyncIterable: !!(result && typeof result[Symbol.asyncIterator] === "function"),
-      keys: result ? Object.keys(result) : [],
+    logPolarEvent('customers_list_result_shape', {
+      is_async_iterable: !!(result && typeof result[Symbol.asyncIterator] === "function"),
+      keys: result ? Object.keys(result).join(',') : '',
     });
     // Some SDK versions return an async iterable, others return a single page object.
     if (result && typeof result[Symbol.asyncIterator] === "function") {
       for await (const page of result) {
         const items = (page as any).result?.items || (page as any).items || [];
-        console.info("[polar.refresh-subscription] customers.list page shape", {
-          keys: page ? Object.keys(page) : [],
-          itemCount: Array.isArray(items) ? items.length : 0,
+        logPolarEvent('customers_list_page_shape', {
+          keys: page ? Object.keys(page).join(',') : '',
+          item_count: Array.isArray(items) ? items.length : 0,
         });
         if (Array.isArray(items)) customers.push(...items);
       }
     } else {
       const items = (result as any)?.result?.items || (result as any)?.items || [];
-      console.info("[polar.refresh-subscription] customers.list single page", {
-        itemCount: Array.isArray(items) ? items.length : 0,
+      logPolarEvent('customers_list_single_page', {
+        item_count: Array.isArray(items) ? items.length : 0,
       });
       if (Array.isArray(items)) customers.push(...items);
     }
@@ -50,9 +62,9 @@ async function getCustomerIdByEmail(email: string): Promise<string | null> {
   }
 
   const first = customers[0];
-  console.info("[polar.refresh-subscription] customers.list(email) aggregated", {
-    customersCount: customers.length,
-    foundCustomer: Boolean(first?.id),
+  logPolarEvent('customers_list_aggregated', {
+    customers_count: customers.length,
+    found_customer: Boolean(first?.id),
   });
   return first?.id ?? null;
 }
@@ -61,15 +73,15 @@ async function hasActiveSubscription(customerId: string): Promise<boolean> {
   const active: any[] = [];
   try {
     const result: any = await (polar as any).subscriptions.list({ customerId });
-    console.info("[polar.refresh-subscription] subscriptions.list result shape", {
-      isAsyncIterable: !!(result && typeof result[Symbol.asyncIterator] === "function"),
-      keys: result ? Object.keys(result) : [],
+    logPolarEvent('subscriptions_list_result_shape', {
+      is_async_iterable: !!(result && typeof result[Symbol.asyncIterator] === "function"),
+      keys: result ? Object.keys(result).join(',') : '',
     });
     for await (const page of result) {
       const items = (page as any).result?.items || (page as any).items || [];
-      console.info("[polar.refresh-subscription] subscriptions.list page", {
-        keys: page ? Object.keys(page) : [],
-        itemCount: Array.isArray(items) ? items.length : 0,
+      logPolarEvent('subscriptions_list_page', {
+        keys: page ? Object.keys(page).join(',') : '',
+        item_count: Array.isArray(items) ? items.length : 0,
       });
       if (Array.isArray(items)) active.push(...items);
     }
@@ -80,9 +92,9 @@ async function hasActiveSubscription(customerId: string): Promise<boolean> {
   const statuses = active
     .map((s: any) => s?.status)
     .filter((s: any) => typeof s === "string");
-  console.info("[polar.refresh-subscription] subscriptions aggregated", {
-    subscriptionsCount: active.length,
-    uniqueStatuses: Array.from(new Set(statuses)).slice(0, 10),
+  logPolarEvent('subscriptions_aggregated', {
+    subscriptions_count: active.length,
+    unique_statuses: Array.from(new Set(statuses)).slice(0, 10).join(','),
   });
 
   return active.some((s: any) => s?.status === "active" || s?.status === "trialing");
@@ -106,9 +118,10 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    console.info("[polar.refresh-subscription] start");
+    logPolarEvent('start');
     const jwtUser = await getJWTUser(req);
     if (!jwtUser) {
+      logPolarEvent('authentication_required');
       return handleAPIError(
         new Error("Authentication required"),
         req,
@@ -120,6 +133,7 @@ export async function POST(req: NextRequest) {
 
     const cronSecret = process.env.CONVEX_CRON_SECRET;
     if (!cronSecret) {
+      logPolarEvent('missing_cron_secret');
       return handleAPIError(
         new Error("Server not configured"),
         req,
@@ -134,6 +148,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
+      logPolarEvent('user_not_found', { user_authenticated: true }, jwtUser.userId);
       return handleAPIError(
         new Error("User not found"),
         req,
@@ -146,28 +161,32 @@ export async function POST(req: NextRequest) {
     let customerId: string | null = user.polarCustomerId ?? null;
     let updatedPolarCustomerId = false;
 
-    console.info("[polar.refresh-subscription] loaded user", {
-      hasStoredPolarCustomerId: Boolean(customerId),
-      hasPaidRole: (user.roles ?? []).some((r: string) => r.toLowerCase() === "paid"),
-    });
+    logPolarEvent(
+      'user_loaded',
+      {
+        has_stored_polar_customer_id: Boolean(customerId),
+        has_paid_role: (user.roles ?? []).some((r: string) => r.toLowerCase() === "paid"),
+      },
+      jwtUser.userId
+    );
 
     if (!customerId) {
-      console.info("[polar.refresh-subscription] No stored polarCustomerId; attempting email lookup");
+      logPolarEvent('no_stored_customer_id', {}, jwtUser.userId);
       customerId = await getCustomerIdByEmail(user.email);
       if (customerId) {
-        console.info("[polar.refresh-subscription] Email lookup found customer; storing polarCustomerId");
+        logPolarEvent('email_lookup_found_customer', {}, jwtUser.userId);
         await convex.mutation(api.users.updateUser, {
           id: user._id as Id<"users">,
           polarCustomerId: customerId,
         });
         updatedPolarCustomerId = true;
       } else {
-        console.info("[polar.refresh-subscription] Email lookup returned no customer");
+        logPolarEvent('email_lookup_no_customer', {}, jwtUser.userId);
       }
     }
 
     if (!customerId) {
-      console.info("[polar.refresh-subscription] done: no customerId available");
+      logPolarEvent('no_customer_id_available', { updated_polar_customer_id: updatedPolarCustomerId }, jwtUser.userId);
       return NextResponse.json<RefreshResult>(
         {
           ok: true,
@@ -180,13 +199,17 @@ export async function POST(req: NextRequest) {
 
     const active = await hasActiveSubscription(customerId);
 
-    console.info("[polar.refresh-subscription] subscription check complete", {
-      foundActiveSubscription: active,
-      updatedPolarCustomerId,
-    });
+    logPolarEvent(
+      'subscription_check_complete',
+      {
+        found_active_subscription: active,
+        updated_polar_customer_id: updatedPolarCustomerId,
+      },
+      jwtUser.userId
+    );
 
     if (!active) {
-      console.info("[polar.refresh-subscription] done: no active subscription");
+      logPolarEvent('no_active_subscription', {}, jwtUser.userId);
       return NextResponse.json<RefreshResult>(
         {
           ok: true,
@@ -202,14 +225,14 @@ export async function POST(req: NextRequest) {
     const currentRoles = user.roles ?? [];
     const hasPaid = currentRoles.some((r: string) => r.toLowerCase() === "paid");
     if (!hasPaid) {
-      console.info("[polar.refresh-subscription] granting paid role");
+      logPolarEvent('granting_paid_role', {}, jwtUser.userId);
       await convex.mutation(api.users.updateUserRoles, {
         id: user._id as Id<"users">,
         roles: [...currentRoles, "paid"],
         cronSecret,
       });
     } else {
-      console.info("[polar.refresh-subscription] paid role already present");
+      logPolarEvent('paid_role_already_present', {}, jwtUser.userId);
     }
 
     return NextResponse.json<RefreshResult>(

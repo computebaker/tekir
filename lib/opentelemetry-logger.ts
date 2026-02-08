@@ -16,6 +16,7 @@
 
 import { logs } from '@opentelemetry/api-logs';
 import type { Attributes } from '@opentelemetry/api';
+import { trackServerLog } from '@/lib/analytics-server';
 
 // Log severity levels
 type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
@@ -42,7 +43,11 @@ class OpenTelemetryLogger {
     if (!this.isEnabled) {
       // In development, still log to console if OpenTelemetry is disabled
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[${level.toUpperCase()}] ${body}`, attributes || '');
+        trackServerLog('opentelemetry_disabled_log', {
+          level,
+          body,
+          attributes_json: attributes ? JSON.stringify(attributes) : undefined,
+        });
       }
       return;
     }
@@ -56,7 +61,12 @@ class OpenTelemetryLogger {
     } catch (error) {
       // Fallback to console logging if OpenTelemetry fails
       console.error('[OpenTelemetry] Failed to emit log:', error);
-      console.log(`[${level.toUpperCase()}] ${body}`, attributes || '');
+      trackServerLog('opentelemetry_emit_failed', {
+        level,
+        body,
+        attributes_json: attributes ? JSON.stringify(attributes) : undefined,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 

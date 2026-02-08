@@ -6,6 +6,8 @@ import { Search, ExternalLink, Zap, Clock, Globe } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { TopNavSimple } from "@/components/layout/top-nav-simple";
+import { handleApiError } from "@/lib/toast";
+import { trackAPIError } from "@/lib/posthog-analytics";
 
 const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
 const Footer = dynamic(() => import("@/components/footer"), { ssr: false });
@@ -47,7 +49,8 @@ export default function BangsPage() {
             setIsLoading(false);
             return;
           } catch (e) {
-            console.warn('Failed to parse cached bangs', e);
+            handleApiError(e, "bangs_cache_parse");
+            trackAPIError("client_error", "https://bang.lat/bangs.json", undefined, "bangs_cache_parse");
           }
         }
       }
@@ -69,7 +72,8 @@ export default function BangsPage() {
           localStorage.setItem('tekir_bangs_cache_expiry', (Date.now() + 24 * 60 * 60 * 1000).toString());
         }
       } catch (error) {
-        console.error('Failed to fetch bangs:', error);
+        handleApiError(error, "bangs_fetch");
+        trackAPIError("client_error", "https://bang.lat/bangs.json", undefined, "bangs_fetch");
       } finally {
         setIsLoading(false);
       }

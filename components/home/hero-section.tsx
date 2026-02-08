@@ -30,6 +30,7 @@ interface HeroSectionProps {
     unlockingRef: React.MutableRefObject<boolean>;
     pushedStateRef: React.MutableRefObject<boolean>;
     hasBang: boolean;
+    isDropdownOpen: boolean;
 }
 
 export function HeroSection({
@@ -54,7 +55,8 @@ export function HeroSection({
     searchInputRef,
     unlockingRef,
     pushedStateRef,
-    hasBang
+    hasBang,
+    isDropdownOpen
 }: HeroSectionProps) {
     const tHome = useTranslations("home");
     const tSearch = useTranslations("search");
@@ -109,6 +111,11 @@ export function HeroSection({
                         {/* Search input */}
                         <SearchInput
                             ref={searchInputRef}
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-controls="home-suggestions"
+                            aria-expanded={isDropdownOpen}
+                            aria-label={tHome("searchPlaceholder")}
                             type="text"
                             value={searchQuery}
                             autoComplete="off"

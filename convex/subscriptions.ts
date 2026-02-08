@@ -2,6 +2,7 @@
 
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
+import { trackServerLog } from "../lib/analytics-server";
 
 /**
  * Internal action to validate Plus subscriptions
@@ -27,7 +28,7 @@ export const validateSubscriptions = internalAction({
     const cronSecret = process.env.CONVEX_CRON_SECRET;
     
     if (!baseUrl) {
-      console.error('[Subscription Validation] No base URL configured');
+      trackServerLog('subscription_validation_missing_base_url');
       return {
         success: false,
         message: 'No base URL configured. Set NEXT_PUBLIC_APP_URL or SITE_URL.',
@@ -35,7 +36,7 @@ export const validateSubscriptions = internalAction({
     }
 
     if (!cronSecret) {
-      console.error('[Subscription Validation] No cron secret configured');
+      trackServerLog('subscription_validation_missing_cron_secret');
       return {
         success: false,
         message: 'No cron secret configured. Set CONVEX_CRON_SECRET.',
@@ -44,7 +45,9 @@ export const validateSubscriptions = internalAction({
 
     const url = `${baseUrl}/api/polar/validate-subscriptions`;
     
-    console.log(`[Subscription Validation] Calling ${url}`);
+    trackServerLog('subscription_validation_calling', {
+      url,
+    });
 
     try {
       const response = await fetch(url, {
@@ -64,7 +67,10 @@ export const validateSubscriptions = internalAction({
       }
 
       if (!response.ok) {
-        console.error('[Subscription Validation] API error:', data ?? raw);
+        trackServerLog('subscription_validation_api_error', {
+          status: response.status,
+          has_data: Boolean(data),
+        });
         return {
           success: false,
           message:
@@ -81,7 +87,11 @@ export const validateSubscriptions = internalAction({
         };
       }
 
-      console.log('[Subscription Validation] Result:', data);
+      trackServerLog('subscription_validation_result', {
+        has_data: Boolean(data),
+        processed: data?.processed,
+        revoked: data?.revoked,
+      });
       
       return {
         success: true,
@@ -90,7 +100,9 @@ export const validateSubscriptions = internalAction({
         revoked: data.revoked,
       };
     } catch (error) {
-      console.error('[Subscription Validation] Fetch error:', error);
+      trackServerLog('subscription_validation_fetch_error', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error',

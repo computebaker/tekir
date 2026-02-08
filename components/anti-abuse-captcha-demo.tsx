@@ -11,6 +11,7 @@ import {
   getSessionIdFromUrl,
   getSeverityFromUrl,
 } from '@/lib/captcha-client';
+import { trackClientLog } from '@/lib/posthog-analytics';
 
 interface DemoState {
   loading: boolean;
@@ -32,7 +33,7 @@ export default function AntiAbuseCaptchaDemo() {
   });
 
   const addLog = (message: string) => {
-    console.log(`[Demo] ${message}`);
+    trackClientLog('captcha_demo_log', { message });
     setState((prev) => ({
       ...prev,
       logs: [...prev.logs, `${new Date().toLocaleTimeString()}: ${message}`],

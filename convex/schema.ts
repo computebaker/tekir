@@ -13,7 +13,8 @@ export default defineSchema({
   })
     .index("by_day", ["day"]) // range queries
     .index("by_day_provider", ["day", "provider"]) // day + provider breakdown
-    .index("by_day_type", ["day", "type"]), // day + type breakdown
+    .index("by_day_type", ["day", "type"]) // day + type breakdown
+    .index("by_day_provider_and_type", ["day", "provider", "type"]),
 
   // Daily token frequency from search queries (no raw queries stored)
   searchTokenDaily: defineTable({

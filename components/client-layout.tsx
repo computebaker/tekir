@@ -9,6 +9,8 @@ import { useEffect } from 'react';
 import { prefetchBangs } from '@/utils/bangs';
 import { initGlobalErrorHandlers } from '@/lib/client-error-tracking';
 import { Toaster } from "@/components/toaster";
+import { trackClientLog } from "@/lib/posthog-analytics";
+import { initClientConsoleForwarding } from "@/lib/console-forwarder-client";
 
 // Helper functions for cookie manipulation using document.cookie
 const getCookie = (name: string): string | undefined => {
@@ -43,6 +45,7 @@ export default function ClientLayout({
 }) {
   // Prefetch bangs when the app initializes
   useEffect(() => {
+    initClientConsoleForwarding();
     prefetchBangs();
     initGlobalErrorHandlers(); // Initialize global error handlers once
   }, []);
@@ -74,7 +77,9 @@ export default function ClientLayout({
               console.error("Failed to register session token with Convex:", result.error || response.statusText);
               removeCookie('session-token'); // Clear cookie if registration failed
             } else {
-              console.log("Session token registered via API:", sessionToken);
+              trackClientLog('session_token_registered', {
+                has_session_token: Boolean(sessionToken),
+              });
               sessionStorage.setItem('session_registered', 'true');
               (window as any).__sessionRegistered = true;
               window.dispatchEvent(new Event('session-registered'));
@@ -88,7 +93,9 @@ export default function ClientLayout({
         // If we have a cookie but sessionStorage doesn't know about it, we assume it's valid
         // but mark it as registered to skip future checks in this tab.
         // Ideally we might want to verify it, but for performance we trust the cookie existence.
-        console.log("Existing session token:", sessionToken);
+        trackClientLog('session_token_existing', {
+          has_session_token: Boolean(sessionToken),
+        });
         sessionStorage.setItem('session_registered', 'true');
         (window as any).__sessionRegistered = true;
         // Dispatch event so AuthProvider can proceed with auth check

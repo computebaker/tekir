@@ -25,7 +25,8 @@ import {
   RefreshCw,
   Cloud,
   Info,
-  BarChart3
+  BarChart3,
+  LogIn
 } from "lucide-react";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
 
@@ -36,6 +37,7 @@ export default function AccountSettingsPage() {
   const tSettings = useTranslations("settings");
   const tAccount = useTranslations("settings.accountPage");
   const tCommon = useTranslations("common");
+  const tAuth = useTranslations("auth");
   const tSubscription = useTranslations("subscription");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -411,21 +413,34 @@ export default function AccountSettingsPage() {
     );
   }
 
+  const sidebarItems: SettingsNavItem[] = [
+    { href: "/settings/search", icon: Search, label: tSettings("search") },
+    { href: "/settings/account", icon: User, label: tSettings("account"), active: true },
+    { href: "/settings/privacy", icon: Shield, label: tSettings("privacy") },
+    { href: "/settings/analytics", icon: BarChart3, label: tSettings("analytics") },
+    { href: "/settings/about", icon: Info, label: tSettings("about") },
+  ];
+
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">{tAccount("accessDenied.title")}</h1>
-          <p className="text-muted-foreground mb-6">{tAccount("accessDenied.description")}</p>
-          <Link 
-            href="/settings/search" 
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {tAccount("accessDenied.backButton")}
-          </Link>
+      <SettingsShell title={tSettings("title")} currentSectionLabel={tSettings("account")} sidebar={sidebarItems} mobileNavItems={mobileNavItems}>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center max-w-md">
+            <div className="flex justify-center mb-4">
+              <AlertTriangle className="w-12 h-12 text-amber-600" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">{tAccount("accessDenied.title")}</h1>
+            <p className="text-muted-foreground mb-6">{tAccount("accessDenied.description")}</p>
+            <Link 
+              href="/auth/signin" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              {tAuth("signIn")}
+            </Link>
+          </div>
         </div>
-      </div>
+      </SettingsShell>
     );
   }
 
@@ -437,14 +452,6 @@ export default function AccountSettingsPage() {
     name: user.name,
     updatedAt: user.updatedAt ? new Date(user.updatedAt) : undefined
   });
-
-  const sidebarItems: SettingsNavItem[] = [
-    { href: "/settings/search", icon: Search, label: tSettings("search") },
-    { href: "/settings/account", icon: User, label: tSettings("account"), active: true },
-    { href: "/settings/privacy", icon: Shield, label: tSettings("privacy") },
-    { href: "/settings/analytics", icon: BarChart3, label: tSettings("analytics") },
-    { href: "/settings/about", icon: Info, label: tSettings("about") },
-  ];
 
   return (
   <SettingsShell title={tSettings("title")} currentSectionLabel={tSettings("account")} sidebar={sidebarItems} mobileNavItems={mobileNavItems}>

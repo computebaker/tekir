@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { trackServerLog } from '@/lib/analytics-server';
 
 // Helper function to get JWT_SECRET with validation
 function getJWTSecret(): string {
@@ -39,7 +40,9 @@ export async function getJWTUser(request: NextRequest): Promise<JWTUser | null> 
   } catch (error) {
     // Don't log sensitive error details in production
     if (process.env.NODE_ENV === 'development') {
-      console.log('JWT verification failed:', error);
+      trackServerLog('jwt_verification_failed', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
     return null;
   }

@@ -108,7 +108,7 @@ export default function SignUpPage() {
               src="/tekir-head.png"
               alt="Tekir Logo"
               width={80}
-              height={80}
+              height={44}
               className="mx-auto"
             />
           </Link>

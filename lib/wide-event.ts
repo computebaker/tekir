@@ -28,6 +28,7 @@
 import { logs } from '@opentelemetry/api-logs';
 import type { Attributes } from '@opentelemetry/api';
 import { randomUUID } from 'crypto';
+import { trackServerLog } from '@/lib/analytics-server';
 
 // ============================================================================
 // Types
@@ -430,7 +431,10 @@ export class WideEvent {
       // Fallback to console if OpenTelemetry fails
       console.error('[WideEvent] Failed to emit:', err);
       if (process.env.NODE_ENV === 'development') {
-        console.log('[WideEvent]', JSON.stringify(this.data, null, 2));
+        trackServerLog('wide_event_emit_failed', {
+          data_json: JSON.stringify(this.data),
+          error_message: err instanceof Error ? err.message : 'Unknown error',
+        });
       }
     }
   }

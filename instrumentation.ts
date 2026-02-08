@@ -12,6 +12,10 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { trackServerLog } from '@/lib/analytics-server';
+import { initServerConsoleForwarding } from '@/lib/console-forwarder-server';
+
+initServerConsoleForwarding();
 
 // Get PostHog configuration
 const POSTHOG_PROJECT_TOKEN = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -39,7 +43,9 @@ if (POSTHOG_PROJECT_TOKEN) {
   try {
     sdk.start();
     if (process.env.NODE_ENV === 'development') {
-      console.log('[OpenTelemetry] Logging initialized successfully');
+      trackServerLog('opentelemetry_logging_initialized', {
+        environment: process.env.NODE_ENV || 'development',
+      });
     }
   } catch (error) {
     console.error('[OpenTelemetry] Failed to initialize:', error);
@@ -48,7 +54,7 @@ if (POSTHOG_PROJECT_TOKEN) {
   // Graceful shutdown handlers
   const shutdownHandler = () => {
     sdk.shutdown()
-      .then(() => console.log('[OpenTelemetry] Shut down gracefully'))
+      .then(() => trackServerLog('opentelemetry_shutdown_graceful'))
       .catch((err) => console.error('[OpenTelemetry] Shutdown error:', err));
   };
 
@@ -68,7 +74,9 @@ export async function register() {
   // This function is called by Next.js to register instrumentation
   // Initialization happens at module load time above
   if (process.env.NODE_ENV === 'development') {
-    console.log('[OpenTelemetry] Instrumentation registered');
+    trackServerLog('opentelemetry_instrumentation_registered', {
+      environment: process.env.NODE_ENV || 'development',
+    });
   }
 }
 
@@ -113,7 +121,9 @@ export const onRequestError = async (err: Error, request: Request, context: any)
       });
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('[PostHog] Captured server-side exception:', err.message);
+        trackServerLog('posthog_exception_captured', {
+          error_message: err.message,
+        });
       }
     } catch (captureError) {
       console.error('[PostHog] Failed to capture exception:', captureError);

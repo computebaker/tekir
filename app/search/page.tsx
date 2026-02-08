@@ -38,6 +38,7 @@ import {
   trackVideoClusterExpanded,
   trackVideoClicked,
   trackPageView,
+  trackClientLog,
 } from "@/lib/posthog-analytics";
 import { trackAsyncError, trackNetworkError } from '@/lib/client-error-tracking';
 
@@ -988,7 +989,7 @@ function SearchPageContent() {
           }
         } else {
           if (process.env.NODE_ENV === 'development') {
-            console.log(`Search ID changed, ignoring stale dive response`);
+            trackClientLog('dive_response_stale_ignored');
           }
         }
 
@@ -1316,7 +1317,7 @@ function SearchPageContent() {
         const cachedWikiData = SearchCache.getWikipedia(query, browserLanguage);
         if (cachedWikiData) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('Wikipedia cache hit');
+            trackClientLog('wikipedia_cache_hit');
           }
           setWikiData(cachedWikiData);
           setWikiLoading(false);

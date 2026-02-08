@@ -4,6 +4,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { handleAPIError } from '@/lib/api-error-tracking';
+import { captureServerEvent, type ServerEventProperties } from '@/lib/analytics-server';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -28,6 +29,17 @@ export async function POST(req: NextRequest) {
     'X-XSS-Protection': '1; mode=block',
   };
 
+  const logPolarEvent = (
+    event: string,
+    properties?: ServerEventProperties,
+    distinctId?: string
+  ) => {
+    captureServerEvent(`polar_validate_subscriptions_${event}`, {
+      endpoint: '/api/polar/validate-subscriptions',
+      ...properties,
+    }, distinctId);
+  };
+
   try {
     // Verify the request is from our Convex cron job
     const cronSecret = req.headers.get('X-Convex-Cron-Secret');
@@ -44,13 +56,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('[Polar Validation] Starting subscription validation...');
+    logPolarEvent('start');
 
     // Get all users with 'paid' role
     const paidUsers = await convex.query(api.users.listPaidUsers, {});
 
     if (!paidUsers || paidUsers.length === 0) {
-      console.log('[Polar Validation] No paid users found');
+      logPolarEvent('no_paid_users');
       return NextResponse.json(
         { 
           success: true, 
@@ -62,7 +74,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`[Polar Validation] Found ${paidUsers.length} paid users to validate`);
+    logPolarEvent('paid_users_found', { paid_users_count: paidUsers.length });
 
     let processed = 0;
     let revoked = 0;
@@ -73,7 +85,7 @@ export async function POST(req: NextRequest) {
       
       // Skip users without a Polar customer ID - they might have been granted access manually
       if (!user.polarCustomerId) {
-        console.log(`[Polar Validation] User ${user._id} has no polarCustomerId, skipping`);
+        logPolarEvent('missing_polar_customer_id', {}, user._id);
         continue;
       }
 
@@ -90,7 +102,7 @@ export async function POST(req: NextRequest) {
         const hasActiveSubscription = result.subscriptions.length > 0;
 
         if (!hasActiveSubscription) {
-          console.log(`[Polar Validation] User ${user._id} has no active subscription, revoking paid role`);
+          logPolarEvent('no_active_subscription', {}, user._id);
           
           // Revoke the paid role
           const currentRoles = user.roles || [];
@@ -106,10 +118,12 @@ export async function POST(req: NextRequest) {
             });
             
             revoked++;
-            console.log(`[Polar Validation] Revoked paid role from user ${user._id}`);
+            logPolarEvent('revoked_paid_role', {}, user._id);
           }
         } else {
-          console.log(`[Polar Validation] User ${user._id} has active subscription (status: ${result.subscriptions[0].status})`);
+          logPolarEvent('active_subscription', {
+            subscription_status: result.subscriptions[0].status,
+          }, user._id);
         }
       } catch (error) {
         console.error(`[Polar Validation] Error processing user ${user._id}:`, error);
@@ -120,7 +134,11 @@ export async function POST(req: NextRequest) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    console.log(`[Polar Validation] Complete. Processed: ${processed}, Revoked: ${revoked}, Errors: ${errors.length}`);
+    logPolarEvent('complete', {
+      processed,
+      revoked,
+      errors_count: errors.length,
+    });
 
     return NextResponse.json(
       {

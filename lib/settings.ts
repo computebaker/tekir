@@ -4,7 +4,8 @@
 export { 
   useConvexSettings as useSettings,
   DEFAULT_SETTINGS,
-  convexSettingsManager as settingsManager
+  convexSettingsManager as settingsManager,
+  SETTINGS_EXPORT_KEYS
 } from './convex-settings';
 
 export type { UserSettings } from './convex-settings';

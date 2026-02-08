@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchWithSessionRefreshAndCache } from "@/lib/cache";
+import { trackClientLog } from '@/lib/posthog-analytics';
 
 export interface Suggestion {
     query: string;
@@ -14,10 +15,10 @@ async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: Request
         try {
             const errorData = await responseCloneForErrorCheck.json();
             if (errorData && errorData.error === "Invalid or expired session token.") {
-                console.log("Session token expired or invalid. Attempting to refresh session...");
+                trackClientLog('session_token_invalid_refresh_attempt');
                 const registerResponse = await fetch("/api/session/register", { method: "POST" });
                 if (registerResponse.ok) {
-                    console.log("Session refreshed successfully. Retrying the original request.");
+                    trackClientLog('session_refresh_success_retrying');
                     return await fetch(url, options);
                 } else {
                     console.error("Failed to refresh session. Status:", registerResponse.status);

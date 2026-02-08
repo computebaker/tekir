@@ -27,18 +27,40 @@ interface CacheMetadata {
 
 // Analytics import (dynamic to avoid SSR issues)
 let trackAPIError: ((errorType: string, url: string, statusCode?: number, userAction?: string) => void) | null = null;
+let trackClientLog: ((message: string, properties?: Record<string, any>) => void) | null = null;
 
 if (typeof window !== 'undefined') {
   import('@/lib/posthog-analytics').then((module) => {
     trackAPIError = module.trackAPIError;
+    trackClientLog = module.trackClientLog;
   }).catch(() => {
     // Module not available, ignore
   });
 }
 
 export class SearchCache {
-  private static readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
   private static readonly MAX_CACHE_SIZE = 50; // Maximum number of cached entries per type
+  private static readonly CACHE_DURATIONS: Record<
+    'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia',
+    number
+  > = {
+    search: 10 * 60 * 1000,
+    images: 30 * 60 * 1000,
+    news: 20 * 60 * 1000,
+    videos: 20 * 60 * 1000,
+    ai: 10 * 60 * 1000,
+    dive: 10 * 60 * 1000,
+    wikipedia: 60 * 60 * 1000,
+  };
+
+  /**
+   * Get cache duration (ms) for the given search type.
+   */
+  private static getCacheDuration(
+    searchType: 'search' | 'images' | 'news' | 'ai' | 'dive' | 'videos' | 'wikipedia'
+  ): number {
+    return this.CACHE_DURATIONS[searchType] ?? 10 * 60 * 1000;
+  }
 
   /**
    * Generate a cache key based on search type, provider, query, and optional parameters
@@ -75,6 +97,7 @@ export class SearchCache {
 
       // Remove expired entries
       const currentTime = Date.now();
+      const cacheDuration = this.getCacheDuration(searchType);
       const validEntries: Array<{ key: string; timestamp: number }> = [];
 
       typeKeys.forEach(key => {
@@ -82,7 +105,7 @@ export class SearchCache {
           const item = sessionStorage.getItem(key);
           if (item) {
             const parsed: CacheEntry = JSON.parse(item);
-            if (currentTime - parsed.timestamp < this.CACHE_DURATION) {
+            if (currentTime - parsed.timestamp < cacheDuration) {
               validEntries.push({ key, timestamp: parsed.timestamp });
             } else {
               sessionStorage.removeItem(key);
@@ -130,14 +153,17 @@ export class SearchCache {
       const currentTime = Date.now();
 
       // Check if cache is expired
-      if (currentTime - parsed.timestamp > this.CACHE_DURATION) {
+      if (currentTime - parsed.timestamp > this.getCacheDuration(searchType)) {
         sessionStorage.removeItem(cacheKey);
         return null;
       }
 
       // Development-only logging without sensitive query data
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Cache hit for ${searchType} with provider ${provider}`);
+        trackClientLog?.('cache_hit', {
+          search_type: searchType,
+          provider,
+        });
       }
       return parsed.data;
     } catch (error) {
@@ -177,7 +203,10 @@ export class SearchCache {
       sessionStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
       // Development-only logging without sensitive query data
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Cache set for ${searchType} with provider ${provider}`);
+        trackClientLog?.('cache_set', {
+          search_type: searchType,
+          provider,
+        });
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -218,7 +247,9 @@ export class SearchCache {
       });
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Cleared all ${searchType} cache entries`);
+        trackClientLog?.('cache_cleared_type', {
+          search_type: searchType,
+        });
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -251,7 +282,7 @@ export class SearchCache {
       });
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('Cleared all search cache entries');
+        trackClientLog?.('cache_cleared_all');
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -423,7 +454,7 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
       const errorData = await responseCloneForErrorCheck.json();
       if (errorData && errorData.error === "Invalid or expired session token.") {
         if (process.env.NODE_ENV === 'development') {
-          console.log("Session token expired or invalid. Attempting to refresh...");
+          trackClientLog?.('session_refresh_attempt');
         }
 
         const registerResponse = await fetch("/api/session/register", {
@@ -432,7 +463,7 @@ export async function fetchWithSessionRefreshAndCache<T = any>(
 
         if (registerResponse.ok) {
           if (process.env.NODE_ENV === 'development') {
-            console.log("Session refreshed successfully. Retrying request.");
+            trackClientLog?.('session_refresh_success_retrying');
           }
           const retryResponse = await fetch(url, options);
 

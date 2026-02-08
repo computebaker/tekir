@@ -97,7 +97,7 @@ export function setAnalyticsConsent(enabled: boolean): void {
     const distinctId = getDistinctId();
     posthog.identify(distinctId);
 
-    console.log('[PostHog] Analytics enabled with distinct ID:', distinctId);
+    captureEvent('analytics_enabled', { distinct_id: distinctId });
   } else if (!enabled && wasEnabled) {
     // User just opted out - disable tracking
     posthog.opt_out_capturing();
@@ -134,7 +134,6 @@ function captureEvent(
   properties?: Record<string, any>
 ): void {
   if (!hasAnalyticsConsent()) {
-    console.log('[PostHog] Event blocked (no consent):', eventName);
     return;
   }
 
@@ -144,10 +143,22 @@ function captureEvent(
       distinct_id: getDistinctId(),
       user_id: getUserId(),
     });
-    console.log('[PostHog] Event captured:', eventName, properties);
   } catch (error) {
     console.error('[PostHog] Failed to capture event:', error);
   }
+}
+
+/**
+ * Client-side log passthrough to PostHog (consent-aware)
+ */
+export function trackClientLog(
+  message: string,
+  properties?: Record<string, any>
+): void {
+  captureEvent('client_log', {
+    message,
+    ...properties,
+  });
 }
 
 // ============================================================================
@@ -535,7 +546,7 @@ export function identifyUser(
       posthog.people.set(properties);
     }
 
-    console.log('[PostHog] User identified:', userId);
+    captureEvent('user_identified', { user_id: userId });
   } catch (error) {
     console.error('[PostHog] Failed to identify user:', error);
   }

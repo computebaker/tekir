@@ -1,4 +1,5 @@
 import { Polar } from '@polar-sh/sdk';
+import { captureServerEvent, type ServerEventProperties } from '@/lib/analytics-server';
 
 /**
  * Polar.sh client for subscription and payment management
@@ -14,6 +15,10 @@ export const polar = new Polar({
 export const polarConfig = {
   organization: process.env.NEXT_PUBLIC_POLAR_ORGANIZATION || '',
   webhookSecret: process.env.POLAR_WEBHOOK_SECRET || '',
+};
+
+const logPolarEvent = (event: string, properties?: ServerEventProperties) => {
+  captureServerEvent(`polar_${event}`, properties);
 };
 
 /**
@@ -97,7 +102,7 @@ export async function createCustomerPortalSession({
  */
 export async function getCustomerSubscriptions(customerId: string) {
   try {
-    console.log(`[Polar] Fetching subscriptions for customer: ${customerId}`);
+    logPolarEvent('fetching_subscriptions');
     const result = await polar.subscriptions.list({
       customerId,
     });
@@ -111,12 +116,16 @@ export async function getCustomerSubscriptions(customerId: string) {
       
       if (items && Array.isArray(items)) {
         for (const subscription of items) {
-          console.log(`[Polar] Found subscription: id=${subscription.id}, status=${subscription.status}`);
+          logPolarEvent('subscription_found', {
+            subscription_status: subscription.status,
+          });
           subscriptions.push(subscription);
         }
       } else {
         // If page structure is different, log for debugging
-        console.log('[Polar] Unexpected page structure:', Object.keys(page));
+        logPolarEvent('unexpected_page_structure', {
+          page_keys: Object.keys(page).join(','),
+        });
       }
     }
 
@@ -125,14 +134,22 @@ export async function getCustomerSubscriptions(customerId: string) {
       (s: any) => s.status === 'active' || s.status === 'trialing'
     );
     
-    console.log(
-      `[Polar] Filtered to ${activeSubscriptions.length} active/trialing subscriptions out of ${subscriptions.length} total`
+    logPolarEvent('subscriptions_filtered', {
+      active_subscriptions_count: activeSubscriptions.length,
+      total_subscriptions_count: subscriptions.length,
+    });
+
+    const statusCounts = subscriptions.reduce<Record<string, number>>(
+      (acc, subscription: any) => {
+        const status = String(subscription.status || 'unknown');
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      },
+      {}
     );
-    
-    console.log(
-      `[Polar] All subscription statuses:`,
-      subscriptions.map((s: any) => ({ id: s.id, status: s.status }))
-    );
+    logPolarEvent('subscription_status_counts', {
+      status_counts: JSON.stringify(statusCounts),
+    });
 
     return {
       success: true,
