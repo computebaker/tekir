@@ -1,4 +1,33 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV === 'development';
+
+const contentSecurityPolicy = (isDev
+  ? `
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: https: blob:;
+    font-src 'self' data:;
+    connect-src 'self' https: wss: blob:;
+    base-uri 'self';
+    object-src 'none';
+    frame-ancestors 'none';
+  `
+  : `
+    default-src 'self';
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: https: blob:;
+    font-src 'self' data:;
+    connect-src 'self' https: wss: blob:;
+    base-uri 'self';
+    object-src 'none';
+    frame-ancestors 'none';
+  `
+)
+  .replace(/\s{2,}/g, ' ')
+  .trim();
+
 const nextConfig = {
 
   images: {
@@ -82,6 +111,10 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: contentSecurityPolicy
+          },
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on'

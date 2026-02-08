@@ -122,15 +122,36 @@ class ConvexSettingsManager {
   private lastServerTimestamp = 0;
 
   initialize(userId?: string | null) {
+    // Only clear timestamps if switching between two different authenticated users
+    // Don't clear if:
+    // - User is logging in (was null/undefined, now has userId) - it's the same user!
+    // - User is logging out (had userId, now null/undefined)
+    // - User is the same (both have same userId)
+    const isDifferentAuthenticatedUser = 
+      this.userId && // Had a userId before
+      userId && // Has a userId now
+      this.userId !== userId; // But they're different users
+    
     this.userId = userId || null;
     this.hasLoadedLocalStorage = false;
-    this.localUpdateTimestamps.clear();
+    
+    if (isDifferentAuthenticatedUser) {
+      this.localUpdateTimestamps.clear();
+    } else if (userId && this.userId === userId) {
+      // Same user, just maintaining initialization
+    }
+    
     this.lastServerTimestamp = 0;
     this.loadFromLocalStorage();
   }
 
   private loadFromLocalStorage() {
     if (typeof window === 'undefined' || this.hasLoadedLocalStorage) return;
+
+    // Treat localStorage values as "recently updated" so they beat old server data
+    // This handles the case where user changed settings while logged out,
+    // then logged in - we should trust the local changes.
+    const bootTimestamp = Date.now();
 
     // Load all settings from localStorage as fallback
     Object.keys(DEFAULT_SETTINGS).forEach(key => {
@@ -145,6 +166,11 @@ class ConvexSettingsManager {
           } else {
             (this.settings as any)[key] = stored;
           }
+          
+          // Mark this setting as having been "updated" at boot time
+          // This prevents server values from overriding localStorage values
+          // that might have been set in a previous session
+          this.localUpdateTimestamps.set(key as keyof UserSettings, bootTimestamp);
         } catch (error) {
           console.error(`Failed to parse setting ${key}:`, error);
         }
@@ -233,6 +259,7 @@ class ConvexSettingsManager {
     // Record when this setting was updated locally
     // This timestamp is compared against the server's updatedAt to determine if local or server value wins
     this.localUpdateTimestamps.set(key, Date.now());
+    
     this.notifyListeners();
   }
 

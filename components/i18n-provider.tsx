@@ -78,16 +78,18 @@ const getStoredLocale = (): Locale => {
 
   try {
     const storedLanguage = window.localStorage.getItem('language');
+    
     if (storedLanguage && isValidLocale(storedLanguage)) {
       return storedLanguage as Locale;
     }
 
     const lastLocale = window.localStorage.getItem(LAST_LOCALE_KEY);
+    
     if (lastLocale && isValidLocale(lastLocale)) {
       return lastLocale as Locale;
     }
   } catch (error) {
-    console.warn('[i18n] Unable to read stored locale:', error);
+    console.warn('Error reading from localStorage:', error);
   }
 
   return getLocaleFromBrowser();
@@ -131,6 +133,7 @@ export default function I18nProvider({ children }: I18nProviderProps) {
       if (currentLocale === locale) {
         return;
       }
+
       const cachedMessages = readCachedMessages(locale);
       if (cachedMessages && isMounted) {
         setMessages(cachedMessages);
