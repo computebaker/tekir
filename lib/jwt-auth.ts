@@ -28,7 +28,7 @@ export async function getJWTUser(request: NextRequest): Promise<JWTUser | null> 
     }
 
     const JWT_SECRET = getJWTSecret();
-    const decoded = jwt.verify(authToken, JWT_SECRET) as any;
+    const decoded = jwt.verify(authToken, JWT_SECRET, { algorithms: ['HS256'] }) as any;
 
     return {
       userId: decoded.userId,

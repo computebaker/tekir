@@ -5,6 +5,7 @@ const contentSecurityPolicy = (isDev
   ? `
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com;
+    script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https: blob:;
     font-src 'self' data:;
@@ -16,6 +17,7 @@ const contentSecurityPolicy = (isDev
   : `
     default-src 'self';
     script-src 'self' 'unsafe-inline';
+    script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https: blob:;
     font-src 'self' data:;
@@ -27,6 +29,11 @@ const contentSecurityPolicy = (isDev
 )
   .replace(/\s{2,}/g, ' ')
   .trim();
+
+const extraImageHosts = (process.env.NEXT_PUBLIC_IMAGE_HOSTS || '')
+  .split(',')
+  .map((host) => host.trim())
+  .filter(Boolean);
 
 const nextConfig = {
 
@@ -44,12 +51,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
+      ...extraImageHosts.map((hostname) => ({
         protocol: 'https',
-        hostname: '**',
+        hostname,
         port: '',
         pathname: '/**',
-      },
+      })),
     ],
     minimumCacheTTL: 0,
   },
