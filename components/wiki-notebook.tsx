@@ -62,7 +62,7 @@ export default function WikiNotebook({ wikiData }: WikiProps) {
         </div>
         {wikiData.thumbnail && (
           <div className="w-24 h-24 rounded overflow-hidden flex-shrink-0">
-            <Image src={wikiData.thumbnail.source} alt={wikiData.title} width={96} height={96} className="object-cover" />
+            <Image src={wikiData.thumbnail.source} alt={wikiData.title} width={96} height={96} unoptimized className="object-cover" />
           </div>
         )}
       </div>

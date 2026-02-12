@@ -54,7 +54,7 @@ export const WebResultItem = memo(function WebResultItem({ result }: Props) {
           title={`Visit ${cleanedDisplayUrl}`}
         >
           {settings.showFavicons && result.favicon && !faviconError ? (
-            <Image src={result.favicon} alt="" className="w-5 h-5 object-contain" onError={() => setFaviconError(true)} />
+            <Image src={result.favicon} alt="" width={20} height={20} unoptimized className="w-5 h-5 object-contain" onError={() => setFaviconError(true)} />
           ) : (
             <Globe className="w-4 h-4 text-muted-foreground" />
           )}

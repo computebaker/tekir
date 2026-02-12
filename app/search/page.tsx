@@ -1612,7 +1612,7 @@ function SearchPageContent() {
                               <a key={`news-${idx}`} href={article.url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                                 <div className="w-28 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                                   {resolveImageSrc(article.thumbnail) ? (
-                                    <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
+                                    <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                       <Newspaper className="w-6 h-6" />
@@ -1657,7 +1657,7 @@ function SearchPageContent() {
                           <a key={`video-${idx}`} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                             <div className="w-32 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                               {resolveImageSrc(v.thumbnail) ? (
-                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
+                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <Search className="w-6 h-6" />
@@ -1708,7 +1708,7 @@ function SearchPageContent() {
                           <a key={`news-bottom-${idx}`} href={article.url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                             <div className="w-28 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                               {resolveImageSrc(article.thumbnail) ? (
-                                <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
+                                <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <Newspaper className="w-6 h-6" />
@@ -1758,7 +1758,7 @@ function SearchPageContent() {
                           <a key={`video-bottom-${idx}`} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                             <div className="w-32 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                               {resolveImageSrc(v.thumbnail) ? (
-                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
+                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <Search className="w-6 h-6" />
@@ -1811,7 +1811,7 @@ function SearchPageContent() {
             {imageResults.map((image, index) => (
               <a key={index} href={image.url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden blurry-outline">
                 <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-muted mb-3">
-                  <Image src={image.thumbnail.src} alt={image.title || t('search.imageAlt')} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" placeholder="blur" blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNFNkU2RTYiLz48L3N2Zz4="} />
+                  <Image src={image.thumbnail.src} alt={image.title || t('search.imageAlt')} fill unoptimized sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" placeholder="blur" blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zz4="} />
                 </div>
                 <p className="text-sm font-medium truncate">{image.title || t('search.imageFallback')}</p>
                 <p className="text-xs text-muted-foreground truncate">{image.source}</p>
@@ -1857,7 +1857,7 @@ function SearchPageContent() {
                   <div className="relative w-full h-48 bg-muted">
                     {resolveImageSrc(article.thumbnail) ? (
                       <div className="relative w-full h-full">
-                        <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-200" onError={(e) => {
+                        <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill unoptimized sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-200" onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
                           const placeholder = target.parentElement?.querySelector('.image-placeholder');
@@ -1878,7 +1878,7 @@ function SearchPageContent() {
                   <div className="p-4 flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-2">
                       {settings.showFavicons && article.favicon && (
-                        <Image src={article.favicon} alt="" className="w-4 h-4 rounded-sm flex-shrink-0" />
+                        <Image src={article.favicon} alt="" width={16} height={16} unoptimized className="w-4 h-4 rounded-sm flex-shrink-0" />
                       )}
                       <span className="text-xs text-muted-foreground truncate">
                         {article.source.replace(/^(https?:\/\/)?(www\.)?/, '')}
@@ -1934,7 +1934,7 @@ function SearchPageContent() {
               <a key={index} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="group overflow-hidden blurry-outline border border-border rounded-lg p-2 bg-card hover:shadow-lg transition-all">
                 <div className="relative w-full h-48 bg-muted rounded-md overflow-hidden mb-3">
                   {resolveImageSrc(v.thumbnail) ? (
-                    <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" />
+                    <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       <Search className="w-6 h-6" />

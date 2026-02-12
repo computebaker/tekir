@@ -55,6 +55,7 @@ export default function Home() {
   const unlockingRef = useRef(false);
   const pushedStateRef = useRef(false);
   const [dropdownMetrics, setDropdownMetrics] = useState<{ top: number; left: number; width: number } | null>(null);
+  const dropdownTrackRafRef = useRef<number | null>(null);
 
   // Logo chooser state - load from localStorage on mount
   const [selectedLogoState, setSelectedLogoState] = useState<'tekir' | 'duman' | 'pamuk' | null>(null);
@@ -322,10 +323,45 @@ export default function Home() {
   );
   const keyboardAware = isMobile && (isHeroInputFocused || kbVisible || isSubmitting);
 
+  const startDropdownTracking = useCallback((durationMs = 360) => {
+    if (!shouldRenderDropdown) return;
+    if (dropdownTrackRafRef.current) {
+      cancelAnimationFrame(dropdownTrackRafRef.current);
+    }
+    const endAt = performance.now() + durationMs;
+    const tick = () => {
+      updateDropdownMetrics();
+      if (performance.now() < endAt) {
+        dropdownTrackRafRef.current = requestAnimationFrame(tick);
+      } else {
+        dropdownTrackRafRef.current = null;
+      }
+    };
+    dropdownTrackRafRef.current = requestAnimationFrame(tick);
+  }, [shouldRenderDropdown, updateDropdownMetrics]);
+
   useLayoutEffect(() => {
     if (!shouldRenderDropdown) return;
     updateDropdownMetrics();
-  }, [keyboardAware, isMobile, scrollProgress, shouldRenderDropdown, updateDropdownMetrics]);
+    startDropdownTracking();
+    return () => {
+      if (dropdownTrackRafRef.current) {
+        cancelAnimationFrame(dropdownTrackRafRef.current);
+        dropdownTrackRafRef.current = null;
+      }
+    };
+  }, [
+    keyboardAware,
+    isMobile,
+    scrollProgress,
+    shouldRenderDropdown,
+    updateDropdownMetrics,
+    vvHeight,
+    kbVisible,
+    isHeroInputFocused,
+    showSuggestions,
+    startDropdownTracking,
+  ]);
 
   useEffect(() => {
     if (!shouldRenderDropdown) return;
