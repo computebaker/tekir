@@ -56,6 +56,8 @@ const openai = new OpenAI({
   },
 });
 
+const WIKIPEDIA_SUGGEST_MODEL = process.env.WIKIPEDIA_SUGGEST_MODEL || 'mistralai/mistral-small-3.2-24b-instruct';
+
 async function suggestWikipediaArticle(
   query: string, 
   browserLanguage?: string, 
@@ -70,7 +72,7 @@ async function suggestWikipediaArticle(
   try {
     if (priorityLanguage) {
       const response = await openai.chat.completions.create({
-        model: 'mistralai/ministral-3b',
+        model: WIKIPEDIA_SUGGEST_MODEL,
         temperature: 0.1, 
         max_tokens: 80,
         messages: [
@@ -101,7 +103,7 @@ async function suggestWikipediaArticle(
     
     // Priority 3: AI-based query language detection (fallback)
     const response = await openai.chat.completions.create({
-      model: 'mistralai/ministral-3b',
+      model: WIKIPEDIA_SUGGEST_MODEL,
       temperature: 0.1, 
       max_tokens: 80,
       messages: [
@@ -186,7 +188,7 @@ export async function GET(req: NextRequest) {
     const aiLatency = Date.now() - aiStart;
     
     wideEvent.setAI({
-      model: 'mistralai/ministral-3b'
+      model: WIKIPEDIA_SUGGEST_MODEL
     });
     wideEvent.setCustom('ai_latency_ms', aiLatency);
     

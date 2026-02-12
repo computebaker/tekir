@@ -12,7 +12,7 @@ const contentSecurityPolicy = (isDev
     connect-src 'self' https: wss: blob:;
     base-uri 'self';
     object-src 'none';
-    frame-ancestors 'none';
+    frame-ancestors 'self' https://status.tekir.co;
   `
   : `
     default-src 'self';
@@ -24,7 +24,7 @@ const contentSecurityPolicy = (isDev
     connect-src 'self' https: wss: blob:;
     base-uri 'self';
     object-src 'none';
-    frame-ancestors 'none';
+    frame-ancestors 'self' https://status.tekir.co;
   `
 )
   .replace(/\s{2,}/g, ' ')
@@ -51,6 +51,18 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'upload.wikimedia.org',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'imgs.search.brave.com',
+        port: '',
+        pathname: '/**',
+      },
       ...extraImageHosts.map((hostname) => ({
         protocol: 'https',
         hostname,
@@ -66,6 +78,10 @@ const nextConfig = {
 
   experimental: {
     turbopackUseBuiltinBabel: true,
+  },
+
+  turbopack: {
+    root: __dirname,
   },
 
   // Set build-time environment variables
@@ -129,10 +145,6 @@ const nextConfig = {
           {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
           },
           {
             key: 'X-Content-Type-Options',

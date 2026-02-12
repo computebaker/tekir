@@ -5,6 +5,7 @@ import { api } from '@/convex/_generated/api';
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { getSessionExpiration } from '@/lib/rate-limits';
 
 // Helper function to get JWT_SECRET with validation
 function getJWTSecret(): string {
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
   try {
     const authToken = request.cookies.get('auth-token')?.value;
     const sessionToken = request.cookies.get('session-token')?.value;
+    const deviceId = request.cookies.get('device-id')?.value;
 
     if (!authToken) {
       wideEvent.setError({ type: 'AuthError', message: 'No auth token', code: 'no_auth_token' });
@@ -55,23 +57,35 @@ export async function GET(request: NextRequest) {
       
       wideEvent.setUser({ id: user._id });
 
+      let refreshedSessionToken: string | null = null;
+      let sessionInvalid = false;
+
       // If a session token exists, verify it's valid and linked to this user
       if (sessionToken) {
         try {
           const session = await convex.query(api.sessions.getSessionByToken, { token: sessionToken });
           if (!session || !session.isActive || session.expiresAt <= Date.now() || String(session.userId) !== String(user._id)) {
-            wideEvent.setError({ type: 'AuthError', message: 'Invalid session', code: 'invalid_session' });
-            wideEvent.setCustom('latency_ms', Date.now() - startTime);
-            wideEvent.finish(401);
-            flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
-            return NextResponse.json({ authenticated: false });
+            sessionInvalid = true;
           }
         } catch (e) {
-          wideEvent.setError({ type: 'AuthError', message: 'Session check error', code: 'session_check_error' });
-          wideEvent.setCustom('latency_ms', Date.now() - startTime);
-          wideEvent.finish(401);
-          flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
-          return NextResponse.json({ authenticated: false });
+          sessionInvalid = true;
+        }
+      } else {
+        sessionInvalid = true;
+      }
+
+      if (sessionInvalid) {
+        try {
+          const sessionResult = await convex.mutation(api.sessions.getOrCreateSessionToken, {
+            userId: user._id,
+            deviceId: deviceId || undefined,
+            expirationInSeconds: getSessionExpiration(),
+          });
+          refreshedSessionToken = sessionResult.sessionToken;
+          wideEvent.setCustom('session_refreshed', true);
+        } catch (e) {
+          // If session refresh fails, continue with JWT auth (rate-limits may be unavailable)
+          wideEvent.setCustom('session_refresh_failed', true);
         }
       }
 
@@ -80,7 +94,7 @@ export async function GET(request: NextRequest) {
       wideEvent.finish(200);
       flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       
-      return NextResponse.json({
+      const response = NextResponse.json({
         authenticated: true,
         // Return token for Convex authentication (token is from HttpOnly cookie - user already has it)
         token: authToken,
@@ -97,6 +111,18 @@ export async function GET(request: NextRequest) {
           roles: Array.isArray(user.roles) ? user.roles : []
         }
       });
+      
+      if (refreshedSessionToken) {
+        response.cookies.set('session-token', refreshedSessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: getSessionExpiration(),
+          path: '/',
+        });
+      }
+
+      return response;
     } catch (jwtError) {
       if (process.env.NODE_ENV === 'development') {
         console.log('JWT verification failed:', jwtError);
