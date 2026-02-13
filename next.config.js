@@ -88,6 +88,9 @@ const nextConfig = {
   env: {
     // Auto-generate i18n cache version if not explicitly set
     NEXT_PUBLIC_I18N_CACHE_VERSION: process.env.NEXT_PUBLIC_I18N_CACHE_VERSION || `v${Date.now()}`,
+    // Vercel deployment ID and Git SHA for tracking
+    NEXT_PUBLIC_DEPLOYMENT_ID: process.env.VERCEL_DEPLOYMENT_ID || 'local',
+    NEXT_PUBLIC_GIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA || 'dev',
   },
 
   skipTrailingSlashRedirect: true,
