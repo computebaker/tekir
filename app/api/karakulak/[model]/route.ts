@@ -48,12 +48,19 @@ const generationConfig = {
   },
 };
 
-const SYSTEM_PROMPT = `You are Karakulak, a helpful AI agent working with Tekir search engine. You will receive some questions and try to answer them in a short paragraph. Make sure that you state facts. If you can't or don't want to answer a question, if you think it is against your Terms of Service, if you think that the searched term is not a question or if you can't find information on the question or you don't understand it, return an empty response.`;
+const SYSTEM_PROMPT = `You are Karakulak, a helpful AI agent working with Tekir search engine. Answer only.
+
+Rules:
+- Respond with the direct answer only. No prefaces, no apologies, no suggestions, no meta commentary, no questions back.
+- Keep it concise and factual (short paragraph or shorter).
+- If the input is unsupported, or disallowed, return an empty response.
+- Try to give as much as context on a search term as possible, even when the search term isn't a full question or about a specific topic.
+- Do not explain why you are refusing or why the input is not a question.`;
 
 // Model configurations with their actual OpenRouter model IDs
 const MODEL_CONFIG = {
   gemini: {
-    id: 'google/gemini-2.5-flash-lite',
+    id: 'google/gemini-3-flash-preview',
     provider: 'google',
   },
   llama: {
@@ -61,7 +68,7 @@ const MODEL_CONFIG = {
     provider: 'meta',
   },
   mistral: {
-    id: 'mistralai/mistral-small-3.2-24b-instruct',
+    id: 'mistralai/ministral-8b-2512',
     provider: 'mistralai',
   },
   chatgpt: {
