@@ -35,9 +35,11 @@
       "pastYear": "Son il"
     },
     "noResults": "\"{query}\" üçün nəticə tapılmadı",
+    "noResultsQuery": "\"{query}\" üçün nəticə tapılmadı",
     "enterSearchTerm": "Nəticələri görmək üçün axtarış terminini daxil edin",
     "searchError": "Axtarış nəticələrini əldə etmək mümkün olmadı",
-    "tryAgain": "Zəhmət olmasa yenidən cəhd edin",
+    "searchFailed": "Axtarış uğursuz oldu",
+    "tryAgain": "Yenidən cəhd et",
     "resultsCount": "{count, plural, one {# nəticə} other {# nəticə}}",
     "showMore": "Daha çox nəticə göstər",
     "relatedSearches": "Əlaqəli axtarışlar",

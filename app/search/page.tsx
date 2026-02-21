@@ -103,12 +103,35 @@ interface NewsResult {
   favicon?: string;
 }
 
+interface VideoResult {
+  title?: string;
+  name?: string;
+  description?: string;
+  url?: string;
+  content_url?: string;
+  thumbnail?: string | { src?: string; source?: string; original?: string };
+  site?: string;
+  source?: string;
+}
+
+interface AIAnalytics {
+  query_length?: number;
+  response_length?: number;
+  response_time_ms?: number;
+  estimated_tokens_output?: number;
+}
+
+interface AIResponseData {
+  answer: string;
+  _analytics?: AIAnalytics;
+}
+
 // Rename the original SearchPage component
 function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
   const t = useTranslations();
 
   const mobileNavItems = useMemo(() => [
@@ -154,42 +177,33 @@ function SearchPageContent() {
   };
 
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [videoResults, setVideoResults] = useState<any[]>([]);
+  const [videoResults, setVideoResults] = useState<VideoResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiEnabled, setAiEnabled] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('karakulakEnabled') === 'true' : true
-  );
+  const [aiEnabled, setAiEnabled] = useState(settings.karakulakEnabled !== false);
   const { status: authStatus, user } = useAuth();
   const isAuthenticated = authStatus === 'authenticated' && !!user;
-  const [searchEngine, setSearchEngine] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('searchEngine') || 'brave' : 'brave'
-  );
+  const [searchEngine, setSearchEngine] = useState(settings.searchEngine || 'brave');
+
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem('searchEngine');
-    if (stored && !['brave', 'google', 'you'].includes(stored)) {
-      localStorage.setItem('searchEngine', 'brave');
+    const validEngine = settings.searchEngine && ['brave', 'google', 'you'].includes(settings.searchEngine);
+    const finalEngine = validEngine ? settings.searchEngine : 'brave';
+    
+    if (!isAuthenticated && finalEngine === 'google') {
       setSearchEngine('brave');
-      return;
+    } else if (searchEngine !== finalEngine) {
+      setSearchEngine(finalEngine as 'brave' | 'google' | 'you');
     }
-    if (!isAuthenticated && stored === 'google') {
-      localStorage.setItem('searchEngine', 'brave');
-      setSearchEngine('brave');
-    }
-  }, [isAuthenticated]);
-  const [aiModel, setAiModel] = useState<string>(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('aiModel') || 'gemini' : 'gemini'
-  );
+  }, [settings.searchEngine, isAuthenticated, searchEngine]);
+  const [aiModel, setAiModel] = useState(settings.aiModel || 'gemini');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [autocompleteSource, setAutocompleteSource] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
-  );
+  const [autocompleteSource, setAutocompleteSource] = useState(settings.autocompleteSource || 'brave');
   const checkForBang = (input: string): boolean => {
     return /(?:^|\s)![a-z]+/.test((input || "").toLowerCase());
   };
@@ -214,7 +228,7 @@ function SearchPageContent() {
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiExpanded, setWikiExpanded] = useState(false);
   const [wikiReadMore, setWikiReadMore] = useState(false);
-  const [searchType, setSearchType] = useState<'web' | 'images' | 'news' | 'videos'>('web');
+  const [searchType, setSearchType] = useState<'web' | 'images' | 'news' | 'videos'>(settings.searchType === 'web' || settings.searchType === 'images' || settings.searchType === 'news' || settings.searchType === 'videos' ? settings.searchType : 'web');
   const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [newsResults, setNewsResults] = useState<NewsResult[]>([]);
@@ -269,6 +283,7 @@ function SearchPageContent() {
     setDiveResponse(null);
     setDiveSources([]);
     setAiResponse(null);
+    setSearchError(null);
     // Loading flags will be set by a dedicated effect reacting to AI/Dive mode
     // Clear previous errors on new query
     setAiError(false);
@@ -278,52 +293,48 @@ function SearchPageContent() {
     const searchId = ++searchIdRef.current;
 
     // Always fetch regular search results for display, regardless of Dive mode
-    const storedEngine = localStorage.getItem("searchEngine") || "brave";
-    const engineToUse = getEngineForMode(storedEngine, 'web');
-    if (engineToUse !== storedEngine) {
-      localStorage.setItem('searchEngine', engineToUse);
-    }
+    const engineToUse = getEngineForMode(searchEngine, 'web');
     if (searchEngine !== engineToUse) {
       setSearchEngine(engineToUse);
     }
 
-    const fetchRegularSearch = async () => {
-      // Wait for session initialization to avoid 401 on first load
-      if (typeof window !== 'undefined' && !(window as any).__sessionRegistered) {
-        await new Promise(resolve => {
-          const handler = () => {
-            window.removeEventListener('session-registered', handler);
-            resolve(true);
-          };
-          window.addEventListener('session-registered', handler);
-          // Timeout fallback
-          setTimeout(() => {
-            window.removeEventListener('session-registered', handler);
-            resolve(true);
-          }, 2000);
-        });
-      }
-
-      // Abort any previous in-flight request
-      if (webSearchAbortRef.current) {
-        try { webSearchAbortRef.current.abort(); } catch { }
-      }
-      webSearchAbortRef.current = new AbortController();
-      const webSignal = webSearchAbortRef.current.signal;
-      const doFetch = async (engine: string) => {
-        try {
-          // Get user preferences from localStorage
-          const storedCountry = localStorage.getItem("searchCountry") || "ALL";
-          const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
-          const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
-
-          // Build query parameters
-          const searchParams = new URLSearchParams({
-            q: currentQuery,
-            country: storedCountry,
-            safesearch: storedSafesearch,
-            ...(storedLang ? { lang: storedLang } : {})
+      const fetchRegularSearch = async () => {
+        // Wait for session initialization to avoid 401 on first load
+        if (typeof window !== 'undefined' && !(window as any).__sessionRegistered) {
+          await new Promise(resolve => {
+            const handler = () => {
+              window.removeEventListener('session-registered', handler);
+              resolve(true);
+            };
+            window.addEventListener('session-registered', handler);
+            // Timeout fallback
+            setTimeout(() => {
+              window.removeEventListener('session-registered', handler);
+              resolve(true);
+            }, 2000);
           });
+        }
+
+        // Abort any previous in-flight request
+        if (webSearchAbortRef.current) {
+          try { webSearchAbortRef.current.abort(); } catch { }
+        }
+        webSearchAbortRef.current = new AbortController();
+        const webSignal = webSearchAbortRef.current.signal;
+        const doFetch = async (engine: string) => {
+          try {
+            // Get user preferences from settings
+            const storedCountry = settings.searchCountry || "ALL";
+            const storedSafesearch = settings.safesearch || "moderate";
+            const storedLang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
+
+            // Build query parameters
+            const searchParams = new URLSearchParams({
+              q: currentQuery,
+              country: storedCountry,
+              safesearch: storedSafesearch,
+              ...(storedLang ? { lang: storedLang } : {})
+            });
 
           const apiUrl = `${apiEndpoints.search.pars(engine)}?${searchParams}`;
 
@@ -376,20 +387,16 @@ function SearchPageContent() {
           }
           return true;
         } catch (error) {
-          // Log error with context for debugging (development only)
           if (process.env.NODE_ENV === 'development') {
             console.error(`Search failed for engine "${engine}":`, error);
           }
-          // Track the error with context
           trackAsyncError(error, {
             operation: `search_${engine}`,
             component: 'SearchPage',
             metadata: { query: currentQuery, searchType }
           });
           if (isMounted) {
-            // TODO: Consider adding error state to show user-friendly messages
-            // For now, errors are logged but not shown to avoid breaking existing UX
-            // The fallback mechanism will try alternative search engines
+            setSearchError(t('search.searchError'));
           }
           return false;
         }
@@ -413,7 +420,7 @@ function SearchPageContent() {
         webSearchAbortRef.current = null;
       }
     };
-  }, [searchParams, router, isAuthenticated, searchEngine, getEngineForMode]);
+  }, [searchParams, router, isAuthenticated, searchEngine, getEngineForMode, searchType, t, settings.searchCountry, settings.safesearch, settings.language]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
@@ -424,7 +431,7 @@ function SearchPageContent() {
     }
     imagesAbortRef.current = new AbortController();
     const imgSignal = imagesAbortRef.current.signal;
-    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
+    const storedLang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
     const imageEngine = getEngineForMode(searchEngine, 'images');
     const imagesUrl = `/api/images/${imageEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
@@ -454,7 +461,6 @@ function SearchPageContent() {
               imagesAbortRef.current = new AbortController();
               const retrySignal = imagesAbortRef.current.signal;
               const retryUrl = `${imagesUrl}&_cb=${Date.now()}`;
-              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -504,7 +510,7 @@ function SearchPageContent() {
         imagesAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType, getEngineForMode]);
+  }, [query, searchEngine, searchType, getEngineForMode, settings.language]);
 
   useEffect(() => {
     if (!query || searchType !== 'videos') return;
@@ -516,7 +522,7 @@ function SearchPageContent() {
     }
     videosAbortRef.current = new AbortController();
     const vidSignal = videosAbortRef.current.signal;
-    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
+    const storedLang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
     const videoEngine = getEngineForMode(searchEngine, 'videos');
     const videosUrl = `/api/videos/${videoEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
@@ -544,7 +550,6 @@ function SearchPageContent() {
               videosAbortRef.current = new AbortController();
               const retrySignal = videosAbortRef.current.signal;
               const retryUrl = `${videosUrl}&_cb=${Date.now()}`;
-              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -593,15 +598,15 @@ function SearchPageContent() {
         videosAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType, getEngineForMode]);
+  }, [query, searchEngine, searchType, getEngineForMode, settings.language]);
 
   useEffect(() => {
     if (!query || searchType !== 'news') return;
     setNewsLoading(true);
 
-    // Get user preferences from localStorage
-    const storedCountry = localStorage.getItem("searchCountry") || "ALL";
-    const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
+    // Get user preferences from settings
+    const storedCountry = settings.searchCountry || "ALL";
+    const storedSafesearch = settings.safesearch || "moderate";
 
     // Build query parameters
     const searchParams = new URLSearchParams({
@@ -615,7 +620,7 @@ function SearchPageContent() {
     }
     newsAbortRef.current = new AbortController();
     const newsSignal = newsAbortRef.current.signal;
-    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
+    const storedLang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
     const newsEngine = getEngineForMode(searchEngine, 'news');
     const newsUrl = `/api/news/${newsEngine}?${searchParams}`;
     fetchWithSessionRefreshAndCache(
@@ -648,7 +653,6 @@ function SearchPageContent() {
               newsAbortRef.current = new AbortController();
               const retrySignal = newsAbortRef.current.signal;
               const retryUrl = `${newsUrl}&_cb=${Date.now()}`;
-              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -696,62 +700,13 @@ function SearchPageContent() {
         newsAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType, getEngineForMode]);
+  }, [query, searchEngine, searchType, getEngineForMode, settings.searchCountry, settings.safesearch, settings.language]);
 
   // Reset retry flags when query or engine changes so new queries can retry again
   useEffect(() => {
     imageRetryRef.current = false;
     newsRetryRef.current = false;
   }, [query, searchEngine]);
-
-  useEffect(() => {
-    if (!query || searchType !== 'images') return;
-
-    if (imageResults.length === 0 && !imageLoading) {
-      setImageLoading(true);
-      if (imagesAbortRef.current) {
-        try { imagesAbortRef.current.abort(); } catch { }
-      }
-      imagesAbortRef.current = new AbortController();
-      const imgSignal = imagesAbortRef.current.signal;
-      const imageEngine = getEngineForMode(searchEngine, 'images');
-      fetchWithSessionRefreshAndCache(
-        `/api/images/${imageEngine}?q=${encodeURIComponent(query)}`,
-        { signal: imgSignal },
-        {
-          searchType: 'images',
-          provider: imageEngine,
-          query: query
-        }
-      )
-        .then((response) => {
-          if (!response.ok) throw new Error(`Image search failed with status ${response.status}`);
-          return response.json();
-        })
-        .then((data) => {
-          if (data.results) {
-            setImageResults(data.results);
-          }
-        })
-        .catch((error) => {
-          if (process.env.NODE_ENV === 'development') {
-            console.error("Image search failed:", error);
-          }
-          trackNetworkError(
-            error,
-            `/api/images/${imageEngine}?q=${encodeURIComponent(query)}`,
-            'GET'
-          );
-        })
-        .finally(() => setImageLoading(false));
-      return () => {
-        if (imagesAbortRef.current) {
-          try { imagesAbortRef.current.abort(); } catch { }
-          imagesAbortRef.current = null;
-        }
-      };
-    }
-  }, [searchType, query, searchEngine, imageResults.length, imageLoading, getEngineForMode]);
 
 
 
@@ -832,7 +787,7 @@ function SearchPageContent() {
 
         // Capture AI analytics events in PostHog
         if (aiResult) {
-          const analytics = (aiData as any)._analytics;
+          const analytics = (aiData as AIResponseData)._analytics;
           // Track query completion
           trackAIQueryCompleted({
             model: model as any,
@@ -928,7 +883,7 @@ function SearchPageContent() {
       return;
     }
 
-    const candidateResults = results.slice(0, 8).map((r: any) => ({
+    const candidateResults = results.slice(0, 8).map((r) => ({
       url: r.url,
       title: r.title,
       snippet: r.description
@@ -1107,9 +1062,9 @@ function SearchPageContent() {
       // Include user settings (country, safesearch, lang) in the cache key so
       // suggestions are scoped to these preferences. Use query-string style so
       // keys look like: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
-      const country = (typeof window !== 'undefined' && localStorage.getItem('searchCountry')) || 'ALL';
-      const safesearch = (typeof window !== 'undefined' && localStorage.getItem('safesearch')) || 'moderate';
-      const lang = (typeof window !== 'undefined' && (localStorage.getItem('language') || navigator.language?.slice(0, 2))) || '';
+      const country = settings.searchCountry || 'ALL';
+      const safesearch = settings.safesearch || 'moderate';
+      const lang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
       const baseKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
       const _paramsForKey = new URLSearchParams();
       // ensure requested order: country, lang, safesearch
@@ -1217,7 +1172,7 @@ function SearchPageContent() {
         suggestionsAbortRef.current = null;
       }
     };
-  }, [searchInput, autocompleteSource]);
+  }, [searchInput, autocompleteSource, settings.searchCountry, settings.safesearch, settings.language]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions) return;
@@ -1308,10 +1263,10 @@ function SearchPageContent() {
       setWikiLoading(true);
       try {
         // Get browser language (first 2 characters of the locale)
-        const browserLanguage = navigator.language?.slice(0, 2);
+        const browserLanguage = settings.language || navigator.language?.slice(0, 2);
 
-        // Get search country from localStorage
-        const searchCountry = localStorage.getItem("searchCountry") || "ALL";
+        // Get search country from settings
+        const searchCountry = settings.searchCountry || "ALL";
 
         // Check cache first
         const cachedWikiData = SearchCache.getWikipedia(query, browserLanguage);
@@ -1416,7 +1371,7 @@ function SearchPageContent() {
             };
 
             // Cache the fallback result as well
-            const browserLanguage = navigator.language?.slice(0, 2);
+            const browserLanguage = settings.language || navigator.language?.slice(0, 2);
             SearchCache.setWikipedia(query, wikipediaData, browserLanguage);
             setWikiData(wikipediaData);
           } else {
@@ -1450,14 +1405,13 @@ function SearchPageContent() {
         wikipediaAbortRef.current = null;
       }
     };
-  }, [query, hasBang, settings.wikipediaEnabled]);
+  }, [query, hasBang, settings.wikipediaEnabled, settings.language, settings.searchCountry]);
 
   useEffect(() => {
-    const storedSearchType = localStorage.getItem("searchType");
-    if (storedSearchType === 'web' || storedSearchType === 'images' || storedSearchType === 'news' || storedSearchType === 'videos') {
-      setSearchType(storedSearchType as 'web' | 'images' | 'news' | 'videos');
+    if (settings.searchType && ['web', 'images', 'news', 'videos'].includes(settings.searchType)) {
+      setSearchType(settings.searchType as 'web' | 'images' | 'news' | 'videos');
     }
-  }, []);
+  }, [settings.searchType]);
 
   const handleSearchTypeChange = (type: 'web' | 'images' | 'news' | 'videos') => {
     // Track tab change in analytics
@@ -1503,7 +1457,7 @@ function SearchPageContent() {
     }
 
     setSearchType(type);
-    localStorage.setItem("searchType", type);
+    updateSetting("searchType", type);
 
     // Note: the existing useEffect hooks (watching searchType/query) will
     // perform the actual fetch. We only prepare UI state here so skeletons
@@ -1524,29 +1478,16 @@ function SearchPageContent() {
     return tokens.some((t) => words.has(t));
   })();
 
-  // Get the selected logo from localStorage immediately (before any React rendering)
-  // This ensures the correct logo loads without flashing the default
   const [selectedLogoState, setSelectedLogoState] = useState<'tekir' | 'duman' | 'pamuk' | null>(null);
   const [logoLoaded, setLogoLoaded] = useState(false);
 
-  // Load logo from localStorage on mount (client-side only)
   useEffect(() => {
-    const stored = localStorage.getItem('selectedLogo');
-    if (stored === 'tekir' || stored === 'duman' || stored === 'pamuk') {
-      setSelectedLogoState(stored);
-    } else {
-      setSelectedLogoState('tekir');
+    const settingsLogo = settings.selectedLogo || 'tekir';
+    const finalLogo = (settingsLogo === 'tekir' || settingsLogo === 'duman' || settingsLogo === 'pamuk') ? settingsLogo : 'tekir';
+    if (finalLogo !== selectedLogoState) {
+      setSelectedLogoState(finalLogo as 'tekir' | 'duman' | 'pamuk');
     }
     setLogoLoaded(true);
-  }, []);
-
-  // Update logo state when settings change
-  useEffect(() => {
-    if (settings.selectedLogo && settings.selectedLogo !== selectedLogoState) {
-      setSelectedLogoState(settings.selectedLogo);
-      // Ensure it's saved to localStorage for next load
-      localStorage.setItem('selectedLogo', settings.selectedLogo);
-    }
   }, [settings.selectedLogo, selectedLogoState]);
 
   const logoMetadata = selectedLogoState ? getLogoMetadata(selectedLogoState) : getLogoMetadata('tekir');
@@ -1783,11 +1724,42 @@ function SearchPageContent() {
         );
       }
 
-      // no results case
-      if (query) {
-        return <div className="text-center text-muted-foreground">{t('search.noResults', { query })}</div>;
+      if (searchError) {
+        return (
+          <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">{t('search.searchFailed')}</h3>
+            <p className="text-muted-foreground mb-4">{searchError}</p>
+            <Button onClick={() => {
+              setSearchError(null);
+              window.location.reload();
+            }} variant="outline">
+              {t('search.tryAgain')}
+            </Button>
+          </div>
+        );
       }
-      return <div className="text-center text-muted-foreground">{t('search.enterSearchTerm')}</div>;
+
+      if (query) {
+        return (
+          <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">{t('search.noResultsQuery', { query })}</h3>
+          </div>
+        );
+      }
+      return (
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+            <Search className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">{t('search.enterSearchTerm')}</h3>
+        </div>
+      );
     }
 
     if (searchType === 'images') {

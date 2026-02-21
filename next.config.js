@@ -12,6 +12,7 @@ const contentSecurityPolicy = (isDev
     connect-src 'self' https: wss: blob:;
     base-uri 'self';
     object-src 'none';
+    frame-src 'self' https://status.tekir.co;
     frame-ancestors 'self' https://status.tekir.co;
   `
   : `
@@ -24,6 +25,7 @@ const contentSecurityPolicy = (isDev
     connect-src 'self' https: wss: blob:;
     base-uri 'self';
     object-src 'none';
+    frame-src 'self' https://status.tekir.co;
     frame-ancestors 'self' https://status.tekir.co;
   `
 )

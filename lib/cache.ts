@@ -1,4 +1,4 @@
-interface CacheEntry<T = any> {
+interface CacheEntry<T = unknown> {
   data: T;
   timestamp: number;
   provider: string;

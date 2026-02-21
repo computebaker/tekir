@@ -15,26 +15,27 @@ function LazyStatusBadge() {
   const [isVisible, setIsVisible] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-
+  
   useEffect(() => {
+    if (hasLoaded) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasLoaded) {
           setIsVisible(true);
           setHasLoaded(true);
-          observer.disconnect();
         }
       },
       { threshold: 0.1 }
     );
-
+    
     if (iframeRef.current) {
       observer.observe(iframeRef.current);
     }
-
+    
     return () => observer.disconnect();
   }, [hasLoaded]);
-
+  
   return (
     <div
       ref={iframeRef}
