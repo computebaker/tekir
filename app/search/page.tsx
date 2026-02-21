@@ -188,17 +188,26 @@ function SearchPageContent() {
   const { status: authStatus, user } = useAuth();
   const isAuthenticated = authStatus === 'authenticated' && !!user;
   const [searchEngine, setSearchEngine] = useState(settings.searchEngine || 'brave');
+  const engineSyncRef = useRef(false);
+  const engineRef = useRef(searchEngine);
+
+  useEffect(() => {
+    engineRef.current = searchEngine;
+  }, [searchEngine]);
 
   useEffect(() => {
     const validEngine = settings.searchEngine && ['brave', 'google', 'you'].includes(settings.searchEngine);
     const finalEngine = validEngine ? settings.searchEngine : 'brave';
-    
+
     if (!isAuthenticated && finalEngine === 'google') {
-      setSearchEngine('brave');
-    } else if (searchEngine !== finalEngine) {
+      if (engineRef.current !== 'brave') {
+        setSearchEngine('brave');
+      }
+    } else if (!engineSyncRef.current || engineRef.current !== finalEngine) {
       setSearchEngine(finalEngine as 'brave' | 'google' | 'you');
+      engineSyncRef.current = true;
     }
-  }, [settings.searchEngine, isAuthenticated, searchEngine]);
+  }, [settings.searchEngine, isAuthenticated]);
   const [aiModel, setAiModel] = useState(settings.aiModel || 'gemini');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -274,8 +283,15 @@ function SearchPageContent() {
       setAiResponse(null);
       setDiveResponse(null);
       setDiveSources([]);
+      lastResultsQueryRef.current = null;
       return;
     }
+
+    // Only clear data and refetch if query actually changed
+    if (lastResultsQueryRef.current === currentQuery) {
+      return;
+    }
+
     let isMounted = true;
     setLoading(true);
     setResults([]);
@@ -289,14 +305,12 @@ function SearchPageContent() {
     setAiError(false);
     setDiveError(false);
     aiRequestInProgressRef.current = null;
+    lastResultsQueryRef.current = currentQuery;
 
     const searchId = ++searchIdRef.current;
 
     // Always fetch regular search results for display, regardless of Dive mode
-    const engineToUse = getEngineForMode(searchEngine, 'web');
-    if (searchEngine !== engineToUse) {
-      setSearchEngine(engineToUse);
-    }
+    const engineToUse = getEngineForMode(engineRef.current, 'web');
 
       const fetchRegularSearch = async () => {
         // Wait for session initialization to avoid 401 on first load
@@ -420,7 +434,7 @@ function SearchPageContent() {
         webSearchAbortRef.current = null;
       }
     };
-  }, [searchParams, router, isAuthenticated, searchEngine, getEngineForMode, searchType, t, settings.searchCountry, settings.safesearch, settings.language]);
+  }, [searchParams, router, isAuthenticated, getEngineForMode, searchType, t, settings.searchCountry, settings.safesearch, settings.language]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
