@@ -266,6 +266,18 @@ function SearchPageContent() {
   const suggestionsAbortRef = useRef<AbortController | null>(null);
   const wikipediaAbortRef = useRef<AbortController | null>(null);
   const aiAbortControllerRef = useRef<AbortController | null>(null);
+  
+  // Store settings values in refs to prevent effect re-runs when settings update
+  const searchCountryRef = useRef(settings.searchCountry || "ALL");
+  const safesearchRef = useRef(settings.safesearch || "moderate");
+  const languageRef = useRef(settings.language || '');
+  
+  // Update refs when settings change
+  useEffect(() => {
+    searchCountryRef.current = settings.searchCountry || "ALL";
+    safesearchRef.current = settings.safesearch || "moderate";
+    languageRef.current = settings.language || '';
+  }, [settings.searchCountry, settings.safesearch, settings.language]);
 
   useEffect(() => {
     const checkQueryForBangs = async () => {
@@ -337,10 +349,10 @@ function SearchPageContent() {
         const webSignal = webSearchAbortRef.current.signal;
         const doFetch = async (engine: string) => {
           try {
-            // Get user preferences from settings
-            const storedCountry = settings.searchCountry || "ALL";
-            const storedSafesearch = settings.safesearch || "moderate";
-            const storedLang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
+            // Get user preferences from refs (updated independently of effect)
+            const storedCountry = searchCountryRef.current;
+            const storedSafesearch = safesearchRef.current;
+            const storedLang = languageRef.current || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
 
             // Build query parameters
             const searchParams = new URLSearchParams({
@@ -434,7 +446,7 @@ function SearchPageContent() {
         webSearchAbortRef.current = null;
       }
     };
-  }, [searchParams, router, isAuthenticated, getEngineForMode, searchType, t, settings.searchCountry, settings.safesearch, settings.language]);
+  }, [searchParams, router, isAuthenticated, getEngineForMode, searchType, t]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
@@ -445,7 +457,7 @@ function SearchPageContent() {
     }
     imagesAbortRef.current = new AbortController();
     const imgSignal = imagesAbortRef.current.signal;
-    const storedLang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
+    const storedLang = languageRef.current || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
     const imageEngine = getEngineForMode(searchEngine, 'images');
     const imagesUrl = `/api/images/${imageEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
@@ -524,7 +536,7 @@ function SearchPageContent() {
         imagesAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType, getEngineForMode, settings.language]);
+  }, [query, searchEngine, searchType, getEngineForMode]);
 
   useEffect(() => {
     if (!query || searchType !== 'videos') return;
@@ -536,7 +548,7 @@ function SearchPageContent() {
     }
     videosAbortRef.current = new AbortController();
     const vidSignal = videosAbortRef.current.signal;
-    const storedLang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
+    const storedLang = languageRef.current || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
     const videoEngine = getEngineForMode(searchEngine, 'videos');
     const videosUrl = `/api/videos/${videoEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
@@ -612,15 +624,15 @@ function SearchPageContent() {
         videosAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType, getEngineForMode, settings.language]);
+  }, [query, searchEngine, searchType, getEngineForMode]);
 
   useEffect(() => {
     if (!query || searchType !== 'news') return;
     setNewsLoading(true);
 
-    // Get user preferences from settings
-    const storedCountry = settings.searchCountry || "ALL";
-    const storedSafesearch = settings.safesearch || "moderate";
+    // Get user preferences from refs
+    const storedCountry = searchCountryRef.current;
+    const storedSafesearch = safesearchRef.current;
 
     // Build query parameters
     const searchParams = new URLSearchParams({
@@ -634,7 +646,7 @@ function SearchPageContent() {
     }
     newsAbortRef.current = new AbortController();
     const newsSignal = newsAbortRef.current.signal;
-    const storedLang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
+    const storedLang = languageRef.current || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
     const newsEngine = getEngineForMode(searchEngine, 'news');
     const newsUrl = `/api/news/${newsEngine}?${searchParams}`;
     fetchWithSessionRefreshAndCache(
@@ -714,7 +726,7 @@ function SearchPageContent() {
         newsAbortRef.current = null;
       }
     };
-  }, [query, searchEngine, searchType, getEngineForMode, settings.searchCountry, settings.safesearch, settings.language]);
+  }, [query, searchEngine, searchType, getEngineForMode]);
 
   // Reset retry flags when query or engine changes so new queries can retry again
   useEffect(() => {
@@ -1076,9 +1088,9 @@ function SearchPageContent() {
       // Include user settings (country, safesearch, lang) in the cache key so
       // suggestions are scoped to these preferences. Use query-string style so
       // keys look like: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
-      const country = settings.searchCountry || 'ALL';
-      const safesearch = settings.safesearch || 'moderate';
-      const lang = settings.language || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
+      const country = searchCountryRef.current;
+      const safesearch = safesearchRef.current;
+      const lang = languageRef.current || (typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : '');
       const baseKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
       const _paramsForKey = new URLSearchParams();
       // ensure requested order: country, lang, safesearch
@@ -1186,7 +1198,7 @@ function SearchPageContent() {
         suggestionsAbortRef.current = null;
       }
     };
-  }, [searchInput, autocompleteSource, settings.searchCountry, settings.safesearch, settings.language]);
+  }, [searchInput, autocompleteSource]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions) return;
