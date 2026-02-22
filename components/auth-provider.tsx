@@ -1,6 +1,21 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
+import convex from "@/lib/convex-proxy";
+import { trackClientLog, trackSignIn, trackSignOut, trackAuthError } from "@/lib/posthog-analytics";
+
+// Define user settings interface
+interface UserSettings {
+  searchEngine?: string;
+  country?: string;
+  language?: string;
+  safesearch?: string;
+  theme?: string;
+  wikipediaEnabled?: boolean;
+  karakulakEnabled?: boolean;
+  aiModel?: string;
+  [key: string]: string | boolean | undefined;
+}
 
 interface User {
   id: string;
@@ -13,13 +28,14 @@ interface User {
   updatedAt?: number;
   isEmailVerified: boolean;
   roles?: string[];
-  settings?: any;
+  settings?: UserSettings;
   polarCustomerId?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   status: "loading" | "authenticated" | "unauthenticated";
+  authToken: string | null;
   signOut: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
@@ -38,100 +54,172 @@ export function useAuth() {
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const isCheckingRef = useRef(false); // Use ref instead of state to prevent re-renders
   const lastCheckTimeRef = useRef(0); // Track last check time to prevent spam
+  const initialCheckDoneRef = useRef(false); // Track if initial check completed
+  const pendingAuthCheckRef = useRef<(() => void) | null>(null); // Store pending auth check
 
-  const checkAuthStatus = useCallback(async (force = false) => {
+  const checkAuthStatus = useCallback(async (force = false, retryCount = 0) => {
     // Prevent multiple simultaneous auth checks
     if (isCheckingRef.current) {
-      console.log('AuthProvider: Auth check already in progress, skipping...');
       return;
     }
 
     // Throttle calls - don't check more than once every 30 seconds unless forced
     const now = Date.now();
     if (!force && now - lastCheckTimeRef.current < 30000) {
-      console.log(`AuthProvider: Auth check throttled, last check was ${Math.round((now - lastCheckTimeRef.current) / 1000)}s ago, skipping...`);
       return;
     }
 
+    const startTime = Date.now();
     isCheckingRef.current = true;
     lastCheckTimeRef.current = now;
     try {
-      console.log('AuthProvider: Checking JWT auth status...');
-      
       // Verify JWT token with our backend - cookie will be sent automatically
       const response = await fetch('/api/auth/verify-jwt', {
         method: 'GET',
         credentials: 'include', // Include cookies
       });
 
-      console.log('AuthProvider: JWT verification response:', response.status);
-
       if (response.ok) {
         const authData = await response.json();
-        console.log('AuthProvider: JWT auth data:', authData);
-        
+
         if (authData.authenticated && authData.user) {
-          console.log('AuthProvider: User authenticated via JWT:', authData.user);
+          // Set Convex auth token
+          if (authData.token) {
+            setAuthToken(authData.token);
+            await convex.setAuth(async () => authData.token);
+          } else {
+            setAuthToken(null);
+            await convex.setAuth(async () => null);
+          }
+
           const newUser = {
             ...authData.user,
             isEmailVerified: true // JWT users are already verified
           };
-          
+
           // Only update user if the data has actually changed
           setUser(prevUser => {
             const prevRoles = (prevUser?.roles ?? []).join(',');
             const nextRoles = (newUser?.roles ?? []).join(',');
-            if (!prevUser || 
-                prevUser.id !== newUser.id ||
-                prevUser.email !== newUser.email ||
-                prevUser.name !== newUser.name ||
-                prevUser.username !== newUser.username ||
-                prevUser.image !== newUser.image ||
-                prevUser.imageType !== newUser.imageType ||
-                (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
-                prevRoles !== nextRoles) {
-              console.log('AuthProvider: User data changed, updating...');
+            const wasPreviouslyUnauthenticated = !prevUser;
+            if (!prevUser ||
+              prevUser.id !== newUser.id ||
+              prevUser.email !== newUser.email ||
+              prevUser.name !== newUser.name ||
+              prevUser.username !== newUser.username ||
+              prevUser.image !== newUser.image ||
+              prevUser.imageType !== newUser.imageType ||
+              (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
+              prevRoles !== nextRoles) {
+              // Track sign in if this was a new authentication
+              if (wasPreviouslyUnauthenticated) {
+                trackSignIn('jwt', false);
+                // Identify user in analytics
+                if (typeof window !== 'undefined' && (window as any).posthog) {
+                  (window as any).posthog.identify(newUser.id, {
+                    email: newUser.email,
+                    username: newUser.username,
+                    roles: newUser.roles,
+                  });
+                }
+              }
               return newUser;
             }
-            console.log('AuthProvider: User data unchanged, keeping current user object');
             return prevUser;
           });
+          // Only set authenticated status AFTER Convex auth is ready
           setStatus("authenticated");
+          initialCheckDoneRef.current = true;
         } else {
-          console.log('AuthProvider: JWT auth failed - not authenticated');
+          setAuthToken(null);
+          await convex.setAuth(async () => null);
           setUser(null);
           setStatus("unauthenticated");
+          initialCheckDoneRef.current = true;
         }
       } else {
-        console.log('AuthProvider: No valid JWT token found');
+        setAuthToken(null);
+        await convex.setAuth(async () => null);
         setUser(null);
         setStatus("unauthenticated");
+        initialCheckDoneRef.current = true;
       }
     } catch (error) {
       console.error('JWT auth check failed:', error);
+
+      // Retry logic for transient network issues on initial check
+      if (!initialCheckDoneRef.current && retryCount < 2) {
+        trackClientLog('auth_check_retry', {
+          attempt: retryCount + 1,
+          max_attempts: 2,
+        });
+        isCheckingRef.current = false;
+        // Exponential backoff: 500ms, then 1000ms
+        await new Promise(resolve => setTimeout(resolve, 500 * (retryCount + 1)));
+        return checkAuthStatus(force, retryCount + 1);
+      }
+
+      // Add minimum delay before showing unauthenticated on initial check
+      // This prevents a flash of "guest" UI when the network is just slow
+      if (!initialCheckDoneRef.current) {
+        const elapsed = Date.now() - startTime;
+        const minDelay = 500; // 500ms minimum delay for initial check
+        if (elapsed < minDelay) {
+          await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
+        }
+      }
+
+      setAuthToken(null);
       setUser(null);
       setStatus("unauthenticated");
+      initialCheckDoneRef.current = true;
     } finally {
       isCheckingRef.current = false;
     }
   }, []); // No dependencies to prevent recreation
 
   useEffect(() => {
-    // Check for existing session on mount only - force this initial check
-    checkAuthStatus(true);
+    // Define auth check function that will be called
+    const doAuthCheck = () => {
+      checkAuthStatus(true);
+    };
+
+    // Check if session is already registered (from sessionStorage flag set by client-layout)
+    if ((window as any).__sessionRegistered) {
+      // Session already registered, proceed with auth check
+      doAuthCheck();
+    } else {
+      // Session not registered yet - wait for the event
+      // This prevents race condition where auth check runs before session is ready
+      const handleSessionRegistered = () => {
+        doAuthCheck();
+      };
+
+      window.addEventListener('session-registered', handleSessionRegistered, { once: true });
+
+      // Also set up a timeout fallback (in case event never fires)
+      const timeoutId = setTimeout(() => {
+        window.removeEventListener('session-registered', handleSessionRegistered);
+        doAuthCheck();
+      }, 2000); // 2 second fallback timeout
+
+      return () => {
+        window.removeEventListener('session-registered', handleSessionRegistered);
+        clearTimeout(timeoutId);
+      };
+    }
 
     // Listen for custom authentication events only
     const handleAuthLogin = () => {
-      console.log('AuthProvider: Login event received, re-checking status...');
       // Force immediate check on login
       checkAuthStatus(true);
     };
 
     const handleAuthLogout = () => {
-      console.log('AuthProvider: Logout event received');
       // Clear local state; server clears cookies
       setUser(null);
       setStatus("unauthenticated");
@@ -156,9 +244,20 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Signout error:', error);
     } finally {
+      // Track sign out event
+      trackSignOut();
+
       // Always clear local state; server cleared cookies
+      setAuthToken(null);
+      await convex.setAuth(async () => null);
       setUser(null);
       setStatus("unauthenticated");
+
+      // Reset analytics user identification
+      if (typeof window !== 'undefined' && (window as any).posthog) {
+        (window as any).posthog.reset();
+      }
+
       window.location.href = '/';
     }
   };
@@ -172,22 +271,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     // Prevent multiple simultaneous refresh calls
     if (isCheckingRef.current) {
-      console.log('AuthProvider: Auth check in progress, skipping refresh...');
       return;
     }
 
     // Throttle calls - don't refresh more than once every 10 seconds
     const now = Date.now();
     if (now - lastCheckTimeRef.current < 10000) {
-      console.log(`AuthProvider: Refresh throttled, last check was ${Math.round((now - lastCheckTimeRef.current) / 1000)}s ago, skipping...`);
       return;
     }
 
     isCheckingRef.current = true;
     lastCheckTimeRef.current = now;
     try {
-      console.log('AuthProvider: Refreshing user data from backend...');
-      
       // Verify JWT token with our backend to get fresh user data
       const response = await fetch('/api/auth/verify-jwt', {
         method: 'GET',
@@ -196,37 +291,37 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const authData = await response.json();
-        console.log('AuthProvider: Fresh user data:', authData.user);
-        
+
         if (authData.authenticated && authData.user) {
+          if (authData.token) {
+            setAuthToken(authData.token);
+            await convex.setAuth(async () => authData.token);
+          }
           const newUser = {
             ...authData.user,
             isEmailVerified: true
           };
-          
+
           // Only update user if the data has actually changed
           setUser(prevUser => {
             const prevRoles = (prevUser?.roles ?? []).join(',');
             const nextRoles = (newUser?.roles ?? []).join(',');
-            if (!prevUser || 
-                prevUser.id !== newUser.id ||
-                prevUser.email !== newUser.email ||
-                prevUser.name !== newUser.name ||
-                prevUser.username !== newUser.username ||
-                prevUser.image !== newUser.image ||
-                prevUser.imageType !== newUser.imageType ||
-                (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
-                prevRoles !== nextRoles) {
-              console.log('AuthProvider: Fresh user data changed, updating...');
+            if (!prevUser ||
+              prevUser.id !== newUser.id ||
+              prevUser.email !== newUser.email ||
+              prevUser.name !== newUser.name ||
+              prevUser.username !== newUser.username ||
+              prevUser.image !== newUser.image ||
+              prevUser.imageType !== newUser.imageType ||
+              (prevUser as any).updatedAt !== (newUser as any).updatedAt ||
+              prevRoles !== nextRoles) {
               return newUser;
             }
-            console.log('AuthProvider: Fresh user data unchanged, keeping current user object');
             return prevUser;
           });
           setStatus("authenticated");
         }
       } else {
-        console.log('AuthProvider: Failed to refresh user data');
       }
     } catch (error) {
       console.error('AuthProvider: Error refreshing user data:', error);
@@ -236,7 +331,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // No dependencies to prevent recreation
 
   return (
-    <AuthContext.Provider value={{ user, status, signOut, updateUser, refreshUser, checkAuthStatus }}>
+    <AuthContext.Provider value={{ user, status, authToken, signOut, updateUser, refreshUser, checkAuthStatus }}>
       {children}
     </AuthContext.Provider>
   );

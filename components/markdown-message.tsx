@@ -1,7 +1,8 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
+// rehypeRaw removed for security - it allows arbitrary HTML rendering which could lead to XSS
+// If HTML support is needed in the future, sanitize it with DOMPurify first
 import { cn } from "@/lib/utils";
 import { Copy } from "lucide-react";
 
@@ -47,8 +48,8 @@ export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
         "prose prose-sm dark:prose-invert max-w-none",
         className
       )}
-      remarkPlugins={[remarkGfm]} // Removed remarkMath
-      rehypePlugins={[rehypeRaw]} // Removed rehypeKatex
+      remarkPlugins={[remarkGfm]}
+      // rehypePlugins removed - rehypeRaw allows arbitrary HTML which is a security risk
       components={{
         p({ children }) {
           return (

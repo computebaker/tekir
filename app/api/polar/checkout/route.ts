@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCheckoutSession } from '@/lib/polar';
 import { getJWTUser } from '@/lib/jwt-auth';
+import { handleAPIError } from '@/lib/api-error-tracking';
 
 /**
  * API endpoint to create a Polar.sh checkout session
@@ -32,9 +33,12 @@ export async function POST(req: NextRequest) {
     const { productId } = body;
 
     if (!productId) {
-      return NextResponse.json(
-        { error: 'Product ID is required' },
-        { status: 400, headers }
+      return handleAPIError(
+        new Error('Product ID is required'),
+        req,
+        '/api/polar/checkout',
+        'POST',
+        400
       );
     }
 
@@ -49,9 +53,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Failed to create checkout' },
-        { status: 500, headers }
+      return handleAPIError(
+        new Error(result.error || 'Failed to create checkout'),
+        req,
+        '/api/polar/checkout',
+        'POST',
+        500
       );
     }
 
@@ -64,7 +71,7 @@ export async function POST(req: NextRequest) {
       { headers }
     );
   } catch (error) {
-    console.error('Checkout creation error:', error);
+    handleAPIError(error, req, '/api/polar/checkout', 'POST', 500);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500, headers }

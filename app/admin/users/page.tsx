@@ -3,8 +3,11 @@
 import React, { useState } from "react";
 import AdminShell from "@/components/admin/admin-shell";
 import AdminGuard from "@/components/admin/admin-guard";
+import { useAdminAccess } from "@/components/admin/use-admin-access";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/components/auth-provider";
+import { showToast } from "@/lib/toast";
 
 type User = {
   _id: string;
@@ -18,16 +21,24 @@ type User = {
 
 export default function AdminUsersPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const users = useQuery(api.users.listUsers, { limit: 100 }) as User[] | undefined;
+  const { isAdmin } = useAdminAccess();
+  const { authToken } = useAuth();
+  const users = useQuery(
+    api.users.listUsers,
+    isAdmin && authToken ? { authToken, limit: 100 } : "skip"
+  ) as User[] | undefined;
   const deleteUser = useMutation(api.users.deleteUser);
   const updateUser = useMutation(api.users.updateUser);
-  const loading = users === undefined;
+  const loading = !isAdmin || users === undefined;
 
   const remove = async (id: string) => {
     try {
-      await deleteUser({ id: id as any });
-    } catch (e: any) {
-      alert(`Delete failed: ${e.message || 'Unknown error'}`);
+      if (!authToken) throw new Error("Missing auth token");
+      await deleteUser({ authToken, id: id as any });
+      showToast.success("User deleted successfully");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error';
+      showToast.error("Failed to delete user", message);
     }
   };
 
@@ -97,6 +108,7 @@ export default function AdminUsersPage() {
                       <div className="flex items-center gap-2 justify-end">
                         {/* Toggle Admin */}
                         <button
+                          type="button"
                           onClick={async () => {
                             const current = new Set((u.roles ?? []).map(r => r.toLowerCase()));
                             if (current.has('admin')) current.delete('admin'); else current.add('admin');
@@ -106,8 +118,10 @@ export default function AdminUsersPage() {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ userId: u._id, roles: Array.from(current) })
                               });
+                              showToast.success("Admin role updated");
                             } catch (e) {
                               console.error('Failed to update roles', e);
+                              showToast.error("Failed to update role", "Please try again");
                             }
                           }}
                           className={`text-xs px-2 py-1 border rounded ${
@@ -115,6 +129,7 @@ export default function AdminUsersPage() {
                               ? 'bg-secondary text-secondary-foreground border-secondary hover:opacity-90'
                               : 'hover:bg-muted'
                           }`}
+                          aria-pressed={(u.roles ?? []).map(r=>r.toLowerCase()).includes('admin')}
                           title={(u.roles ?? []).includes('admin') ? 'Remove admin role' : 'Grant admin role'}
                         >
                           {(u.roles ?? []).map(r=>r.toLowerCase()).includes('admin') ? 'Admin ✓' : 'Make Admin'}
@@ -122,6 +137,7 @@ export default function AdminUsersPage() {
 
                         {/* Toggle Paid */}
                         <button
+                          type="button"
                           onClick={async () => {
                             const current = new Set((u.roles ?? []).map(r => r.toLowerCase()));
                             if (current.has('paid')) current.delete('paid'); else current.add('paid');
@@ -131,8 +147,10 @@ export default function AdminUsersPage() {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ userId: u._id, roles: Array.from(current) })
                               });
+                              showToast.success("Paid role updated");
                             } catch (e) {
                               console.error('Failed to update roles', e);
+                              showToast.error("Failed to update role", "Please try again");
                             }
                           }}
                           className={`text-xs px-2 py-1 border rounded ${
@@ -140,6 +158,7 @@ export default function AdminUsersPage() {
                               ? 'bg-secondary text-secondary-foreground border-secondary hover:opacity-90'
                               : 'hover:bg-muted'
                           }`}
+                          aria-pressed={(u.roles ?? []).map(r=>r.toLowerCase()).includes('paid')}
                           title={(u.roles ?? []).includes('paid') ? 'Revoke paid role' : 'Grant paid role'}
                         >
                           {(u.roles ?? []).map(r=>r.toLowerCase()).includes('paid') ? 'Paid ✓' : 'Grant Paid'}
@@ -147,7 +166,9 @@ export default function AdminUsersPage() {
 
                         {/* Delete with 2-step confirm */}
                         <button
+                          type="button"
                           onClick={() => handleDeleteClick(u._id)}
+                          aria-pressed={confirmingId === u._id}
                           className={
                             `text-xs px-2 py-1 border rounded ` +
                             (confirmingId === u._id

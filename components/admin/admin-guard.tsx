@@ -1,23 +1,19 @@
 "use client";
 
-import { useAuth } from "@/components/auth-provider";
 import { useEffect } from "react";
+import { useAdminAccess } from "./use-admin-access";
 
 export default function AdminGuard() {
-  const { user, status, checkAuthStatus } = useAuth();
+  const { user, status, isAdmin, isChecking } = useAdminAccess();
 
   useEffect(() => {
-    // Ensure we have fresh auth info
-    if (status === "loading") return;
-    if (!user) {
+    // Ensure we have fresh auth info - wait for both auth status and Convex auth to be ready
+    if (status === "loading" || isChecking) return;
+    if (!user || !isAdmin) {
       window.location.href = "/";
       return;
     }
-    const roles = (user as any).roles as string[] | undefined;
-    if (!Array.isArray(roles) || !roles.includes("admin")) {
-      window.location.href = "/";
-    }
-  }, [user, status, checkAuthStatus]);
+  }, [user, status, isAdmin, isChecking]);
 
   return null;
 }

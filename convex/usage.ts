@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
+import { requireAdminWithToken } from "./auth";
 
 export function yyyymmdd(ts: number) {
   const d = new Date(ts);
@@ -28,7 +29,7 @@ export const logSearchUsage = mutation({
     type: v.string(), // 'web' | 'images' | 'news'
     responseTimeMs: v.optional(v.number()),
     totalResults: v.optional(v.number()),
-  queryText: v.optional(v.string()), // full query; used for full-query frequency (and legacy tokens)
+    queryText: v.optional(v.string()), // full query; used for full-query frequency (and legacy tokens)
     timestamp: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -71,7 +72,7 @@ export const logSearchUsage = mutation({
         else await ctx.db.insert('searchQueryDaily', { day, query: qtext, count: 1 });
       }
 
-  // No longer logging tokenized queries; we store full queries only now.
+      // No longer logging tokenized queries; we store full queries only now.
     }
 
     return { ok: true };
@@ -116,8 +117,9 @@ export const logAiUsage = mutation({
 
 // Queries for analytics pages
 export const getSearchUsageByDay = query({
-  args: { day: v.number() },
+  args: { authToken: v.string(), day: v.number() },
   handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     return await ctx.db
       .query('searchUsageDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -126,8 +128,9 @@ export const getSearchUsageByDay = query({
 });
 
 export const getAiUsageByDay = query({
-  args: { day: v.number() },
+  args: { authToken: v.string(), day: v.number() },
   handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     return await ctx.db
       .query('aiUsageDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -136,8 +139,9 @@ export const getAiUsageByDay = query({
 });
 
 export const topSearchTokensByDay = query({
-  args: { day: v.number(), limit: v.optional(v.number()) },
+  args: { authToken: v.string(), day: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     const rows = await ctx.db
       .query('searchTokenDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -150,8 +154,9 @@ export const topSearchTokensByDay = query({
 });
 
 export const topSearchQueriesByDay = query({
-  args: { day: v.number(), limit: v.optional(v.number()) },
+  args: { authToken: v.string(), day: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     const rows = await ctx.db
       .query('searchQueryDaily')
       .withIndex('by_day', q => q.eq('day', args.day))
@@ -164,8 +169,9 @@ export const topSearchQueriesByDay = query({
 });
 
 export const rangeSearchUsage = query({
-  args: { fromDay: v.number(), toDay: v.number() },
+  args: { authToken: v.string(), fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     // naive range scan; can be optimized with pagination if needed
     const rows = await ctx.db
       .query('searchUsageDaily')
@@ -176,8 +182,9 @@ export const rangeSearchUsage = query({
 });
 
 export const rangeAiUsage = query({
-  args: { fromDay: v.number(), toDay: v.number() },
+  args: { authToken: v.string(), fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     const rows = await ctx.db
       .query('aiUsageDaily')
       .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
@@ -205,8 +212,9 @@ export const logApiHit = mutation({
 });
 
 export const rangeApiHits = query({
-  args: { fromDay: v.number(), toDay: v.number() },
+  args: { authToken: v.string(), fromDay: v.number(), toDay: v.number() },
   handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     const rows = await ctx.db
       .query('apiHitsDaily')
       .withIndex('by_day', q => q.gte('day', args.fromDay).lte('day', args.toDay))
@@ -217,8 +225,9 @@ export const rangeApiHits = query({
 
 // Admin-only: Purge all analytics aggregates
 export const purgeAnalytics = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { authToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     // Helper to delete all rows from a table by scanning a cheap index
     async function deleteAll(table: 'searchUsageDaily' | 'aiUsageDaily' | 'apiHitsDaily' | 'searchQueryDaily' | 'searchTokenDaily') {
       // Use by_day index where available for chunked deletes
@@ -228,13 +237,42 @@ export const purgeAnalytics = mutation({
       }
     }
 
-  await deleteAll('searchUsageDaily');
+    await deleteAll('searchUsageDaily');
     await deleteAll('aiUsageDaily');
     await deleteAll('apiHitsDaily');
     await deleteAll('searchQueryDaily');
-  // Legacy token frequency table (kept for backward compatibility)
-  await deleteAll('searchTokenDaily');
+    // Legacy token frequency table (kept for backward compatibility)
+    await deleteAll('searchTokenDaily');
 
     return { purged: true };
+  },
+});
+
+export const getTopSearchesByYear = internalQuery({
+  args: {
+    year: v.number(),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const startDay = args.year * 10000 + 101; // YYYY0101
+    const endDay = args.year * 10000 + 1231; // YYYY1231
+
+    const dailyCounts = await ctx.db
+      .query("searchQueryDaily")
+      .withIndex("by_day", (q) => q.gte("day", startDay).lte("day", endDay))
+      .collect();
+
+    const queryMap = new Map<string, number>();
+
+    for (const entry of dailyCounts) {
+      const current = queryMap.get(entry.query) || 0;
+      queryMap.set(entry.query, current + entry.count);
+    }
+
+    const sorted = Array.from(queryMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, args.limit);
+
+    return sorted.map(([query, count]) => ({ query, count }));
   },
 });

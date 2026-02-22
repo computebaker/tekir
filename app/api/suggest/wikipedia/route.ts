@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import OpenAI from 'openai';
+import { WideEvent } from '@/lib/wide-event';
+import { flushServerEvents } from '@/lib/analytics-server';
+import { handleAPIError } from '@/lib/api-error-tracking';
+import { randomUUID } from 'crypto';
 
 // Country code to language code mapping for Wikipedia
 const COUNTRY_TO_LANGUAGE: Record<string, string> = {
@@ -52,6 +56,8 @@ const openai = new OpenAI({
   },
 });
 
+const WIKIPEDIA_SUGGEST_MODEL = process.env.WIKIPEDIA_SUGGEST_MODEL || 'mistralai/mistral-small-3.2-24b-instruct';
+
 async function suggestWikipediaArticle(
   query: string, 
   browserLanguage?: string, 
@@ -66,7 +72,7 @@ async function suggestWikipediaArticle(
   try {
     if (priorityLanguage) {
       const response = await openai.chat.completions.create({
-        model: 'mistralai/ministral-3b',
+        model: WIKIPEDIA_SUGGEST_MODEL,
         temperature: 0.1, 
         max_tokens: 80,
         messages: [
@@ -97,7 +103,7 @@ async function suggestWikipediaArticle(
     
     // Priority 3: AI-based query language detection (fallback)
     const response = await openai.chat.completions.create({
-      model: 'mistralai/ministral-3b',
+      model: WIKIPEDIA_SUGGEST_MODEL,
       temperature: 0.1, 
       max_tokens: 80,
       messages: [
@@ -144,8 +150,19 @@ async function suggestWikipediaArticle(
 }
 
 export async function GET(req: NextRequest) {
+  const traceId = randomUUID();
+  const startTime = Date.now();
+  
+  const wideEvent = WideEvent.getOrCreate();
+  wideEvent.setRequest({ method: 'GET', path: '/api/suggest/wikipedia' });
+  wideEvent.setCustom('trace_id', traceId);
+  
   const rateLimitResult = await checkRateLimit(req, '/api/suggest/wikipedia');
   if (!rateLimitResult.success) {
+    wideEvent.setError({ type: 'RateLimitError', message: 'Rate limit exceeded', code: 'rate_limited' });
+    wideEvent.setCustom('latency_ms', Date.now() - startTime);
+    wideEvent.finish(429);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
     return rateLimitResult.response!;
   }
 
@@ -154,22 +171,52 @@ export async function GET(req: NextRequest) {
   const searchCountry = req.nextUrl.searchParams.get('country');
   
   if (!query) {
+    wideEvent.setError({ type: 'ValidationError', message: 'Missing query', code: 'missing_query' });
+    wideEvent.setCustom('latency_ms', Date.now() - startTime);
+    wideEvent.finish(400);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
     return NextResponse.json({ error: 'Missing query parameter "q".' }, { status: 400 });
   }
+  
+  wideEvent.setCustom('query_length', query.length);
+  wideEvent.setCustom('browser_language', browserLanguage || 'none');
+  wideEvent.setCustom('search_country', searchCountry || 'none');
 
   try {
+    const aiStart = Date.now();
     const result = await suggestWikipediaArticle(query, browserLanguage || undefined, searchCountry || undefined);
+    const aiLatency = Date.now() - aiStart;
+    
+    wideEvent.setAI({
+      model: WIKIPEDIA_SUGGEST_MODEL
+    });
+    wideEvent.setCustom('ai_latency_ms', aiLatency);
     
     if (!result.article) {
+      wideEvent.setError({ type: 'AIError', message: 'No article suggested', code: 'no_article' });
+      wideEvent.setCustom('latency_ms', Date.now() - startTime);
+      wideEvent.finish(404);
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json({ error: 'Could not suggest a Wikipedia article for the provided query.' }, { status: 404 });
     }
+    
+    wideEvent.setCustom('article_name', result.article);
+    wideEvent.setCustom('article_language', result.language);
+    wideEvent.setCustom('latency_ms', Date.now() - startTime);
+    wideEvent.finish(200);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
     
     return NextResponse.json({ 
       article: result.article,
       language: result.language 
     });
   } catch (error: any) {
+    const duration = Date.now() - startTime;
     console.error('Error in Wikipedia suggestion API:', error);
+    wideEvent.setError({ type: error instanceof Error ? error.name : 'UnknownError', message: error instanceof Error ? error.message : 'Internal Server Error', code: 'suggest_error' });
+    wideEvent.setCustom('latency_ms', duration);
+    wideEvent.finish(500);
+    handleAPIError(error, req, '/api/suggest/wikipedia', 'GET', 500);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

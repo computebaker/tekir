@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { getJWTUser } from '@/lib/jwt-auth';
+import {
+  trackServerSearch,
+  trackAPIError,
+  flushServerEvents,
+} from '@/lib/analytics-server';
 
 interface ImageResult {
   title: string;
@@ -74,7 +79,9 @@ async function getBraveImages(q: string, count: number = 20): Promise<ImageResul
     const data = await res.json();
     return data.results || [];
   } catch (error) {
-    console.error('Error fetching Brave image search data:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Brave image search data:', error);
+    }
     return [];
   }
 }
@@ -89,7 +96,9 @@ async function getGoogleImages(
   const apiKey = process.env.GOOGLE_API_KEY;
   const cx = process.env.GOOGLE_CX;
   if (!apiKey || !cx) {
-    console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    }
     return [];
   }
 
@@ -162,7 +171,9 @@ async function getGoogleImages(
       } satisfies ImageResult;
     });
   } catch (error) {
-    console.error('Error fetching Google image results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Google image results:', error);
+    }
     return [];
   }
 }
@@ -187,45 +198,115 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   }
 
   let results: ImageResult[] = [];
+  const now = Date.now();
 
-  switch (provider.toLowerCase()) {
-    case 'brave': {
-        results = await getBraveImages(query, count);
-        
-        const response: SearchResponse = {
-          results,
-          provider: 'Brave'
-        };
-        
-        return NextResponse.json(response, { status: 200 });
-      }
-      case 'duck': {
-        /* Fix after DuckDuckGo API is available */
-        
-        results = await getBraveImages(query, count);
-        
-        const response: SearchResponse = {
-          results,
-          provider: 'Brave'
-        };
-        
-        return NextResponse.json(response, { status: 200 });
-      }
-      case 'google': {
-        const authUser = await getJWTUser(req);
-        if (!authUser) {
-          return NextResponse.json({ error: 'Authentication required for Google image search.' }, { status: 401 });
+  try {
+    switch (provider.toLowerCase()) {
+      case 'brave': {
+          results = await getBraveImages(query, count);
+          
+          const responseTime = Date.now() - now;
+          trackServerSearch({
+            search_type: 'images',
+            provider: 'brave',
+            results_count: results.length,
+            response_time_ms: responseTime,
+            user_authenticated: !!(await getJWTUser(req)),
+          });
+          
+          const response: SearchResponse = {
+            results,
+            provider: 'Brave'
+          };
+          
+          flushServerEvents().catch((err) => {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[PostHog] Failed to flush events:', err);
+            }
+          });
+          
+          return NextResponse.json(response, { status: 200 });
         }
-        const results = await getGoogleImages(query, count, country, safesearch, lang);
+        case 'duck': {
+          /* Fix after DuckDuckGo API is available */
+          
+          results = await getBraveImages(query, count);
+          
+          const responseTime = Date.now() - now;
+          trackServerSearch({
+            search_type: 'images',
+            provider: 'duck',
+            results_count: results.length,
+            response_time_ms: responseTime,
+            user_authenticated: !!(await getJWTUser(req)),
+          });
+          
+          const response: SearchResponse = {
+            results,
+            provider: 'Brave'
+          };
+          
+          flushServerEvents().catch((err) => {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[PostHog] Failed to flush events:', err);
+            }
+          });
+          
+          return NextResponse.json(response, { status: 200 });
+        }
+        case 'google': {
+          const authUser = await getJWTUser(req);
+          if (!authUser) {
+            return NextResponse.json({ error: 'Authentication required for Google image search.' }, { status: 401 });
+          }
+          const results = await getGoogleImages(query, count, country, safesearch, lang);
 
-        const response: SearchResponse = {
-          results,
-          provider: 'Google',
-        };
+          const responseTime = Date.now() - now;
+          trackServerSearch({
+            search_type: 'images',
+            provider: 'google',
+            results_count: results.length,
+            response_time_ms: responseTime,
+            user_authenticated: !!authUser,
+          });
 
-        return NextResponse.json(response, { status: 200 });
+          const response: SearchResponse = {
+            results,
+            provider: 'Google',
+          };
+
+          flushServerEvents().catch((err) => {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[PostHog] Failed to flush events:', err);
+            }
+          });
+
+          return NextResponse.json(response, { status: 200 });
+        }
+      default:
+        return NextResponse.json({ error: 'Invalid or unsupported provider. Supported providers are "brave", "google", and "duck".' }, { status: 400 });
+    }
+  } catch (error: any) {
+    const responseTime = Date.now() - now;
+    
+    trackAPIError({
+      endpoint: '/api/images/[provider]',
+      method: 'GET',
+      status_code: 500,
+      error_type: error.name || 'ImageSearchError',
+      error_message: error.message || 'Unknown image search error',
+      user_authenticated: !!(await getJWTUser(req)),
+    });
+    
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
       }
-    default:
-      return NextResponse.json({ error: 'Invalid or unsupported provider. Supported providers are "brave", "google", and "duck".' }, { status: 400 });
+    });
+
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[ImageSearch] ${provider} error:`, error);
+    }
+    return NextResponse.json({ error: 'Image search failed', details: error.message }, { status: 500 });
   }
 }

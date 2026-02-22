@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/components/auth-provider";
+import { toast } from "sonner";
+import posthog from "posthog-js";
 import {
   ArrowLeft,
   Search,
@@ -23,6 +25,8 @@ import {
   RefreshCw,
   Cloud,
   Info,
+  BarChart3,
+  LogIn
 } from "lucide-react";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
 
@@ -33,9 +37,9 @@ export default function AccountSettingsPage() {
   const tSettings = useTranslations("settings");
   const tAccount = useTranslations("settings.accountPage");
   const tCommon = useTranslations("common");
+  const tAuth = useTranslations("auth");
   const tSubscription = useTranslations("subscription");
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   // Form states
   const [email, setEmail] = useState("");
@@ -94,20 +98,10 @@ export default function AccountSettingsPage() {
     document.title = `${tAccount("metaTitle")} | Tekir`;
   }, [tAccount]);
 
-  // Auto-hide messages after 5 seconds
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => {
-        setMessage(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
-
   // Click outside handler for mobile settings dropdown
   const handleEmailUpdate = async () => {
     if (!email.trim()) {
-      setMessage({ type: "error", text: tAccount("messages.requiredField", { field: fieldLabels.email }) });
+      toast.error(tAccount("messages.requiredField", { field: fieldLabels.email }));
       return;
     }
 
@@ -123,13 +117,13 @@ export default function AccountSettingsPage() {
       if (response.ok) {
         await response.json();
         await refreshUser();
-        setMessage({ type: "success", text: tAccount("messages.updateSuccess", { field: fieldLabels.email }) });
+        toast.success(tAccount("messages.updateSuccess", { field: fieldLabels.email }));
       } else {
         const data = await response.json();
-        setMessage({ type: "error", text: data.error ?? tAccount("messages.updateError", { field: fieldLabels.email }) });
+        toast.error(data.error ?? tAccount("messages.updateError", { field: fieldLabels.email }));
       }
     } catch (error) {
-      setMessage({ type: "error", text: tAccount("messages.updateException", { field: fieldLabels.email }) });
+      toast.error(tAccount("messages.updateException", { field: fieldLabels.email }));
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +131,7 @@ export default function AccountSettingsPage() {
 
   const handleNameUpdate = async () => {
     if (!name.trim()) {
-      setMessage({ type: "error", text: tAccount("messages.requiredField", { field: fieldLabels.name }) });
+      toast.error(tAccount("messages.requiredField", { field: fieldLabels.name }));
       return;
     }
 
@@ -153,13 +147,13 @@ export default function AccountSettingsPage() {
       if (response.ok) {
         await response.json();
         await refreshUser();
-        setMessage({ type: "success", text: tAccount("messages.updateSuccess", { field: fieldLabels.name }) });
+        toast.success(tAccount("messages.updateSuccess", { field: fieldLabels.name }));
       } else {
         const data = await response.json();
-        setMessage({ type: "error", text: data.error ?? tAccount("messages.updateError", { field: fieldLabels.name }) });
+        toast.error(data.error ?? tAccount("messages.updateError", { field: fieldLabels.name }));
       }
     } catch (error) {
-      setMessage({ type: "error", text: tAccount("messages.updateException", { field: fieldLabels.name }) });
+      toast.error(tAccount("messages.updateException", { field: fieldLabels.name }));
     } finally {
       setIsLoading(false);
     }
@@ -167,7 +161,7 @@ export default function AccountSettingsPage() {
 
   const handleUsernameUpdate = async () => {
     if (!username.trim()) {
-      setMessage({ type: "error", text: tAccount("messages.requiredField", { field: fieldLabels.username }) });
+      toast.error(tAccount("messages.requiredField", { field: fieldLabels.username }));
       return;
     }
 
@@ -183,13 +177,13 @@ export default function AccountSettingsPage() {
       if (response.ok) {
         await response.json();
         await refreshUser();
-        setMessage({ type: "success", text: tAccount("messages.updateSuccess", { field: fieldLabels.username }) });
+        toast.success(tAccount("messages.updateSuccess", { field: fieldLabels.username }));
       } else {
         const data = await response.json();
-        setMessage({ type: "error", text: data.error ?? tAccount("messages.updateError", { field: fieldLabels.username }) });
+        toast.error(data.error ?? tAccount("messages.updateError", { field: fieldLabels.username }));
       }
     } catch (error) {
-      setMessage({ type: "error", text: tAccount("messages.updateException", { field: fieldLabels.username }) });
+      toast.error(tAccount("messages.updateException", { field: fieldLabels.username }));
     } finally {
       setIsLoading(false);
     }
@@ -197,17 +191,17 @@ export default function AccountSettingsPage() {
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setMessage({ type: "error", text: tAccount("messages.passwordRequired") });
+      toast.error(tAccount("messages.passwordRequired"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setMessage({ type: "error", text: tAccount("messages.passwordMismatch") });
+      toast.error(tAccount("messages.passwordMismatch"));
       return;
     }
 
     if (newPassword.length < 8) {
-      setMessage({ type: "error", text: tAccount("messages.passwordLength") });
+      toast.error(tAccount("messages.passwordLength"));
       return;
     }
 
@@ -216,24 +210,27 @@ export default function AccountSettingsPage() {
       const response = await fetch('/api/user/password', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          currentPassword, 
-          newPassword 
+        body: JSON.stringify({
+          currentPassword,
+          newPassword
         }),
         credentials: 'include'
       });
 
       if (response.ok) {
+        // Capture password change event in PostHog
+        posthog.capture('password_changed');
+
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
-        setMessage({ type: "success", text: tAccount("messages.passwordSuccess") });
+        toast.success(tAccount("messages.passwordSuccess"));
       } else {
         const data = await response.json();
-        setMessage({ type: "error", text: data.error ?? tAccount("messages.passwordError") });
+        toast.error(data.error ?? tAccount("messages.passwordError"));
       }
     } catch (error) {
-      setMessage({ type: "error", text: tAccount("messages.passwordException") });
+      toast.error(tAccount("messages.passwordException"));
     } finally {
       setIsLoading(false);
     }
@@ -249,21 +246,21 @@ export default function AccountSettingsPage() {
 
       if (response.ok) {
         await response.json();
-        
+
         // Refresh user data from backend to get the latest avatar
         await refreshUser();
-        
+
         // Force avatar refresh with a new key
         const newKey = Date.now();
         setAvatarRefreshKey(newKey);
-        
-        setMessage({ type: 'success', text: tAccount('messages.avatarRegenerateSuccess') });
+
+        toast.success(tAccount('messages.avatarRegenerateSuccess'));
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.error ?? tAccount('messages.avatarRegenerateError') });
+        toast.error(data.error ?? tAccount('messages.avatarRegenerateError'));
       }
     } catch (error) {
-      setMessage({ type: 'error', text: tAccount('messages.avatarRegenerateException') });
+      toast.error(tAccount('messages.avatarRegenerateException'));
     } finally {
       setIsRegeneratingAvatar(false);
     }
@@ -283,15 +280,15 @@ export default function AccountSettingsPage() {
 
       if (response.ok) {
         await response.json();
-        
+
         // Refresh user data from backend to get the latest avatar
         await refreshUser();
-        
+
         setTimeout(() => {
           setAvatarRefreshKey(Date.now());
         }, 100);
-        
-        setMessage({ type: 'success', text: tAccount('messages.avatarUploadSuccess') });
+
+        toast.success(tAccount('messages.avatarUploadSuccess'));
       } else {
         const data = await response.json();
         throw new Error(data.error ?? tAccount('messages.avatarUploadError'));
@@ -299,7 +296,7 @@ export default function AccountSettingsPage() {
     } catch (error) {
       const fallbackMessage = tAccount('messages.avatarUploadException');
       const errorMessage = error instanceof Error && error.message ? error.message : fallbackMessage;
-      setMessage({ type: 'error', text: errorMessage });
+      toast.error(errorMessage);
       throw error;
     } finally {
       setIsUploadingAvatar(false);
@@ -317,12 +314,12 @@ export default function AccountSettingsPage() {
       if (response.ok) {
         // Refresh user data from backend to get the latest avatar state
         await refreshUser();
-        
+
         setTimeout(() => {
           setAvatarRefreshKey(Date.now());
         }, 100);
-        
-        setMessage({ type: 'success', text: tAccount('messages.avatarRemoveSuccess') });
+
+        toast.success(tAccount('messages.avatarRemoveSuccess'));
       } else {
         const data = await response.json();
         throw new Error(data.error ?? tAccount('messages.avatarRemoveError'));
@@ -330,7 +327,7 @@ export default function AccountSettingsPage() {
     } catch (error) {
       const fallbackMessage = tAccount('messages.avatarRemoveException');
       const errorMessage = error instanceof Error && error.message ? error.message : fallbackMessage;
-      setMessage({ type: 'error', text: errorMessage });
+      toast.error(errorMessage);
       throw error;
     } finally {
       setIsUploadingAvatar(false);
@@ -339,7 +336,7 @@ export default function AccountSettingsPage() {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== deleteConfirmPhrase) {
-      setMessage({ type: 'error', text: tAccount('messages.deleteConfirmationMissing', { phrase: deleteConfirmPhrase }) });
+      toast.error(tAccount('messages.deleteConfirmationMissing', { phrase: deleteConfirmPhrase }));
       return;
     }
 
@@ -351,14 +348,18 @@ export default function AccountSettingsPage() {
       });
 
       if (response.ok) {
+        // Capture account deletion event in PostHog before signing out
+        posthog.capture('account_deleted');
+        posthog.reset();
+
         await signOut();
         router.push('/');
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.error ?? tAccount('messages.deleteError') });
+        toast.error(data.error ?? tAccount('messages.deleteError'));
       }
     } catch (error) {
-      setMessage({ type: 'error', text: tAccount('messages.deleteException') });
+      toast.error(tAccount('messages.deleteException'));
     } finally {
       setIsLoading(false);
     }
@@ -366,35 +367,39 @@ export default function AccountSettingsPage() {
 
   const handleSettingsSyncToggle = async () => {
     if (!isInitialized) {
-      setMessage({ type: 'error', text: tAccount('messages.syncLoading') });
+      toast.error(tAccount('messages.syncLoading'));
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const success = await toggleSync(!syncEnabled);
       if (success) {
-        setMessage({ 
-          type: 'success', 
-          text: syncEnabled 
+        // Capture settings sync toggle event in PostHog
+        posthog.capture('settings_sync_toggled', {
+          sync_enabled: !syncEnabled,
+        });
+
+        toast.success(
+          syncEnabled
             ? tAccount('messages.syncDisabled')
             : tAccount('messages.syncEnabled')
-        });
+        );
       } else {
-        setMessage({ type: 'error', text: tAccount('messages.syncError') });
+        toast.error(tAccount('messages.syncError'));
       }
     } catch (error) {
       let errorMessage = tAccount('messages.syncException');
-      
+
       if (error instanceof Error && error.message.includes('User record not found')) {
         errorMessage = tAccount('messages.sessionOutdated');
         setTimeout(() => {
           signOut();
         }, 3000);
       }
-      
-    setMessage({ type: 'error', text: errorMessage });
-    console.error(error);
+
+      toast.error(errorMessage);
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -408,21 +413,34 @@ export default function AccountSettingsPage() {
     );
   }
 
+  const sidebarItems: SettingsNavItem[] = [
+    { href: "/settings/search", icon: Search, label: tSettings("search") },
+    { href: "/settings/account", icon: User, label: tSettings("account"), active: true },
+    { href: "/settings/privacy", icon: Shield, label: tSettings("privacy") },
+    { href: "/settings/analytics", icon: BarChart3, label: tSettings("analytics") },
+    { href: "/settings/about", icon: Info, label: tSettings("about") },
+  ];
+
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">{tAccount("accessDenied.title")}</h1>
-          <p className="text-muted-foreground mb-6">{tAccount("accessDenied.description")}</p>
-          <Link 
-            href="/settings/search" 
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {tAccount("accessDenied.backButton")}
-          </Link>
+      <SettingsShell title={tSettings("title")} currentSectionLabel={tSettings("account")} sidebar={sidebarItems} mobileNavItems={mobileNavItems}>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center max-w-md">
+            <div className="flex justify-center mb-4">
+              <AlertTriangle className="w-12 h-12 text-amber-600" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">{tAccount("accessDenied.title")}</h1>
+            <p className="text-muted-foreground mb-6">{tAccount("accessDenied.description")}</p>
+            <Link 
+              href="/auth/signin" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              {tAuth("signIn")}
+            </Link>
+          </div>
         </div>
-      </div>
+      </SettingsShell>
     );
   }
 
@@ -435,26 +453,8 @@ export default function AccountSettingsPage() {
     updatedAt: user.updatedAt ? new Date(user.updatedAt) : undefined
   });
 
-  const sidebarItems: SettingsNavItem[] = [
-    { href: "/settings/search", icon: Search, label: tSettings("search") },
-    { href: "/settings/account", icon: User, label: tSettings("account"), active: true },
-    { href: "/settings/privacy", icon: Shield, label: tSettings("privacy") },
-    { href: "/settings/about", icon: Info, label: tSettings("about") },
-  ];
-
   return (
   <SettingsShell title={tSettings("title")} currentSectionLabel={tSettings("account")} sidebar={sidebarItems} mobileNavItems={mobileNavItems}>
-            {/* Messages */}
-            {message && (
-              <div className={`mb-6 mx-2 lg:mx-0 p-4 rounded-lg border ${
-                message.type === 'success' 
-                  ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-200' 
-                  : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-200'
-              }`}>
-                {message.text}
-              </div>
-            )}
-
             <div className="space-y-8">
               {/* Page Title and Description */}
               <div>

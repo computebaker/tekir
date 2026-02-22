@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useMemo, useRef, useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ChevronDown, Settings as SettingsIcon, ArrowLeft, type LucideIcon } from "lucide-react";
 import { getRedirectUrlWithFallback, clearRedirectUrlOnNavigation } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
-import UserProfile from "@/components/user-profile";
+
+const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
 
 export type SettingsNavItem = {
   href: string;
@@ -93,8 +95,8 @@ export function SettingsShell({
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
-            <Link 
-              href={getRedirectUrlWithFallback("/")} 
+            <Link
+              href={getRedirectUrlWithFallback("/")}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -135,8 +137,8 @@ export function SettingsShell({
                         item.active
                           ? "flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary border border-primary/20 transition-all duration-200 hover:bg-primary/15"
                           : item.soon
-                          ? "flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground cursor-not-allowed opacity-50 hover:opacity-60 transition-opacity"
-                          : "flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
+                            ? "flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground cursor-not-allowed opacity-50 hover:opacity-60 transition-opacity"
+                            : "flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
                       }
                       aria-disabled={item.soon}
                       onClick={(e) => {
@@ -196,8 +198,8 @@ export function SettingsShell({
                             item.active
                               ? "w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left bg-muted text-foreground cursor-default"
                               : item.soon
-                              ? "w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground cursor-not-allowed opacity-50"
-                              : "w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                ? "w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground cursor-not-allowed opacity-50"
+                                : "w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           }
                           aria-disabled={item.soon}
                           onAuxClick={(e) => {

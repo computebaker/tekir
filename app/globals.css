@@ -178,3 +178,34 @@
     .cluster-enter { animation: none; }
   }
 }
+
+/* Sonner Toast Styles */
+@layer components {
+  [data-sonner-toast] {
+    @apply bg-card border-border text-foreground font-sans;
+  }
+
+  [data-sonner-toast][data-type="success"] {
+    @apply border-green-500/50;
+  }
+
+  [data-sonner-toast][data-type="error"] {
+    @apply border-destructive/50;
+  }
+
+  [data-description] {
+    @apply text-muted-foreground text-sm;
+  }
+
+  [data-button] {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+
+  [data-cancel-button] {
+    @apply bg-muted text-muted-foreground hover:bg-muted/80;
+  }
+
+  [data-close-button] {
+    @apply text-muted-foreground hover:text-foreground;
+  }
+}

@@ -1,5 +1,6 @@
 
 import { useSettings } from "./settings";
+import { trackClientLog } from "@/lib/posthog-analytics";
 
 // Migration is complete - always use Convex settings
 export function useMigratedSettings() {
@@ -14,5 +15,5 @@ export const settingsFeatureFlags = {
 };
 
 export function enableConvexSettings() {
-  console.log('Migration already completed - Convex settings are active');
+  trackClientLog('settings_migration_already_completed');
 }

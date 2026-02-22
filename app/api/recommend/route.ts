@@ -3,6 +3,9 @@ import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import OpenAI from 'openai';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex-client';
+import { WideEvent } from '@/lib/wide-event';
+import { flushServerEvents } from '@/lib/analytics-server';
+import { randomUUID } from 'crypto';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -115,6 +118,13 @@ Today's date is: ${todayLabel}`;
 }
 
 export async function GET(req: NextRequest) {
+  const traceId = randomUUID();
+  const startTime = Date.now();
+  
+  const wideEvent = WideEvent.getOrCreate();
+  wideEvent.setRequest({ method: 'GET', path: '/api/recommend' });
+  wideEvent.setCustom('trace_id', traceId);
+  
   const headers = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
@@ -125,6 +135,10 @@ export async function GET(req: NextRequest) {
   // Rate limit via shared middleware
   const rateLimitResult = await checkRateLimit(req, '/api/recommend');
   if (!rateLimitResult.success) {
+    wideEvent.setError({ type: 'RateLimitError', message: 'Rate limit exceeded', code: 'rate_limited' });
+    wideEvent.setCustom('latency_ms', Date.now() - startTime);
+    wideEvent.finish(429);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
     return rateLimitResult.response!;
   }
 
@@ -136,31 +150,61 @@ export async function GET(req: NextRequest) {
     // Return cached for today if exists
     const existing = await convex.query(api.recommendations.getByDate, { date: dateKey });
     if (existing?.items?.length === 8) {
+      wideEvent.setCustom('cache_hit', true);
+      wideEvent.setCustom('date_key', dateKey);
+      wideEvent.setCustom('items_count', existing.items.length);
+      wideEvent.setCustom('latency_ms', Date.now() - startTime);
+      wideEvent.finish(200);
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json({ results: existing.items, date: existing.date, dateLabel: existing.dateLabel }, { headers: { ...headers } });
     }
 
     // Generate fresh
+    wideEvent.setCustom('cache_hit', false);
+    wideEvent.setCustom('date_key', dateKey);
+    const aiStart = Date.now();
     const items = await generateRecommendations(dateLabel);
+    const aiLatency = Date.now() - aiStart;
+    
+    wideEvent.setAI({
+      model: 'openai/gpt-5-nano'
+    });
+    wideEvent.setCustom('ai_latency_ms', aiLatency);
+    wideEvent.setCustom('items_count', items.length);
 
     await convex.mutation(api.recommendations.upsertForDate, {
       date: dateKey,
       dateLabel,
       items,
     });
+    
+    wideEvent.setCustom('latency_ms', Date.now() - startTime);
+    wideEvent.finish(200);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
 
     return NextResponse.json({ results: items, date: dateKey, dateLabel }, { headers: { ...headers } });
   } catch (error: any) {
+    const duration = Date.now() - startTime;
     console.error('Error in /api/recommend:', error);
+    wideEvent.setError({ type: error instanceof Error ? error.name : 'UnknownError', message: error instanceof Error ? error.message : 'Failed to generate recommendations', code: 'recommend_error' });
 
     try {
       const latest = await convex.query(api.recommendations.getLatest, {});
       if (latest?.items?.length) {
+        wideEvent.setCustom('fallback_used', true);
+        wideEvent.setCustom('latency_ms', duration);
+        wideEvent.finish(206);
+        flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
         return NextResponse.json(
           { results: latest.items, date: latest.date, dateLabel: latest.dateLabel, stale: true },
           { status: 206, headers: { ...headers } }
         );
       }
     } catch {}
+    
+    wideEvent.setCustom('latency_ms', duration);
+    wideEvent.finish(500);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
 
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500, headers: { ...headers } });
   }

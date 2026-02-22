@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@/components/auth-provider";
+import { trackJSError } from "@/lib/posthog-analytics";
 
 // Define the settings structure
 export interface UserSettings {
@@ -53,6 +54,10 @@ export interface UserSettings {
 
   // Logo preference
   selectedLogo?: 'tekir' | 'duman' | 'pamuk';
+
+  // Analytics preferences (privacy-first - opt-in only)
+  analyticsEnabled?: boolean;
+  sessionReplayEnabled?: boolean;
 }
 
 // Default settings values
@@ -79,24 +84,75 @@ export const DEFAULT_SETTINGS: UserSettings = {
   karakulakEnabled_grok: true,
   language: "en", // Default language: English
   selectedLogo: "tekir", // Default logo: Tekir
+  analyticsEnabled: true,
+  sessionReplayEnabled: true,
 };
+
+export const SETTINGS_EXPORT_KEYS = [
+  "searchEngine",
+  "searchCountry",
+  "safesearch",
+  "autocompleteSource",
+  "showRecommendations",
+  "aiModel",
+  "karakulakEnabled",
+  "clim8Enabled",
+  "weatherUnits",
+  "customWeatherLocation",
+  "weatherPlacement",
+  "theme",
+  "searchType",
+  "enchantedResults",
+  "wikipediaEnabled",
+  "karakulakEnabled_llama",
+  "karakulakEnabled_gemini",
+  "karakulakEnabled_chatgpt",
+  "karakulakEnabled_mistral",
+  "karakulakEnabled_grok",
+  "selectedLogo",
+] as const;
 
 class ConvexSettingsManager {
   private settings: UserSettings = { ...DEFAULT_SETTINGS };
   private listeners: Set<() => void> = new Set();
   private userId: string | null = null;
   private hasLoadedLocalStorage = false;
+  // Track which settings were recently updated locally and when
+  private localUpdateTimestamps: Map<keyof UserSettings, number> = new Map();
+  private lastServerTimestamp = 0;
 
   initialize(userId?: string | null) {
+    // Only clear timestamps if switching between two different authenticated users
+    // Don't clear if:
+    // - User is logging in (was null/undefined, now has userId) - it's the same user!
+    // - User is logging out (had userId, now null/undefined)
+    // - User is the same (both have same userId)
+    const isDifferentAuthenticatedUser = 
+      this.userId && // Had a userId before
+      userId && // Has a userId now
+      this.userId !== userId; // But they're different users
+    
     this.userId = userId || null;
     this.hasLoadedLocalStorage = false;
+    
+    if (isDifferentAuthenticatedUser) {
+      this.localUpdateTimestamps.clear();
+    } else if (userId && this.userId === userId) {
+      // Same user, just maintaining initialization
+    }
+    
+    this.lastServerTimestamp = 0;
     this.loadFromLocalStorage();
-    console.log('ConvexSettingsManager initialized for userId:', this.userId);
   }
 
   private loadFromLocalStorage() {
     if (typeof window === 'undefined' || this.hasLoadedLocalStorage) return;
-    
+
+    // Treat localStorage values as "recently updated" so they beat old server data
+    // This handles the case where user changed settings while logged out,
+    // then logged in - we should trust the local changes.
+    const bootTimestamp = Date.now();
+
     // Load all settings from localStorage as fallback
     Object.keys(DEFAULT_SETTINGS).forEach(key => {
       const stored = localStorage.getItem(key);
@@ -110,6 +166,11 @@ class ConvexSettingsManager {
           } else {
             (this.settings as any)[key] = stored;
           }
+          
+          // Mark this setting as having been "updated" at boot time
+          // This prevents server values from overriding localStorage values
+          // that might have been set in a previous session
+          this.localUpdateTimestamps.set(key as keyof UserSettings, bootTimestamp);
         } catch (error) {
           console.error(`Failed to parse setting ${key}:`, error);
         }
@@ -120,7 +181,7 @@ class ConvexSettingsManager {
 
   private saveToLocalStorage() {
     if (typeof window === 'undefined') return;
-    
+
     Object.entries(this.settings).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (typeof value === 'object') {
@@ -164,12 +225,29 @@ class ConvexSettingsManager {
   // Update settings from Convex subscription
   updateFromConvex(convexSettings: any) {
     if (convexSettings?.settings) {
-      this.settings = { ...DEFAULT_SETTINGS, ...convexSettings.settings };
-  // When applying server settings, don't overwrite explicit local values
-  // that the user may have set in the browser. Only seed missing keys.
-  this.saveConvexToLocalStorageWithoutOverwriting();
+      const serverTimestamp = convexSettings.updatedAt || Date.now();
+      
+      // Merge server settings but don't overwrite keys that were updated locally AFTER the server data
+      const newSettings = { ...DEFAULT_SETTINGS, ...convexSettings.settings };
+      
+      // Only apply server values for keys that haven't been updated locally more recently than the server data
+      Object.entries(newSettings).forEach(([key, serverValue]) => {
+        const localUpdateTime = this.localUpdateTimestamps.get(key as keyof UserSettings);
+        
+        // If we updated this setting locally AFTER the server timestamp, keep the local value
+        // Otherwise, use the server value
+        if (!localUpdateTime || localUpdateTime <= serverTimestamp) {
+          (this.settings as any)[key as keyof UserSettings] = serverValue;
+        }
+      });
+      
+      // Update the server timestamp for next comparison
+      this.lastServerTimestamp = serverTimestamp;
+      
+      // When applying server settings, don't overwrite explicit local values
+      // that the user may have set in the browser. Only seed missing keys.
+      this.saveConvexToLocalStorageWithoutOverwriting();
       this.notifyListeners();
-      console.log('Settings updated from Convex subscription');
     }
   }
 
@@ -178,8 +256,11 @@ class ConvexSettingsManager {
     // Immediately update in memory and localStorage
     this.settings[key] = value;
     this.saveToLocalStorage();
+    // Record when this setting was updated locally
+    // This timestamp is compared against the server's updatedAt to determine if local or server value wins
+    this.localUpdateTimestamps.set(key, Date.now());
+    
     this.notifyListeners();
-    console.log(`Setting updated locally: ${String(key)} = ${value}`);
   }
 
   private notifyListeners() {
@@ -221,17 +302,35 @@ export const convexSettingsManager = new ConvexSettingsManager();
 
 // React hook for using settings with Convex real-time sync
 export function useConvexSettings() {
-  const { user, status } = useAuth();
+  const { user, status, authToken } = useAuth();
   const [settings, setSettings] = useState<UserSettings>(() => convexSettingsManager.getAll());
   const [isInitialized, setIsInitialized] = useState(false);
+  const [convexAuthReady, setConvexAuthReady] = useState(false);
   const initializationRef = useRef(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Wait a tick after user is authenticated to ensure Convex auth is set
+  useEffect(() => {
+    if (status === 'authenticated' && user?.id && authToken) {
+      // Delay to ensure convex.setAuth has completed
+      // Increased from 100ms to 300ms for more reliable Convex auth readiness
+      const timer = setTimeout(() => {
+        setConvexAuthReady(true);
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      setConvexAuthReady(false);
+    }
+  }, [status, user?.id, authToken]);
 
   // Convex hooks for real-time data
   const userSettings = useQuery(
     api.settings.getUserSettings,
-    user?.id ? { userId: user.id as Id<"users"> } : "skip"
+    convexAuthReady && user?.id && authToken
+      ? { userId: user.id as Id<"users">, authToken }
+      : "skip"
   );
-  
+
   const updateSettingsMutation = useMutation(api.settings.updateUserSettings);
   const toggleSyncMutation = useMutation(api.settings.toggleSettingsSync);
 
@@ -253,7 +352,6 @@ export function useConvexSettings() {
   // Subscribe to real-time settings updates from Convex
   useEffect(() => {
     if (userSettings) {
-      console.log('Received settings from Convex:', userSettings);
       convexSettingsManager.updateFromConvex(userSettings);
       // Now that server settings have been applied, the settings manager is fully initialized.
       setIsInitialized(true);
@@ -274,42 +372,75 @@ export function useConvexSettings() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+      }
+    };
+  }, []);
+
   const updateSetting = useCallback(async <K extends keyof UserSettings>(
     key: K,
     value: UserSettings[K]
   ) => {
     // Update locally first for immediate UI feedback
     convexSettingsManager.updateSetting(key, value);
-    
+
     // Sync to Convex if user is logged in and sync is enabled
     if (user?.id && userSettings?.settingsSync) {
-      try {
-        const newSettings = { ...convexSettingsManager.getAll() };
-        await updateSettingsMutation({
-          userId: user.id as Id<"users">,
-          settings: newSettings
+      if (!authToken) {
+        trackJSError({
+          error_type: "SettingsSyncError",
+          error_message: "Missing auth token while syncing settings",
+          component: "useConvexSettings.updateSetting",
+          url: typeof window !== 'undefined' ? window.location.href : undefined,
+          user_action: "sync_settings",
         });
-        console.log('Settings synced to Convex successfully');
+        return;
+      }
+      try {
+        if (syncTimerRef.current) {
+          clearTimeout(syncTimerRef.current);
+        }
+        syncTimerRef.current = setTimeout(async () => {
+          const newSettings = { ...convexSettingsManager.getAll() };
+          await updateSettingsMutation({
+            userId: user.id as Id<"users">,
+            authToken,
+            settings: newSettings
+          });
+        }, 400);
       } catch (error) {
-        console.error('Failed to sync settings to Convex:', error);
+        trackJSError({
+          error_type: "SettingsSyncError",
+          error_message: error instanceof Error ? error.message : "Failed to sync settings to Convex",
+          component: "useConvexSettings.updateSetting",
+          url: typeof window !== 'undefined' ? window.location.href : undefined,
+          user_action: "sync_settings",
+        });
         // Settings are still updated locally, user can try again
       }
     }
-  }, [user?.id, userSettings?.settingsSync, updateSettingsMutation]);
+  }, [user?.id, userSettings?.settingsSync, authToken, updateSettingsMutation]);
 
   const toggleSync = useCallback(async (enabled: boolean) => {
     if (!user?.id) {
       throw new Error('User must be logged in to toggle settings sync');
     }
 
+    if (!authToken) {
+      throw new Error('Missing auth token while toggling settings sync');
+    }
+
     try {
       const result = await toggleSyncMutation({
         userId: user.id as Id<"users">,
+        authToken,
         enabled
       });
-      
-      console.log('Settings sync toggled:', result);
-      
+
+
       if (enabled) {
         const hasServerSettings = !!(result && result.settings && Object.keys(result.settings).length > 0);
         if (hasServerSettings) {
@@ -321,21 +452,33 @@ export function useConvexSettings() {
           try {
             await updateSettingsMutation({
               userId: user.id as Id<"users">,
+              authToken,
               settings: localSettings
             });
-            console.log('Seeded server settings from local after enabling sync');
           } catch (seedErr) {
-            console.error('Failed to seed server settings after enabling sync:', seedErr);
+            trackJSError({
+              error_type: "SettingsSeedError",
+              error_message: seedErr instanceof Error ? seedErr.message : "Failed to seed server settings",
+              component: "useConvexSettings.toggleSync",
+              url: typeof window !== 'undefined' ? window.location.href : undefined,
+              user_action: "seed_settings",
+            });
           }
         }
       }
-      
+
       return true;
     } catch (error) {
-      console.error('Failed to toggle settings sync:', error);
+      trackJSError({
+        error_type: "SettingsSyncToggleError",
+        error_message: error instanceof Error ? error.message : "Failed to toggle settings sync",
+        component: "useConvexSettings.toggleSync",
+        url: typeof window !== 'undefined' ? window.location.href : undefined,
+        user_action: "toggle_settings_sync",
+      });
       return false;
     }
-  }, [user?.id, toggleSyncMutation, updateSettingsMutation]);
+  }, [user?.id, authToken, toggleSyncMutation, updateSettingsMutation]);
 
   return {
     settings,

@@ -13,7 +13,8 @@ export default defineSchema({
   })
     .index("by_day", ["day"]) // range queries
     .index("by_day_provider", ["day", "provider"]) // day + provider breakdown
-    .index("by_day_type", ["day", "type"]), // day + type breakdown
+    .index("by_day_type", ["day", "type"]) // day + type breakdown
+    .index("by_day_provider_and_type", ["day", "provider", "type"]),
 
   // Daily token frequency from search queries (no raw queries stored)
   searchTokenDaily: defineTable({
@@ -127,6 +128,17 @@ export default defineSchema({
     comment: v.optional(v.string()),
     createdAt: v.number(),
   })
-    .index("by_userId", ["userId"]) 
+    .index("by_userId", ["userId"])
     .index("by_createdAt", ["createdAt"]),
+
+  // Rate limiting for API endpoints
+  rateLimits: defineTable({
+    key: v.string(), // Format: "prefix:identifier" (e.g., "signin:session:abc123")
+    count: v.number(),
+    windowStart: v.number(), // Unix timestamp when current window started
+    resetAt: v.number(), // Unix timestamp when the rate limit resets
+    lastUpdated: v.number(), // Unix timestamp of last update
+  })
+    .index("by_key", ["key"])
+    .index("by_windowStart", ["windowStart"]),
 });

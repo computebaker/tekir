@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleAPIError } from '@/lib/api-error-tracking';
 
 export async function GET(
   req: NextRequest,
@@ -8,13 +9,25 @@ export async function GET(
 
   // Validate hostname to prevent abuse
   if (!hostname || hostname.length > 253) {
-    return NextResponse.json({ error: 'Invalid hostname' }, { status: 400 });
+    return handleAPIError(
+      new Error('Invalid hostname'),
+      req,
+      '/api/favicon/[hostname]',
+      'GET',
+      400
+    );
   }
 
   // Basic hostname validation (allow alphanumeric, dots, hyphens)
   const hostnameRegex = /^[a-zA-Z0-9.-]+$/;
   if (!hostnameRegex.test(hostname)) {
-    return NextResponse.json({ error: 'Invalid hostname format' }, { status: 400 });
+    return handleAPIError(
+      new Error('Invalid hostname format'),
+      req,
+      '/api/favicon/[hostname]',
+      'GET',
+      400
+    );
   }
 
   try {
@@ -49,6 +62,6 @@ export async function GET(
 
   } catch (error) {
     console.error('Favicon proxy error:', error);
-    return NextResponse.json({ error: 'Failed to fetch favicon' }, { status: 500 });
+    return handleAPIError(error, req, '/api/favicon/[hostname]', 'GET', 500);
   }
 }

@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircleMore, Check, X } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
+import { showToast } from '@/lib/toast';
+import posthog from 'posthog-js';
 
 interface Props {
   query?: string;
@@ -47,18 +49,27 @@ export default function FloatingFeedback({ query, results, wikiData, suggestions
         body: JSON.stringify(payload()),
       });
       if (res.ok) {
+        // Capture feedback event in PostHog
+        posthog.capture('feedback_submitted', {
+          liked: liked,
+          has_comment: comment.length > 0,
+          search_engine: searchEngine,
+          search_type: searchType,
+        });
+
         setSent(true);
         setTimeout(() => {
           setOpen(false);
           setTimeout(() => { setSent(false); setLiked(null); setComment(''); }, 260);
         }, 1400); // match success-fade duration (1400ms)
       } else {
-        console.error('Feedback failed', await res.text());
-        alert('Failed to send feedback.');
+        const errorText = await res.text();
+        console.error('Feedback failed', errorText);
+        showToast.error('Failed to send feedback', 'Please try again later');
       }
     } catch (err) {
       console.error('Feedback error', err);
-      alert('Failed to send feedback.');
+      showToast.error('Failed to send feedback', 'Please check your connection');
     } finally {
       setSubmitting(false);
     }
@@ -100,28 +111,37 @@ export default function FloatingFeedback({ query, results, wikiData, suggestions
           ) : (
             <div className="w-80 p-4 rounded-xl shadow-lg bg-card border border-border text-sm text-foreground">
               <div className="mb-2 font-semibold">Was this search helpful?</div>
-              <div className="flex gap-2 mb-2">
+              <div className="flex gap-2 mb-2" role="group" aria-label="Feedback rating">
                 <button
+                  type="button"
                   onClick={() => setLiked(true)}
+                  aria-pressed={liked === true}
                   className={`flex-1 px-3 py-2 rounded-md transition-colors duration-150 ${liked === true ? 'bg-green-600 text-white' : 'bg-background border border-border text-foreground'}`}
                 >
-                  <Check className="w-4 h-4 inline mr-2" />
+                  <Check className="w-4 h-4 inline mr-2" aria-hidden="true" />
                   Yes
                 </button>
                 <button
+                  type="button"
                   onClick={() => setLiked(false)}
+                  aria-pressed={liked === false}
                   className={`flex-1 px-3 py-2 rounded-md transition-colors duration-150 ${liked === false ? 'bg-red-600 text-white' : 'bg-background border border-border text-foreground'}`}
                 >
-                  <X className="w-4 h-4 inline mr-2" />
+                  <X className="w-4 h-4 inline mr-2" aria-hidden="true" />
                   No
                 </button>
               </div>
               <div className="mb-3">
+                <label htmlFor="feedback-comment" className="sr-only">
+                  Additional comments
+                </label>
                 <textarea
+                  id="feedback-comment"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Add more information..."
-                  className="w-full min-h-[72px] p-2 rounded-md border border-border bg-background text-sm resize-none focus:outline-none text-foreground"
+                  aria-label="Additional feedback comments"
+                  className="w-full min-h-[72px] p-2 rounded-md border border-border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                 />
               </div>
 
@@ -145,11 +165,14 @@ export default function FloatingFeedback({ query, results, wikiData, suggestions
         <div className="rounded-full p-0.5 bg-black shadow-[0_6px_18px_rgba(0,0,0,0.25)]">
           <div className="rounded-full p-[2px] bg-white">
             <button
+              type="button"
               onClick={() => setOpen(v => !v)}
-              title="Send feedback"
+              aria-label="Send feedback"
+              aria-expanded={open}
+              aria-haspopup="dialog"
               className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black text-white shadow-xl"
             >
-              <MessageCircleMore className="w-4 h-4" />
+              <MessageCircleMore className="w-4 h-4" aria-hidden="true" />
               <span className="hidden sm:inline">Feedback</span>
             </button>
           </div>

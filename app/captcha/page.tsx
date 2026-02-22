@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { verify } from 'crypto';
+import posthog from 'posthog-js';
 
 // Type definition for the Ribaunt widget element
 interface RibauntWidgetElement extends HTMLElement {
@@ -47,6 +48,11 @@ export default function CaptchaPage() {
     
     console.log('Return URL set to:', url);
     setReturnUrl(url);
+
+    posthog.capture('captcha_viewed', {
+      return_url: url,
+      path: window.location.pathname,
+    });
   }, []);
 
   // Theme detection
@@ -96,6 +102,10 @@ export default function CaptchaPage() {
       console.log('Widget element mounted:', element);
       widgetRef.current = element as RibauntWidgetElement;
       setWidgetLoaded(true);
+
+      posthog.capture('captcha_widget_mounted', {
+        return_url: returnUrl,
+      });
     }
   }, []);
 
@@ -111,10 +121,18 @@ export default function CaptchaPage() {
     const verifyHandler = async (e: Event) => {
       console.log('Verify event received:', e);
       setHeading('Continuing to your destination...');
-      
+
+      // Capture captcha verified event in PostHog
+      posthog.capture('captcha_verified', {
+        return_url: returnUrl,
+      });
+
       console.log('Redirecting to:', returnUrl);
-      
+
       setTimeout(() => {
+        posthog.capture('captcha_redirected', {
+          return_url: returnUrl,
+        });
         window.location.href = returnUrl;
       }, 300);
     };
@@ -122,19 +140,30 @@ export default function CaptchaPage() {
     // Listen for errors
     const errorHandler = (e: Event) => {
       console.error('Widget error:', e);
-      const customEvent = e as CustomEvent;
+      posthog.capture('captcha_error', {
+        source: 'widget',
+        return_url: returnUrl,
+        message: (e as CustomEvent)?.detail?.message ?? 'widget_error',
+      });
     };
 
     // Listen for state changes
     const stateChangeHandler = (e: Event) => {
       const customEvent = e as CustomEvent;
       console.log('Widget state changed to:', customEvent.detail?.state);
+
+      posthog.capture('captcha_state_change', {
+        state: customEvent.detail?.state ?? 'unknown',
+        return_url: returnUrl,
+      });
       
-      if (customEvent.detail?.state === 'verifying') {
-      } else if (customEvent.detail?.state === 'verified') {
+      if (customEvent.detail?.state === 'verified') {
         setHeading('Continuing to your destination...');
         
         setTimeout(() => {
+          posthog.capture('captcha_redirected', {
+            return_url: returnUrl,
+          });
           window.location.href = returnUrl;
         }, 300);
       } else if (customEvent.detail?.state === 'initial') {
@@ -159,9 +188,18 @@ export default function CaptchaPage() {
       .then(() => {
         console.log('Widget script loaded successfully');
         setIsLoading(false);
+
+        posthog.capture('captcha_widget_loaded', {
+          return_url: returnUrl,
+        });
       })
       .catch((err) => {
         console.error('Failed to load CAPTCHA widget:', err);
+        posthog.capture('captcha_error', {
+          source: 'widget_load',
+          message: err instanceof Error ? err.message : 'Unknown error',
+          return_url: returnUrl,
+        });
         setHeading('Failed to load verification widget. Please refresh the page.');
         setIsLoading(false);
       });
@@ -270,12 +308,15 @@ export default function CaptchaPage() {
 
       <div className="container">
         <div className="title-container">
-          <img
+          <Image
             src="/favicon.ico"
             alt="Site logo"
             className="site-logo"
+            width={30}
+            height={30}
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              // Hide the image on error to preserve original behavior
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
             }}
           />
           <h1>{hostname}</h1>

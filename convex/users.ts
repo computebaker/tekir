@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { requireAdmin, requireAdminWithToken, requireCronSecret, requireUser } from "./auth";
 
 // Queries
 export const getUserByEmail = query({
@@ -51,8 +52,10 @@ export const getUserByPolarCustomerId = query({
 
 // Admin: list users (recent first)
 export const listUsers = query({
-  args: { limit: v.optional(v.number()) },
+  args: { authToken: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
+
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
     const items = await ctx.db
       .query("users")
@@ -64,10 +67,25 @@ export const listUsers = query({
 
 // Admin: count users
 export const countUsers = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    authToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdminWithToken(args.authToken);
     const all = await ctx.db.query("users").collect();
     return all.length;
+  },
+});
+
+// Internal: list users with 'paid' role (for subscription validation cron)
+export const listPaidUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all users and filter for those with 'paid' role
+    const users = await ctx.db.query("users").collect();
+    return users.filter(user => 
+      user.roles && user.roles.some((role: string) => role.toLowerCase() === 'paid')
+    );
   },
 });
 
@@ -84,6 +102,11 @@ export const createUser = mutation({
     emailVerificationToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Enforce password hashing
+    if (!args.password.startsWith("$2")) {
+      throw new Error("Password must be hashed before storage");
+    }
+
     const now = Date.now();
     return await ctx.db.insert("users", {
       ...args,
@@ -100,7 +123,7 @@ export const updateUser = mutation({
     name: v.optional(v.string()),
     username: v.optional(v.string()),
     email: v.optional(v.string()),
-    emailVerified: v.optional(v.number()),
+    emailVerified: v.optional(v.float64()),
     emailVerificationToken: v.optional(v.string()),
     password: v.optional(v.string()),
     image: v.optional(v.string()),
@@ -111,11 +134,21 @@ export const updateUser = mutation({
     polarCustomerId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Authentication is handled by API routes via getJWTUser() before calling this mutation.
+    // This mutation trusts that the caller has already verified the user's identity.
+    // For admin operations, use updateUserRoles which has its own auth checks.
+
     const { id, ...updateData } = args;
+
+    // Enforce password hashing if password is being updated
+    if (updateData.password && !updateData.password.startsWith("$2")) {
+      throw new Error("Password must be hashed before storage");
+    }
+
     const updates = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
     );
-    
+
     return await ctx.db.patch(id, {
       ...updates,
       updatedAt: Date.now(),
@@ -127,8 +160,17 @@ export const updateUserRoles = mutation({
   args: {
     id: v.id("users"),
     roles: v.array(v.string()),
+    // Optional: allow internal server/cron callers to authenticate via shared secret.
+    // Browser/admin UI should continue using authToken-based auth.
+    cronSecret: v.optional(v.string()),
+    authToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (args.authToken) {
+      await requireAdminWithToken(args.authToken);
+    } else {
+      requireCronSecret(args.cronSecret);
+    }
     return await ctx.db.patch(args.id, {
       roles: args.roles,
       updatedAt: Date.now(),
@@ -137,15 +179,18 @@ export const updateUserRoles = mutation({
 });
 
 export const deleteUser = mutation({
-  args: { id: v.id("users") },
+  args: { authToken: v.string(), id: v.id("users") },
   handler: async (ctx, args) => {
+    // Only admin can delete users for now
+    await requireAdminWithToken(args.authToken);
+
     // Delete related data first
 
     const sessionTracking = await ctx.db
       .query("sessionTracking")
       .withIndex("by_userId", (q) => q.eq("userId", args.id))
       .collect();
-    
+
     for (const tracking of sessionTracking) {
       await ctx.db.delete(tracking._id);
     }
@@ -164,7 +209,7 @@ export const verifyEmail = mutation({
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
-    
+
     if (!user) {
       throw new Error("User not found");
     }

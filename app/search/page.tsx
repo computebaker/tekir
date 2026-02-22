@@ -1,14 +1,13 @@
 "use client";
 
-import { Suspense } from 'react'; 
+import { Suspense } from 'react';
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Cat, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Settings, Newspaper, Video, AlertTriangle, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSettings } from "@/lib/settings";
-import UserProfile from "@/components/user-profile";
-import Footer from "@/components/footer";
 import { handleBangRedirect } from "@/utils/bangs";
 import { fetchWithSessionRefreshAndCache, SearchCache } from "@/lib/cache";
 import { apiEndpoints } from "@/lib/migration-config";
@@ -17,10 +16,37 @@ import { Input, SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SearchTabs from "@/components/search/search-tabs";
 import WebResultItem from "@/components/search/web-result-item";
-import FlyingCats from "@/components/shared/flying-cats";
-import WikiNotebook from '@/components/wiki-notebook';
-import FloatingFeedback from '@/components/feedback/floating-feedback';
+import { SearchResultsSkeleton } from "@/components/ui/skeleton";
 import { storeRedirectUrl } from "@/lib/utils";
+import {
+  trackSearchPerformed,
+  trackSearchResultsLoaded,
+  trackSearchResultClicked,
+  trackSearchTabChanged,
+  trackSearchError,
+  trackAIQueryInitiated,
+  trackAIQueryCompleted,
+  trackAIQueryFailed,
+  trackAIResponseViewed,
+  trackAIDiveToggled,
+  trackWikipediaViewed,
+  trackWikipediaExpanded,
+  trackNewsClusterViewed,
+  trackNewsClusterExpanded,
+  trackNewsArticleClicked,
+  trackVideoClusterViewed,
+  trackVideoClusterExpanded,
+  trackVideoClicked,
+  trackPageView,
+  trackClientLog,
+} from "@/lib/posthog-analytics";
+import { trackAsyncError, trackNetworkError } from '@/lib/client-error-tracking';
+
+const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
+const Footer = dynamic(() => import("@/components/footer"), { ssr: false });
+const FlyingCats = dynamic(() => import("@/components/shared/flying-cats"), { ssr: false });
+const WikiNotebook = dynamic(() => import("@/components/wiki-notebook"), { ssr: false });
+const FloatingFeedback = dynamic(() => import("@/components/feedback/floating-feedback"), { ssr: false });
 import { useTranslations } from "next-intl";
 import { getLogoMetadata } from "@/components/settings/logo-selector";
 
@@ -94,10 +120,10 @@ function SearchPageContent() {
   // Helper function to check if a response should hide Karakulak
   const shouldHideKarakulak = (response: string | null): boolean => {
     if (!response) return true;
-    
+
     const trimmedResponse = response.trim();
     if (trimmedResponse === '') return true;
-    
+
     // Common phrases that indicate the AI can't help in various languages
     const cantHelpPhrases = [
       "Sorry, I can't help you with that",
@@ -121,8 +147,8 @@ function SearchPageContent() {
       "抱歉，我无法帮助您", // Chinese
       "Мне жаль, но я не могу помочь", // Russian
     ];
-    
-    return cantHelpPhrases.some(phrase => 
+
+    return cantHelpPhrases.some(phrase =>
       trimmedResponse.toLowerCase().includes(phrase.toLowerCase())
     );
   };
@@ -195,7 +221,7 @@ function SearchPageContent() {
   const [newsLoading, setNewsLoading] = useState(false);
   const [aiDiveEnabled, setAiDiveEnabled] = useState(false);
   const [diveResponse, setDiveResponse] = useState<string | null>(null);
-  const [diveSources, setDiveSources] = useState<Array<{url: string, title: string, description?: string}>>([]);
+  const [diveSources, setDiveSources] = useState<Array<{ url: string, title: string, description?: string }>>([]);
   const [diveLoading, setDiveLoading] = useState(false);
   const [aiError, setAiError] = useState(false);
   const [diveError, setDiveError] = useState(false);
@@ -240,17 +266,17 @@ function SearchPageContent() {
     setLoading(true);
     setResults([]);
     setWikiData(null);
-  setDiveResponse(null);
-  setDiveSources([]);
-  setAiResponse(null);
-  // Loading flags will be set by a dedicated effect reacting to AI/Dive mode
-  // Clear previous errors on new query
-  setAiError(false);
-  setDiveError(false);
+    setDiveResponse(null);
+    setDiveSources([]);
+    setAiResponse(null);
+    // Loading flags will be set by a dedicated effect reacting to AI/Dive mode
+    // Clear previous errors on new query
+    setAiError(false);
+    setDiveError(false);
     aiRequestInProgressRef.current = null;
-    
+
     const searchId = ++searchIdRef.current;
-    
+
     // Always fetch regular search results for display, regardless of Dive mode
     const storedEngine = localStorage.getItem("searchEngine") || "brave";
     const engineToUse = getEngineForMode(storedEngine, 'web');
@@ -262,19 +288,35 @@ function SearchPageContent() {
     }
 
     const fetchRegularSearch = async () => {
-      // Abort any previous in-flight request
-  if (webSearchAbortRef.current) {
-        try { webSearchAbortRef.current.abort(); } catch {}
+      // Wait for session initialization to avoid 401 on first load
+      if (typeof window !== 'undefined' && !(window as any).__sessionRegistered) {
+        await new Promise(resolve => {
+          const handler = () => {
+            window.removeEventListener('session-registered', handler);
+            resolve(true);
+          };
+          window.addEventListener('session-registered', handler);
+          // Timeout fallback
+          setTimeout(() => {
+            window.removeEventListener('session-registered', handler);
+            resolve(true);
+          }, 2000);
+        });
       }
-  webSearchAbortRef.current = new AbortController();
-  const webSignal = webSearchAbortRef.current.signal;
+
+      // Abort any previous in-flight request
+      if (webSearchAbortRef.current) {
+        try { webSearchAbortRef.current.abort(); } catch { }
+      }
+      webSearchAbortRef.current = new AbortController();
+      const webSignal = webSearchAbortRef.current.signal;
       const doFetch = async (engine: string) => {
         try {
           // Get user preferences from localStorage
           const storedCountry = localStorage.getItem("searchCountry") || "ALL";
           const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
-          const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
-          
+          const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
+
           // Build query parameters
           const searchParams = new URLSearchParams({
             q: currentQuery,
@@ -282,9 +324,9 @@ function SearchPageContent() {
             safesearch: storedSafesearch,
             ...(storedLang ? { lang: storedLang } : {})
           });
-          
+
           const apiUrl = `${apiEndpoints.search.pars(engine)}?${searchParams}`;
-          
+
           const response = await fetchWithSessionRefreshAndCache(
             apiUrl,
             { signal: webSignal },
@@ -293,10 +335,10 @@ function SearchPageContent() {
               provider: engine,
               query: currentQuery,
               searchParams: {
-                  country: storedCountry,
-                  safesearch: storedSafesearch,
-                  ...(storedLang ? { lang: storedLang } : {})
-                }
+                country: storedCountry,
+                safesearch: storedSafesearch,
+                ...(storedLang ? { lang: storedLang } : {})
+              }
             }
           );
           if (!response.ok) throw new Error(`Search API request failed for ${engine} with query "${currentQuery}" and status ${response.status}`);
@@ -328,14 +370,26 @@ function SearchPageContent() {
             } else {
               setNewsResults([]);
             }
-            setSearchEngine(engine); 
+            setSearchEngine(engine);
             // Mark that current results correspond to this query
             lastResultsQueryRef.current = currentQuery;
           }
           return true;
         } catch (error) {
-          console.error(error);
+          // Log error with context for debugging (development only)
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`Search failed for engine "${engine}":`, error);
+          }
+          // Track the error with context
+          trackAsyncError(error, {
+            operation: `search_${engine}`,
+            component: 'SearchPage',
+            metadata: { query: currentQuery, searchType }
+          });
           if (isMounted) {
+            // TODO: Consider adding error state to show user-friendly messages
+            // For now, errors are logged but not shown to avoid breaking existing UX
+            // The fallback mechanism will try alternative search engines
           }
           return false;
         }
@@ -355,7 +409,7 @@ function SearchPageContent() {
     return () => {
       isMounted = false;
       if (webSearchAbortRef.current) {
-        try { webSearchAbortRef.current.abort(); } catch {}
+        try { webSearchAbortRef.current.abort(); } catch { }
         webSearchAbortRef.current = null;
       }
     };
@@ -366,11 +420,11 @@ function SearchPageContent() {
     setImageLoading(true);
     // Abort any previous images request
     if (imagesAbortRef.current) {
-      try { imagesAbortRef.current.abort(); } catch {}
+      try { imagesAbortRef.current.abort(); } catch { }
     }
     imagesAbortRef.current = new AbortController();
     const imgSignal = imagesAbortRef.current.signal;
-    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
+    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
     const imageEngine = getEngineForMode(searchEngine, 'images');
     const imagesUrl = `/api/images/${imageEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
@@ -395,12 +449,12 @@ function SearchPageContent() {
             try {
               // Abort previous controller and create a fresh one for retry
               if (imagesAbortRef.current) {
-                try { imagesAbortRef.current.abort(); } catch {}
+                try { imagesAbortRef.current.abort(); } catch { }
               }
               imagesAbortRef.current = new AbortController();
               const retrySignal = imagesAbortRef.current.signal;
               const retryUrl = `${imagesUrl}&_cb=${Date.now()}`;
-              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
+              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -415,7 +469,14 @@ function SearchPageContent() {
               const retryData = await retryRes.json();
               if (retryData.results) setImageResults(retryData.results);
             } catch (err) {
-              console.error('Image retry failed:', err);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Image retry failed:', err);
+              }
+              trackAsyncError(err, {
+                operation: 'images_retry',
+                component: 'SearchPage',
+                metadata: { query }
+              });
             } finally {
               setImageLoading(false);
             }
@@ -427,14 +488,19 @@ function SearchPageContent() {
           imageRetryRef.current = false;
         }
       })
-      .catch((error) => console.error("Image search failed:", error))
+      .catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Image search failed:", error);
+        }
+        trackNetworkError(error, imagesUrl, 'GET');
+      })
       .finally(() => {
         // If a retry is in progress, its own finally will update loading; avoid clobbering
         if (!imageRetryRef.current) setImageLoading(false);
       });
     return () => {
       if (imagesAbortRef.current) {
-        try { imagesAbortRef.current.abort(); } catch {}
+        try { imagesAbortRef.current.abort(); } catch { }
         imagesAbortRef.current = null;
       }
     };
@@ -446,11 +512,11 @@ function SearchPageContent() {
 
     // Abort any previous videos request
     if (videosAbortRef.current) {
-      try { videosAbortRef.current.abort(); } catch {}
+      try { videosAbortRef.current.abort(); } catch { }
     }
     videosAbortRef.current = new AbortController();
     const vidSignal = videosAbortRef.current.signal;
-    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
+    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
     const videoEngine = getEngineForMode(searchEngine, 'videos');
     const videosUrl = `/api/videos/${videoEngine}?q=${encodeURIComponent(query)}${storedLang ? `&lang=${storedLang}` : ''}`;
     fetchWithSessionRefreshAndCache(
@@ -473,12 +539,12 @@ function SearchPageContent() {
             videoRetryRef.current = true;
             try {
               if (videosAbortRef.current) {
-                try { videosAbortRef.current.abort(); } catch {}
+                try { videosAbortRef.current.abort(); } catch { }
               }
               videosAbortRef.current = new AbortController();
               const retrySignal = videosAbortRef.current.signal;
               const retryUrl = `${videosUrl}&_cb=${Date.now()}`;
-              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
+              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -493,7 +559,14 @@ function SearchPageContent() {
               const retryData = await retryRes.json();
               if (retryData.results) setVideoResults(retryData.results);
             } catch (err) {
-              console.error('Video retry failed:', err);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Video retry failed:', err);
+              }
+              trackAsyncError(err, {
+                operation: 'videos_retry',
+                component: 'SearchPage',
+                metadata: { query }
+              });
             } finally {
               setVideoLoading(false);
             }
@@ -504,14 +577,19 @@ function SearchPageContent() {
           videoRetryRef.current = false;
         }
       })
-      .catch((error) => console.error("Video search failed:", error))
+      .catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Video search failed:", error);
+        }
+        trackNetworkError(error, videosUrl, 'GET');
+      })
       .finally(() => {
         if (!videoRetryRef.current) setVideoLoading(false);
       });
 
     return () => {
       if (videosAbortRef.current) {
-        try { videosAbortRef.current.abort(); } catch {}
+        try { videosAbortRef.current.abort(); } catch { }
         videosAbortRef.current = null;
       }
     };
@@ -524,20 +602,20 @@ function SearchPageContent() {
     // Get user preferences from localStorage
     const storedCountry = localStorage.getItem("searchCountry") || "ALL";
     const storedSafesearch = localStorage.getItem("safesearch") || "moderate";
-    
+
     // Build query parameters
     const searchParams = new URLSearchParams({
       q: query,
       country: storedCountry,
       safesearch: storedSafesearch
     });
-    
+
     if (newsAbortRef.current) {
-      try { newsAbortRef.current.abort(); } catch {}
+      try { newsAbortRef.current.abort(); } catch { }
     }
     newsAbortRef.current = new AbortController();
     const newsSignal = newsAbortRef.current.signal;
-    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
+    const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
     const newsEngine = getEngineForMode(searchEngine, 'news');
     const newsUrl = `/api/news/${newsEngine}?${searchParams}`;
     fetchWithSessionRefreshAndCache(
@@ -565,12 +643,12 @@ function SearchPageContent() {
             newsRetryRef.current = true;
             try {
               if (newsAbortRef.current) {
-                try { newsAbortRef.current.abort(); } catch {}
+                try { newsAbortRef.current.abort(); } catch { }
               }
               newsAbortRef.current = new AbortController();
               const retrySignal = newsAbortRef.current.signal;
               const retryUrl = `${newsUrl}&_cb=${Date.now()}`;
-              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0,2) || '';
+              const storedLang = localStorage.getItem('language') || navigator.language?.slice(0, 2) || '';
               const retryRes = await fetchWithSessionRefreshAndCache(
                 retryUrl,
                 { signal: retrySignal },
@@ -585,7 +663,14 @@ function SearchPageContent() {
               const retryData = await retryRes.json();
               if (retryData.results) setNewsResults(retryData.results);
             } catch (err) {
-              console.error('News retry failed:', err);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('News retry failed:', err);
+              }
+              trackAsyncError(err, {
+                operation: 'news_retry',
+                component: 'SearchPage',
+                metadata: { query }
+              });
             } finally {
               setNewsLoading(false);
             }
@@ -596,13 +681,18 @@ function SearchPageContent() {
           newsRetryRef.current = false;
         }
       })
-      .catch((error) => console.error("News search failed:", error))
+      .catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error("News search failed:", error);
+        }
+        trackNetworkError(error, newsUrl, 'GET');
+      })
       .finally(() => {
         if (!newsRetryRef.current) setNewsLoading(false);
       });
     return () => {
       if (newsAbortRef.current) {
-        try { newsAbortRef.current.abort(); } catch {}
+        try { newsAbortRef.current.abort(); } catch { }
         newsAbortRef.current = null;
       }
     };
@@ -620,7 +710,7 @@ function SearchPageContent() {
     if (imageResults.length === 0 && !imageLoading) {
       setImageLoading(true);
       if (imagesAbortRef.current) {
-        try { imagesAbortRef.current.abort(); } catch {}
+        try { imagesAbortRef.current.abort(); } catch { }
       }
       imagesAbortRef.current = new AbortController();
       const imgSignal = imagesAbortRef.current.signal;
@@ -643,11 +733,20 @@ function SearchPageContent() {
             setImageResults(data.results);
           }
         })
-        .catch((error) => console.error("Image search failed:", error))
+        .catch((error) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Image search failed:", error);
+          }
+          trackNetworkError(
+            error,
+            `/api/images/${imageEngine}?q=${encodeURIComponent(query)}`,
+            'GET'
+          );
+        })
         .finally(() => setImageLoading(false));
       return () => {
         if (imagesAbortRef.current) {
-          try { imagesAbortRef.current.abort(); } catch {}
+          try { imagesAbortRef.current.abort(); } catch { }
           imagesAbortRef.current = null;
         }
       };
@@ -661,7 +760,7 @@ function SearchPageContent() {
     if (!query) {
       aiRequestInProgressRef.current = null;
       if (aiAbortControllerRef.current) {
-        try { aiAbortControllerRef.current.abort(); } catch {}
+        try { aiAbortControllerRef.current.abort(); } catch { }
         aiAbortControllerRef.current = null;
       }
       return;
@@ -701,9 +800,13 @@ function SearchPageContent() {
         setDiveLoading(false);
         setAiError(false);
         if (aiAbortControllerRef.current) {
-          try { aiAbortControllerRef.current.abort(); } catch {}
+          try { aiAbortControllerRef.current.abort(); } catch { }
         }
         aiAbortControllerRef.current = new AbortController();
+
+        // Track AI query initiation
+        trackAIQueryInitiated(model, query.length, false);
+
         const res = await fetchWithSessionRefreshAndCache(`/api/karakulak/${model}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -727,13 +830,42 @@ function SearchPageContent() {
         setDiveSources([]);
         SearchCache.setAI(model, query, aiResult);
 
-  setAiLoading(false);
-  setDiveLoading(false);
-  setAiError(false);
-  aiRequestInProgressRef.current = null;
-  aiAbortControllerRef.current = null;
+        // Capture AI analytics events in PostHog
+        if (aiResult) {
+          const analytics = (aiData as any)._analytics;
+          // Track query completion
+          trackAIQueryCompleted({
+            model: model as any,
+            query_length: analytics?.query_length || query.length,
+            response_length: analytics?.response_length || aiResult.length,
+            response_time_ms: analytics?.response_time_ms,
+            is_dive_mode: false,
+            estimated_tokens: analytics?.estimated_tokens_output,
+          });
+          // Track response viewed
+          trackAIResponseViewed({
+            model: model as any,
+            query_length: analytics?.query_length,
+            response_length: analytics?.response_length || aiResult.length,
+            response_time_ms: analytics?.response_time_ms,
+            is_dive_mode: false,
+            estimated_tokens: analytics?.estimated_tokens_output,
+          });
+        }
+
+        setAiLoading(false);
+        setDiveLoading(false);
+        setAiError(false);
+        aiRequestInProgressRef.current = null;
+        aiAbortControllerRef.current = null;
       } catch (error) {
-        console.error(`AI response failed for model ${model}:`, error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`AI response failed for model ${model}:`, error);
+        }
+
+        // Track AI query failure
+        trackAIQueryFailed(model, 'network_error', false);
+
         if (!isRetry && model !== "gemini" && !aiModel && !aiDiveEnabled) {
           makeAIRequest("gemini", true);
         } else {
@@ -754,7 +886,7 @@ function SearchPageContent() {
 
     return () => {
       if (aiAbortControllerRef.current) {
-        try { aiAbortControllerRef.current.abort(); } catch {}
+        try { aiAbortControllerRef.current.abort(); } catch { }
         aiAbortControllerRef.current = null;
       }
     };
@@ -765,7 +897,7 @@ function SearchPageContent() {
     if (!query) {
       aiRequestInProgressRef.current = null;
       if (aiAbortControllerRef.current) {
-        try { aiAbortControllerRef.current.abort(); } catch {}
+        try { aiAbortControllerRef.current.abort(); } catch { }
         aiAbortControllerRef.current = null;
       }
       return;
@@ -802,16 +934,20 @@ function SearchPageContent() {
       snippet: r.description
     }));
 
-  const makeDiveRequest = async () => {
+    const makeDiveRequest = async () => {
       try {
         aiRequestInProgressRef.current = requestKey;
         setDiveLoading(true);
         setAiLoading(false);
-    setDiveError(false);
+        setDiveError(false);
         if (aiAbortControllerRef.current) {
-          try { aiAbortControllerRef.current.abort(); } catch {}
+          try { aiAbortControllerRef.current.abort(); } catch { }
         }
         aiAbortControllerRef.current = new AbortController();
+
+        // Track Dive query initiation
+        trackAIQueryInitiated('dive', query.length, true);
+
         const diveResponse = await fetchWithSessionRefreshAndCache('/api/dive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -835,16 +971,40 @@ function SearchPageContent() {
           setAiResponse(null);
           SearchCache.setDive(query, diveData.response, diveData.sources || []);
           setDiveError(false);
+
+          // Capture Dive AI analytics events
+          if (diveData.response) {
+            trackAIQueryCompleted({
+              model: 'dive',
+              response_length: diveData.response.length,
+              is_dive_mode: true,
+              sources_count: (diveData.sources || []).length,
+            });
+            trackAIResponseViewed({
+              model: 'dive',
+              response_length: diveData.response.length,
+              is_dive_mode: true,
+              sources_count: (diveData.sources || []).length,
+            });
+          }
         } else {
-          console.log(`Search ID changed, ignoring stale dive response for query: "${query}"`);
+          if (process.env.NODE_ENV === 'development') {
+            trackClientLog('dive_response_stale_ignored');
+          }
         }
 
-  setDiveLoading(false);
-  setAiLoading(false);
+        setDiveLoading(false);
+        setAiLoading(false);
         aiRequestInProgressRef.current = null;
         aiAbortControllerRef.current = null;
       } catch (error) {
-        console.error('Dive request failed:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Dive request failed:', error);
+        }
+
+        // Track Dive query failure
+        trackAIQueryFailed('dive', 'network_error', true);
+
         setDiveLoading(false);
         setAiLoading(false);
         setDiveError(true);
@@ -857,7 +1017,7 @@ function SearchPageContent() {
 
     return () => {
       if (aiAbortControllerRef.current) {
-        try { aiAbortControllerRef.current.abort(); } catch {}
+        try { aiAbortControllerRef.current.abort(); } catch { }
         aiAbortControllerRef.current = null;
       }
     };
@@ -870,6 +1030,15 @@ function SearchPageContent() {
     if (trimmed) {
       const redirected = await handleBangRedirect(trimmed);
       if (!redirected) {
+        // Capture search event in PostHog (consent-aware)
+        trackSearchPerformed({
+          search_type: searchType,
+          search_engine: searchEngine as 'brave' | 'google' | 'you',
+          query_length: trimmed.length,
+          has_ai_enabled: aiEnabled,
+          has_dive_enabled: aiDiveEnabled,
+        });
+
         const params = new URLSearchParams();
         params.set("q", trimmed);
         router.push(`/search?${params.toString()}`);
@@ -878,11 +1047,14 @@ function SearchPageContent() {
   };
 
   const handleToggleAiDive = () => {
+    // Track Dive toggle
+    trackAIDiveToggled(!aiDiveEnabled);
+
     // Clear any in-progress request when switching modes
     aiRequestInProgressRef.current = null;
     // Abort in-flight AI/Dive request when toggling mode
     if (aiAbortControllerRef.current) {
-      try { aiAbortControllerRef.current.abort(); } catch {}
+      try { aiAbortControllerRef.current.abort(); } catch { }
       aiAbortControllerRef.current = null;
     }
     setAiDiveEnabled(prevAiDiveEnabled => {
@@ -932,19 +1104,19 @@ function SearchPageContent() {
         setSuggestions([]);
         return;
       }
-  // Include user settings (country, safesearch, lang) in the cache key so
-  // suggestions are scoped to these preferences. Use query-string style so
-  // keys look like: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
-  const country = (typeof window !== 'undefined' && localStorage.getItem('searchCountry')) || 'ALL';
-  const safesearch = (typeof window !== 'undefined' && localStorage.getItem('safesearch')) || 'moderate';
-  const lang = (typeof window !== 'undefined' && (localStorage.getItem('language') || navigator.language?.slice(0,2))) || '';
-  const baseKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
-  const _paramsForKey = new URLSearchParams();
-  // ensure requested order: country, lang, safesearch
-  _paramsForKey.set('country', country);
-  if (lang) _paramsForKey.set('lang', lang);
-  _paramsForKey.set('safesearch', safesearch);
-  const cacheKey = `${baseKey}?${_paramsForKey.toString()}`;
+      // Include user settings (country, safesearch, lang) in the cache key so
+      // suggestions are scoped to these preferences. Use query-string style so
+      // keys look like: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
+      const country = (typeof window !== 'undefined' && localStorage.getItem('searchCountry')) || 'ALL';
+      const safesearch = (typeof window !== 'undefined' && localStorage.getItem('safesearch')) || 'moderate';
+      const lang = (typeof window !== 'undefined' && (localStorage.getItem('language') || navigator.language?.slice(0, 2))) || '';
+      const baseKey = `autocomplete-${autocompleteSource}-${searchInput.trim().toLowerCase()}`;
+      const _paramsForKey = new URLSearchParams();
+      // ensure requested order: country, lang, safesearch
+      _paramsForKey.set('country', country);
+      if (lang) _paramsForKey.set('lang', lang);
+      _paramsForKey.set('safesearch', safesearch);
+      const cacheKey = `${baseKey}?${_paramsForKey.toString()}`;
       const cached = typeof window !== 'undefined' ? sessionStorage.getItem(cacheKey) : null;
       if (!(window as any).__autocompleteRetryMap) (window as any).__autocompleteRetryMap = {};
       const retryMap: Record<string, boolean> = (window as any).__autocompleteRetryMap;
@@ -967,7 +1139,7 @@ function SearchPageContent() {
 
       try {
         if (suggestionsAbortRef.current) {
-          try { suggestionsAbortRef.current.abort(); } catch {}
+          try { suggestionsAbortRef.current.abort(); } catch { }
         }
         suggestionsAbortRef.current = new AbortController();
         const sugSignal = suggestionsAbortRef.current.signal;
@@ -992,7 +1164,9 @@ function SearchPageContent() {
             return data[1].map((suggestion) => ({ query: suggestion }));
           }
 
-          console.warn('Unexpected suggestion format:', data);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Unexpected suggestion format:', data);
+          }
           return [] as Suggestion[];
         };
 
@@ -1001,7 +1175,9 @@ function SearchPageContent() {
         try {
           processedSuggestions = await fetchSuggestionsForLang(lang || undefined);
         } catch (primaryError) {
-          console.error('Failed to fetch suggestions for current language:', primaryError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to fetch suggestions for current language:', primaryError);
+          }
         }
 
         if (processedSuggestions.length === 0 && lang && lang.toLowerCase() !== 'en') {
@@ -1011,12 +1187,14 @@ function SearchPageContent() {
               processedSuggestions = fallbackSuggestions;
             }
           } catch (fallbackError) {
-            console.error('Fallback autocomplete fetch failed:', fallbackError);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Fallback autocomplete fetch failed:', fallbackError);
+            }
           }
         }
 
         setSuggestions(processedSuggestions);
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions)); } catch {}
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions)); } catch { }
 
         if (processedSuggestions.length === 0) {
           retryMap[cacheKey] = true;
@@ -1024,7 +1202,9 @@ function SearchPageContent() {
           delete retryMap[cacheKey];
         }
       } catch (error) {
-        console.error('Failed to fetch suggestions:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch suggestions:', error);
+        }
         setSuggestions([]);
       }
     };
@@ -1033,7 +1213,7 @@ function SearchPageContent() {
     return () => {
       clearTimeout(timeoutId);
       if (suggestionsAbortRef.current) {
-        try { suggestionsAbortRef.current.abort(); } catch {}
+        try { suggestionsAbortRef.current.abort(); } catch { }
         suggestionsAbortRef.current = null;
       }
     };
@@ -1105,8 +1285,8 @@ function SearchPageContent() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (suggestionsRef.current &&
-          !suggestionsRef.current.contains(event.target as Node) &&
-          showSuggestions) {
+        !suggestionsRef.current.contains(event.target as Node) &&
+        showSuggestions) {
         setShowSuggestions(false);
       }
     };
@@ -1129,14 +1309,16 @@ function SearchPageContent() {
       try {
         // Get browser language (first 2 characters of the locale)
         const browserLanguage = navigator.language?.slice(0, 2);
-        
+
         // Get search country from localStorage
         const searchCountry = localStorage.getItem("searchCountry") || "ALL";
-        
+
         // Check cache first
         const cachedWikiData = SearchCache.getWikipedia(query, browserLanguage);
         if (cachedWikiData) {
-          console.log('Wikipedia cache hit for:', query);
+          if (process.env.NODE_ENV === 'development') {
+            trackClientLog('wikipedia_cache_hit');
+          }
           setWikiData(cachedWikiData);
           setWikiLoading(false);
           return;
@@ -1144,31 +1326,31 @@ function SearchPageContent() {
 
         // Abort any in-flight Wikipedia requests
         if (wikipediaAbortRef.current) {
-          try { wikipediaAbortRef.current.abort(); } catch {}
+          try { wikipediaAbortRef.current.abort(); } catch { }
         }
         wikipediaAbortRef.current = new AbortController();
         const wikiSignal = wikipediaAbortRef.current.signal;
-        
+
         // Build Wikipedia suggestion API URL with priority parameters
         const suggestionUrl = new URL(`/api/suggest/wikipedia`, window.location.origin);
         suggestionUrl.searchParams.set('q', query);
-        
+
         if (browserLanguage) {
           suggestionUrl.searchParams.set('lang', browserLanguage);
         }
-        
+
         if (searchCountry) {
           suggestionUrl.searchParams.set('country', searchCountry);
         }
 
-  const suggestionResponse = await fetchWithSessionRefreshAndCache(suggestionUrl.toString(), { signal: wikiSignal });
-        
+        const suggestionResponse = await fetchWithSessionRefreshAndCache(suggestionUrl.toString(), { signal: wikiSignal });
+
         if (!suggestionResponse.ok) {
           throw new Error(`Wikipedia suggestion API failed: ${suggestionResponse.status}`);
         }
-        
+
         const suggestionData = await suggestionResponse.json();
-        
+
         const articleTitle = suggestionData.article;
         const language = suggestionData.language || 'en';
 
@@ -1197,20 +1379,22 @@ function SearchPageContent() {
           await fallbackToWikipediaSearch(language);
         }
       } catch (error) {
-        console.error("Failed to fetch Wikipedia data:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Failed to fetch Wikipedia data:", error);
+        }
         setWikiData(null);
       } finally {
         setWikiLoading(false);
       }
     };
 
-  const fallbackToWikipediaSearch = async (language: string = 'en') => {
+    const fallbackToWikipediaSearch = async (language: string = 'en') => {
       try {
         const searchUrl = `https://${language}.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=${encodeURIComponent(
           query
         )}&format=json&utf8=1`;
 
-    const searchResponse = await fetch(searchUrl, { signal: wikipediaAbortRef.current?.signal });
+        const searchResponse = await fetch(searchUrl, { signal: wikipediaAbortRef.current?.signal });
         const searchData = await searchResponse.json();
 
         if (searchData.query?.search?.length > 0) {
@@ -1242,7 +1426,9 @@ function SearchPageContent() {
           setWikiData(null);
         }
       } catch (error) {
-        console.error("Fallback Wikipedia search failed:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Fallback Wikipedia search failed:", error);
+        }
         setWikiData(null);
       }
     };
@@ -1260,7 +1446,7 @@ function SearchPageContent() {
 
     return () => {
       if (wikipediaAbortRef.current) {
-        try { wikipediaAbortRef.current.abort(); } catch {}
+        try { wikipediaAbortRef.current.abort(); } catch { }
         wikipediaAbortRef.current = null;
       }
     };
@@ -1274,13 +1460,16 @@ function SearchPageContent() {
   }, []);
 
   const handleSearchTypeChange = (type: 'web' | 'images' | 'news' | 'videos') => {
+    // Track tab change in analytics
+    trackSearchTabChanged(searchType, type);
+
     // Immediately clear stale results and show loading skeletons so the UI
     // doesn't flash a "No results" state while the fetch starts.
     if (type === 'images') {
       // clear previous images and show skeleton if we have a query
       setImageResults([]);
       if (imagesAbortRef.current) {
-        try { imagesAbortRef.current.abort(); } catch {}
+        try { imagesAbortRef.current.abort(); } catch { }
         imagesAbortRef.current = null;
       }
       if (query) setImageLoading(true);
@@ -1293,7 +1482,7 @@ function SearchPageContent() {
       // clear previous news and show skeleton if we have a query
       setNewsResults([]);
       if (newsAbortRef.current) {
-        try { newsAbortRef.current.abort(); } catch {}
+        try { newsAbortRef.current.abort(); } catch { }
         newsAbortRef.current = null;
       }
       if (query) setNewsLoading(true);
@@ -1305,7 +1494,7 @@ function SearchPageContent() {
       // clear previous videos and show skeleton if we have a query
       setVideoResults([]);
       if (videosAbortRef.current) {
-        try { videosAbortRef.current.abort(); } catch {}
+        try { videosAbortRef.current.abort(); } catch { }
         videosAbortRef.current = null;
       }
       if (query) setVideoLoading(true);
@@ -1363,11 +1552,12 @@ function SearchPageContent() {
   const logoMetadata = selectedLogoState ? getLogoMetadata(selectedLogoState) : getLogoMetadata('tekir');
 
   // Helper to normalize thumbnail values which may be a string or an object
-  const resolveImageSrc = (t: any): string | null => {
+  type ThumbnailValue = string | { src?: string; source?: string; original?: string } | null | undefined;
+  const resolveImageSrc = (t: ThumbnailValue): string | null => {
     if (!t) return null;
     if (typeof t === 'string') return t;
     if (t.src) return t.src;
-  if (t.source) return t.source;
+    if (t.source) return t.source;
     if (t.original) return t.original;
     return null;
   };
@@ -1386,16 +1576,7 @@ function SearchPageContent() {
   const renderResultsArea = () => {
     if (searchType === 'web') {
       if (loading) {
-        return (
-          <div className="space-y-8">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
-        );
+        return <SearchResultsSkeleton />;
       }
 
       if (results.length > 0) {
@@ -1403,7 +1584,7 @@ function SearchPageContent() {
           <div className="space-y-8">
             {results.map((result, index) => (
               <div key={`result-${index}`}>
-                <WebResultItem result={result as any} />
+                <WebResultItem result={result} />
 
                 {/* Insert News cluster after 4th result (index 3) */}
                 {index === 3 && settings.enchantedResults !== false && newsResults && newsResults.length > 0 && (
@@ -1431,7 +1612,7 @@ function SearchPageContent() {
                               <a key={`news-${idx}`} href={article.url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                                 <div className="w-28 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                                   {resolveImageSrc(article.thumbnail) ? (
-                                    <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
+                                    <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                       <Newspaper className="w-6 h-6" />
@@ -1476,7 +1657,7 @@ function SearchPageContent() {
                           <a key={`video-${idx}`} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                             <div className="w-32 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                               {resolveImageSrc(v.thumbnail) ? (
-                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
+                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <Search className="w-6 h-6" />
@@ -1527,7 +1708,7 @@ function SearchPageContent() {
                           <a key={`news-bottom-${idx}`} href={article.url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                             <div className="w-28 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                               {resolveImageSrc(article.thumbnail) ? (
-                                <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
+                                <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" sizes="112px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <Newspaper className="w-6 h-6" />
@@ -1577,7 +1758,7 @@ function SearchPageContent() {
                           <a key={`video-bottom-${idx}`} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="flex gap-3 items-start group hover:shadow-md p-2 rounded-lg bg-card border border-border transition-colors">
                             <div className="w-32 h-20 flex-shrink-0 overflow-hidden rounded-md bg-muted relative">
                               {resolveImageSrc(v.thumbnail) ? (
-                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
+                                <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" sizes="128px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <Search className="w-6 h-6" />
@@ -1609,7 +1790,7 @@ function SearchPageContent() {
       return <div className="text-center text-muted-foreground">{t('search.enterSearchTerm')}</div>;
     }
 
-  if (searchType === 'images') {
+    if (searchType === 'images') {
       if (imageLoading) {
         return (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -1630,7 +1811,7 @@ function SearchPageContent() {
             {imageResults.map((image, index) => (
               <a key={index} href={image.url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden blurry-outline">
                 <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-muted mb-3">
-                  <Image src={image.thumbnail.src} alt={image.title || t('search.imageAlt')} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" placeholder="blur" blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNFNkU2RTYiLz48L3N2Zz4="} />
+                  <Image src={image.thumbnail.src} alt={image.title || t('search.imageAlt')} fill unoptimized sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" placeholder="blur" blurDataURL={image.properties.placeholder || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zz4="} />
                 </div>
                 <p className="text-sm font-medium truncate">{image.title || t('search.imageFallback')}</p>
                 <p className="text-xs text-muted-foreground truncate">{image.source}</p>
@@ -1676,7 +1857,7 @@ function SearchPageContent() {
                   <div className="relative w-full h-48 bg-muted">
                     {resolveImageSrc(article.thumbnail) ? (
                       <div className="relative w-full h-full">
-                        <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-200" onError={(e) => {
+                        <Image src={resolveImageSrc(article.thumbnail)!} alt={article.title} fill unoptimized sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-200" onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
                           const placeholder = target.parentElement?.querySelector('.image-placeholder');
@@ -1697,7 +1878,7 @@ function SearchPageContent() {
                   <div className="p-4 flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-2">
                       {settings.showFavicons && article.favicon && (
-                        <Image src={article.favicon} alt="" className="w-4 h-4 rounded-sm flex-shrink-0" />
+                        <Image src={article.favicon} alt="" width={16} height={16} unoptimized className="w-4 h-4 rounded-sm flex-shrink-0" />
                       )}
                       <span className="text-xs text-muted-foreground truncate">
                         {article.source.replace(/^(https?:\/\/)?(www\.)?/, '')}
@@ -1753,7 +1934,7 @@ function SearchPageContent() {
               <a key={index} href={v.url || v.content_url || '#'} target="_blank" rel="noopener noreferrer" className="group overflow-hidden blurry-outline border border-border rounded-lg p-2 bg-card hover:shadow-lg transition-all">
                 <div className="relative w-full h-48 bg-muted rounded-md overflow-hidden mb-3">
                   {resolveImageSrc(v.thumbnail) ? (
-                    <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill className="object-cover group-hover:scale-105 transition-transform" />
+                    <Image src={resolveImageSrc(v.thumbnail)!} alt={v.title || t('search.videoFallback')} fill unoptimized className="object-cover group-hover:scale-105 transition-transform" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       <Search className="w-6 h-6" />
@@ -1821,14 +2002,15 @@ function SearchPageContent() {
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={suggestion.query}
-                    onClick={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       setSearchInput(suggestion.query);
                       router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
                       setShowSuggestions(false);
                     }}
-                    className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
-                      index === selectedIndex ? 'bg-muted' : ''
-                    }`}
+                    className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${index === selectedIndex ? 'bg-muted' : ''
+                      }`}
                   >
                     <div className="flex items-center gap-2">
                       <Search className="w-4 h-4 text-muted-foreground" />
@@ -1846,275 +2028,275 @@ function SearchPageContent() {
         </div>
       </header>
 
-  <div className="min-h-screen flex flex-col">
-      <main className="p-4 md:p-8 flex-grow">
-  {/* Flying Cats Easter Egg overlay */}
-  <FlyingCats show={!!catEasterEgg} />
-        <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 md:mr-8 mb-8 relative">
-          <form onSubmit={handleSearch} className="flex items-center w-full space-x-2 md:space-x-4">
-            <Link href="/">
-              {logoLoaded ? (
-                <Image key={logoMetadata.path} src={logoMetadata.path} alt="Tekir Logo" width={40} height={40} priority suppressHydrationWarning />
-              ) : (
-                <div style={{ width: 40, height: 40 }} className="bg-transparent" />
-              )}
-            </Link>
-            <div className="relative flex-1 min-w-0">
-              <div className="flex items-center w-full relative">
-              <Input
-                type="text"
-                value={searchInput}
-                onChange={(e) => {
-                  setSearchInput(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onKeyDown={handleKeyDown}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder={t('search.placeholder')}
-                maxLength={800}
-                className="flex-1 px-4 py-2 pr-16 rounded-full shadow-lg text-lg"
-                style={{ minWidth: 0 }}
-              />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-              <Button type="submit" variant="ghost" size="icon" shape="pill" title="Search">
-                <Search className="w-5 h-5" />
-              </Button>
-              </div>
-              </div>
-              
-              {showSuggestions && suggestions.length > 0 && (
-                <div 
-                  ref={suggestionsRef}
-                  className={`absolute w-full mt-2 ${hasBang ? 'mt-6' : 'mt-2'} py-2 bg-background rounded-lg border border-border shadow-lg z-50`}
-                >
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={suggestion.query}
-                      onClick={() => {
-                        setSearchInput(suggestion.query);
-                        router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
-                        setShowSuggestions(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
-                        index === selectedIndex ? 'bg-muted' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Search className="w-4 h-4 text-muted-foreground" />
-                        <span>{suggestion.query}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="hidden md:flex items-center gap-4 ml-auto">
-              <UserProfile mobileNavItems={mobileNavItems} />
-            </div>
-            <div className="md:hidden">
-              <UserProfile mobileNavItems={mobileNavItems} />
-            </div>
-          </form>
-
-        </div>
-
-        <div className="max-w-6xl w-full md:ml-8 md:mr-8 relative">
-          {query && (
-            <div className="mb-6 border-b border-border">
-              <SearchTabs active={searchType} onChange={handleSearchTypeChange} />
-            </div>
-          )}
-
-          <div className="flex flex-col md:flex-row md:gap-6 lg:gap-8">
-            <div className="flex-1 md:w-2/3 lg:w-3/4 xl:w-2/3 2xl:w-3/4">
-              {/* Standalone AI/Dive error banner */}
-                {(searchType === 'web' && aiEnabled && (aiError || diveError)) ? (
-                <div
-                  role="alert"
-                  className="mb-4 p-3 rounded-md border border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300 text-sm flex items-center gap-2"
-                >
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  <span>{t('search.karakulakError')}</span>
-                  <button 
-                  onClick={() => {
-                    setAiError(false);
-                    setDiveError(false);
-                  }}
-                  className="ml-auto text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100"
-                  aria-label="Dismiss error"
-                  >
-                  <X className="w-4 h-4" />
-                  </button>
-                </div>
-                ) : null}
-              {showKarakulak ? (
-                <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
-                        {t('search.karakulakName')}
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
-                          {t('search.betaLabel')}
-                        </span>
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleToggleAiDive}
-                        className={`relative p-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center justify-center overflow-hidden ${
-                          aiDiveEnabled 
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50 ring-2 ring-blue-400 ring-offset-2 ring-offset-background' 
-                            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md'
-                        }`}
-                        title={aiDiveEnabled ? "Disable Dive mode" : "Enable Dive mode"}
-                      >
-                        <Sparkles className={`w-5 h-5 transition-all duration-300 relative z-10 ${aiDiveEnabled ? 'drop-shadow-lg' : 'hover:scale-110'}`} />
-                        {aiDiveEnabled && (
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/20 via-blue-300/30 to-blue-400/20 animate-pulse"></div>
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() => setKarakulakCollapsed(prev => !prev)}
-                        aria-expanded={!karakulakCollapsed}
-                        title={karakulakCollapsed ? 'Expand Karakulak' : 'Collapse Karakulak'}
-                        className="px-2 py-1 rounded-md text-sm text-muted-foreground hover:bg-muted transition-colors flex items-center gap-2"
-                      >
-                        <ChevronDown className={`w-4 h-4 transition-transform ${karakulakCollapsed ? 'rotate-180' : ''}`} />
-                        <span className="sr-only">{karakulakCollapsed ? 'Expand' : 'Collapse'}</span>
-                      </button>
-                    </div>
+      <div className="min-h-screen flex flex-col">
+        <main className="p-4 md:p-8 flex-grow">
+          {/* Flying Cats Easter Egg overlay */}
+          <FlyingCats show={!!catEasterEgg} />
+          <div className="max-w-5xl w-full md:w-4/5 xl:w-2/3 ml-0 md:ml-8 md:mr-8 mb-8 relative">
+            <form onSubmit={handleSearch} className="flex items-center w-full space-x-2 md:space-x-4">
+              <Link href="/">
+                {logoLoaded ? (
+                  <Image key={logoMetadata.path} src={logoMetadata.path} alt="Tekir Logo" width={40} height={40} priority suppressHydrationWarning />
+                ) : (
+                  <div style={{ width: 40, height: 40 }} className="bg-transparent" />
+                )}
+              </Link>
+              <div className="relative flex-1 min-w-0">
+                <div className="flex items-center w-full relative">
+                  <Input
+                    type="text"
+                    value={searchInput}
+                    onChange={(e) => {
+                      setSearchInput(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setShowSuggestions(true)}
+                    placeholder={t('search.placeholder')}
+                    maxLength={800}
+                    className="flex-1 px-4 py-2 pr-16 rounded-full shadow-lg text-lg"
+                    style={{ minWidth: 0 }}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                    <Button type="submit" variant="ghost" size="icon" shape="pill" title="Search">
+                      <Search className="w-5 h-5" />
+                    </Button>
                   </div>
-                  
-                  {(aiLoading || diveLoading) ? (
-                    <div className="animate-pulse space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-blue-600/70 dark:text-blue-300/70">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                        <span>{aiDiveEnabled ? t('search.fetchingWebSources') : t('search.processingRequest')}</span>
-                      </div>
-                      <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
-                      <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2 mb-3"></div>
-                    </div>
-                  ) : (
-                    <>
-                      <p className={`text-left text-blue-800 dark:text-blue-100 mb-3 ${karakulakCollapsed ? 'line-clamp-2' : ''}`}>
-                        {diveResponse || aiResponse}
-                      </p>
+                </div>
 
-                      <div
-                        className="overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out"
-                        style={{ maxHeight: karakulakCollapsed ? 0 : 1000, opacity: karakulakCollapsed ? 0 : 1, transform: karakulakCollapsed ? 'translateY(-6px)' : 'translateY(0px)' }}
-                        aria-hidden={karakulakCollapsed}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className={`absolute w-full mt-2 ${hasBang ? 'mt-6' : 'mt-2'} py-2 bg-background rounded-lg border border-border shadow-lg z-50`}
+                  >
+                    {suggestions.map((suggestion, index) => (
+                      <button
+                        key={suggestion.query}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSearchInput(suggestion.query);
+                          router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+                          setShowSuggestions(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${index === selectedIndex ? 'bg-muted' : ''
+                          }`}
                       >
-                        {diveSources && diveSources.length > 0 && (
-                          <div className="mb-4">
-                            <div className="flex flex-wrap gap-2">
-                              {diveSources.map((source, index) => (
-                                <a
-                                  key={index}
-                                  href={source.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 text-sm hover:bg-blue-200 dark:hover:bg-blue-800/70 transition-colors"
-                                  title={source.description}
-                                >
-                                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mr-2">
-                                    {index + 1}
-                                  </span>
-                                  <span className="truncate max-w-[150px]">{source.title}</span>
-                                  <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
-                                </a>
-                              ))}
+                        <div className="flex items-center gap-2">
+                          <Search className="w-4 h-4 text-muted-foreground" />
+                          <span>{suggestion.query}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="hidden md:flex items-center gap-4 ml-auto">
+                <UserProfile mobileNavItems={mobileNavItems} />
+              </div>
+              <div className="md:hidden">
+                <UserProfile mobileNavItems={mobileNavItems} />
+              </div>
+            </form>
+
+          </div>
+
+          <div className="max-w-6xl w-full md:ml-8 md:mr-8 relative">
+            {query && (
+              <div className="mb-6 border-b border-border">
+                <SearchTabs active={searchType} onChange={handleSearchTypeChange} />
+              </div>
+            )}
+
+            <div className="flex flex-col md:flex-row md:gap-6 lg:gap-8">
+              <div className="flex-1 md:w-2/3 lg:w-3/4 xl:w-2/3 2xl:w-3/4">
+                {/* Standalone AI/Dive error banner */}
+                {(searchType === 'web' && aiEnabled && (aiError || diveError)) ? (
+                  <div
+                    role="alert"
+                    className="mb-4 p-3 rounded-md border border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300 text-sm flex items-center gap-2"
+                  >
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>{t('search.karakulakError')}</span>
+                    <button
+                      onClick={() => {
+                        setAiError(false);
+                        setDiveError(false);
+                      }}
+                      className="ml-auto text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100"
+                      aria-label="Dismiss error"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : null}
+                {showKarakulak ? (
+                  <div className="mb-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Cat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <span className="ml-2 font-medium text-blue-800 dark:text-blue-200 inline-flex items-center">
+                          {t('search.karakulakName')}
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded-full">
+                            {t('search.betaLabel')}
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleToggleAiDive}
+                          className={`relative p-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center justify-center overflow-hidden ${aiDiveEnabled
+                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50 ring-2 ring-blue-400 ring-offset-2 ring-offset-background'
+                              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md'
+                            }`}
+                          title={aiDiveEnabled ? "Disable Dive mode" : "Enable Dive mode"}
+                        >
+                          <Sparkles className={`w-5 h-5 transition-all duration-300 relative z-10 ${aiDiveEnabled ? 'drop-shadow-lg' : 'hover:scale-110'}`} />
+                          {aiDiveEnabled && (
+                            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/20 via-blue-300/30 to-blue-400/20 animate-pulse"></div>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => setKarakulakCollapsed(prev => !prev)}
+                          aria-expanded={!karakulakCollapsed}
+                          title={karakulakCollapsed ? 'Expand Karakulak' : 'Collapse Karakulak'}
+                          className="px-2 py-1 rounded-md text-sm text-muted-foreground hover:bg-muted transition-colors flex items-center gap-2"
+                        >
+                          <ChevronDown className={`w-4 h-4 transition-transform ${karakulakCollapsed ? 'rotate-180' : ''}`} />
+                          <span className="sr-only">{karakulakCollapsed ? 'Expand' : 'Collapse'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {(aiLoading || diveLoading) ? (
+                      <div className="animate-pulse space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-blue-600/70 dark:text-blue-300/70">
+                          <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                          <span>{aiDiveEnabled ? t('search.fetchingWebSources') : t('search.processingRequest')}</span>
+                        </div>
+                        <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-blue-200 dark:bg-blue-700 rounded w-1/2 mb-3"></div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className={`text-left text-blue-800 dark:text-blue-100 mb-3 ${karakulakCollapsed ? 'line-clamp-2' : ''}`}>
+                          {diveResponse || aiResponse}
+                        </p>
+
+                        <div
+                          className="overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out"
+                          style={{ maxHeight: karakulakCollapsed ? 0 : 1000, opacity: karakulakCollapsed ? 0 : 1, transform: karakulakCollapsed ? 'translateY(-6px)' : 'translateY(0px)' }}
+                          aria-hidden={karakulakCollapsed}
+                        >
+                          {diveSources && diveSources.length > 0 && (
+                            <div className="mb-4">
+                              <div className="flex flex-wrap gap-2">
+                                {diveSources.map((source, index) => (
+                                  <a
+                                    key={index}
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 text-sm hover:bg-blue-200 dark:hover:bg-blue-800/70 transition-colors"
+                                    title={source.description}
+                                  >
+                                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mr-2">
+                                      {index + 1}
+                                    </span>
+                                    <span className="truncate max-w-[150px]">{source.title}</span>
+                                    <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {(diveResponse || aiResponse) ? (
+                            <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
+                              {aiDiveEnabled
+                                ? "Generated from web sources. May contain inaccuracies."
+                                : "Auto-generated based on AI knowledge. May contain inaccuracies."
+                              }
+                            </p>
+                          ) : null}
+
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : null}
+
+                {searchType === 'web' && (
+                  <div className="md:hidden">
+                    {wikiLoading ? (
+                      <div className="mb-8 p-4 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                        <div className="flex items-center mb-3">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3"></div>
+                        </div>
+                        <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+                      </div>
+                    ) : wikiData ? (
+                      <div className="mb-8 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
+                        <button
+                          onClick={() => setWikiExpanded(!wikiExpanded)}
+                          className="w-full flex items-center justify-between p-4 text-left"
+                        >
+                          <div className="flex items-center">
+                            <span className="font-medium">From Wikipedia ({wikiData.language?.toUpperCase() || 'EN'}): {wikiData.title}</span>
+                          </div>
+                          <ChevronDown className={`w-5 h-5 transition-transform ${wikiExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {wikiExpanded && (
+                          <div className="p-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            {/* Mobile expanded WikiNotebook */}
+                            <div>
+                              <WikiNotebook wikiData={wikiData} />
                             </div>
                           </div>
                         )}
-
-                        {(diveResponse || aiResponse) ? (
-                          <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mb-4">
-                            {aiDiveEnabled 
-                              ? "Generated from web sources. May contain inaccuracies." 
-                              : "Auto-generated based on AI knowledge. May contain inaccuracies."
-                            }
-                          </p>
-                        ) : null}
-
                       </div>
-                    </>
-                  )}
-                </div>
-              ) : null}
-              
+                    ) : null}
+                  </div>
+                )}
+
+                {renderResultsArea()}
+              </div>
+
               {searchType === 'web' && (
-                <div className="md:hidden">
+                <div className="hidden md:block md:w-1/3 lg:w-1/4 xl:w-1/3 2xl:w-1/4">
                   {wikiLoading ? (
-                    <div className="mb-8 p-4 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
-                      <div className="flex items-center mb-3">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3"></div>
-                      </div>
-                      <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+                    <div className="p-4 lg:p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
+                      <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
+                      <div className="w-full h-40 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full mb-2"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-5/6 mb-2"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
                     </div>
                   ) : wikiData ? (
-                    <div className="mb-8 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden">
-                      <button
-                        onClick={() => setWikiExpanded(!wikiExpanded)}
-                        className="w-full flex items-center justify-between p-4 text-left"
-                      >
-                        <div className="flex items-center">
-                          <span className="font-medium">From Wikipedia ({wikiData.language?.toUpperCase() || 'EN'}): {wikiData.title}</span>
-                        </div>
-                        <ChevronDown className={`w-5 h-5 transition-transform ${wikiExpanded ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {wikiExpanded && (
-                        <div className="p-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                              {/* Mobile expanded WikiNotebook */}
-                              <div>
-                                <WikiNotebook wikiData={wikiData} />
-                              </div>
-                        </div>
-                      )}
+                    <div>
+                      <WikiNotebook wikiData={wikiData} />
                     </div>
                   ) : null}
                 </div>
               )}
-
-              {renderResultsArea()}
             </div>
-            
-            {searchType === 'web' && (
-              <div className="hidden md:block md:w-1/3 lg:w-1/4 xl:w-1/3 2xl:w-1/4">
-                {wikiLoading ? (
-                  <div className="p-4 lg:p-6 rounded-lg bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 shadow-md animate-pulse">
-                    <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
-                    <div className="w-full h-40 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full mb-2"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-5/6 mb-2"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
-                  </div>
-                ) : wikiData ? (
-                  <div>
-                    <WikiNotebook wikiData={wikiData} />
-                  </div>
-                ) : null}
-              </div>
-            )}
           </div>
-        </div>
-      </main>
+        </main>
 
-      <Footer variant="minimal" />
-      <FloatingFeedback
-        query={query}
-        results={results}
-        wikiData={wikiData}
-        suggestions={suggestions}
-        aiResponse={aiResponse || diveResponse}
-        searchEngine={searchEngine}
-        searchType={searchType}
-      />
-    </div>
+        <Footer variant="minimal" />
+        <FloatingFeedback
+          query={query}
+          results={results}
+          wikiData={wikiData}
+          suggestions={suggestions}
+          aiResponse={aiResponse || diveResponse}
+          searchEngine={searchEngine}
+          searchType={searchType}
+        />
+      </div>
     </>
   );
 }

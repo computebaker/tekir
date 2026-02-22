@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
+import {
+  trackAPISuccess,
+  trackAPIError,
+  flushServerEvents,
+} from '@/lib/analytics-server';
+import { handleAPIError as handleAPIErrorTracking } from '@/lib/api-error-tracking';
 
 const USER_AGENT = 'Tekir/1.0 (https://tekir.co/)';
 
@@ -106,16 +112,39 @@ async function resolveLabelsForQids(qids: string[] = [], lang = 'en') {
 }
 
 export async function GET(req: NextRequest) {
+  const now = Date.now();
+  
   try {
     const rateLimitResult = await checkRateLimit(req, '/api/wikidata');
     if (!rateLimitResult.success) {
+      trackAPIError({
+        endpoint: '/api/wikidata',
+        method: 'GET',
+        status_code: 429,
+        error_type: 'RateLimitError',
+        error_message: 'Rate limit exceeded',
+        user_authenticated: false,
+      });
+      flushServerEvents().catch((err) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[PostHog] Failed to flush events:', err);
+        }
+      });
       return rateLimitResult.response!;
     }
 
     const url = new URL(req.url);
     const title = String(url.searchParams.get('title') || url.searchParams.get('q') || '');
     const lang = validateLanguage(url.searchParams.get('lang'));
-    if (!title) return NextResponse.json({ error: 'missing title' }, { status: 400 });
+    if (!title) {
+      return handleAPIErrorTracking(
+        new Error('missing title'),
+        req,
+        '/api/wikidata',
+        'GET',
+        400
+      );
+    }
 
     const summary = await getSummary(title, lang).catch(() => null);
     const qid = await getQidFromTitle(title, lang).catch(() => null);
@@ -326,8 +355,40 @@ export async function GET(req: NextRequest) {
       facts,
     };
 
+    const responseTime = Date.now() - now;
+    trackAPISuccess({
+      endpoint: '/api/wikidata',
+      method: 'GET',
+      status_code: 200,
+      response_time_ms: responseTime,
+      user_authenticated: false,
+    });
+
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
+
     return NextResponse.json(out);
   } catch (err) {
+    const responseTime = Date.now() - now;
+    
+    trackAPIError({
+      endpoint: '/api/wikidata',
+      method: 'GET',
+      status_code: 500,
+      error_type: 'WikidataError',
+      error_message: err instanceof Error ? err.message : 'Unknown wikidata error',
+      user_authenticated: false,
+    });
+
+    flushServerEvents().catch((err2) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err2);
+      }
+    });
+
     console.error('wikidata route error:', err);
     return NextResponse.json({ error: 'internal_error' }, { status: 500 });
   }

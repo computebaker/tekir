@@ -14,13 +14,15 @@ import {
   CheckCircle2,
   ClipboardCopy,
   Info,
+  BarChart3
 } from "lucide-react";
 import { SettingsShell, type SettingsNavItem, type MobileNavItem } from "@/components/settings/settings-shell";
-import { useSettings, type UserSettings } from "@/lib/settings";
+import { useSettings, type UserSettings, SETTINGS_EXPORT_KEYS } from "@/lib/settings";
 import { useAuth } from "@/components/auth-provider";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { trackJSError } from "@/lib/posthog-analytics";
 
 const EXPORT_FILENAME = "settings.tekir.json";
 
@@ -28,41 +30,21 @@ type ExportPayload = {
   version: string; // for future compatibility
   kind: "tekir.settings";
   exportedAt: string; // ISO date
-  preferences: Pick<
-    UserSettings,
-    | "searchEngine"
-    | "searchCountry"
-    | "safesearch"
-    | "autocompleteSource"
-    | "showRecommendations"
-    | "aiModel"
-    | "karakulakEnabled"
-    | "clim8Enabled"
-    | "weatherUnits"
-    | "customWeatherLocation"
-    | "weatherPlacement"
-    | "theme"
-    | "searchType"
-    | "enchantedResults"
-    | "wikipediaEnabled"
-    | "karakulakEnabled_llama"
-    | "karakulakEnabled_gemini"
-    | "karakulakEnabled_chatgpt"
-    | "karakulakEnabled_mistral"
-    | "karakulakEnabled_grok"
-    | "selectedLogo"
-  >;
+  preferences: Pick<UserSettings, (typeof SETTINGS_EXPORT_KEYS)[number]>;
 };
 
 export default function PrivacySettingsPage() {
-  const { user } = useAuth();
+  const { user, authToken } = useAuth();
   const { settings, updateSetting } = useSettings();
   const tSettings = useTranslations("settings");
   const tPrivacy = useTranslations("settings.privacyPage");
 
   // Server-side data overview using Convex
   const userId = user?.id as Id<"users"> | undefined;
-  const serverSettings = useQuery(api.settings.getUserSettings, userId ? { userId } : "skip");
+  const serverSettings = useQuery(
+    api.settings.getUserSettings,
+    userId && authToken ? { userId, authToken } : "skip"
+  );
 
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,34 +70,16 @@ export default function PrivacySettingsPage() {
     { href: "/settings/search", icon: Search, label: tSettings("search") },
     { href: "/settings/account", icon: User, label: tSettings("account") },
     { href: "/settings/privacy", icon: Shield, label: tSettings("privacy"), active: true },
+    { href: "/settings/analytics", icon: BarChart3, label: tSettings("analytics") },
     { href: "/settings/about", icon: Info, label: tSettings("about") },
   ];
 
   // Build export payload from current settings (search preferences only)
   const buildExport = (): ExportPayload => {
-    const preferences = {
-      searchEngine: settings.searchEngine,
-      searchCountry: settings.searchCountry,
-      safesearch: settings.safesearch,
-      autocompleteSource: settings.autocompleteSource,
-      showRecommendations: settings.showRecommendations,
-      aiModel: settings.aiModel,
-      karakulakEnabled: settings.karakulakEnabled,
-      clim8Enabled: settings.clim8Enabled,
-      weatherUnits: settings.weatherUnits,
-      customWeatherLocation: settings.customWeatherLocation,
-      weatherPlacement: settings.weatherPlacement,
-      theme: settings.theme,
-      searchType: settings.searchType,
-      enchantedResults: settings.enchantedResults,
-      wikipediaEnabled: settings.wikipediaEnabled,
-      karakulakEnabled_llama: settings.karakulakEnabled_llama,
-      karakulakEnabled_gemini: settings.karakulakEnabled_gemini,
-      karakulakEnabled_chatgpt: settings.karakulakEnabled_chatgpt,
-      karakulakEnabled_mistral: settings.karakulakEnabled_mistral,
-      karakulakEnabled_grok: settings.karakulakEnabled_grok,
-      selectedLogo: settings.selectedLogo,
-    } satisfies ExportPayload["preferences"];
+    const exportKeys = SETTINGS_EXPORT_KEYS as ReadonlyArray<keyof ExportPayload["preferences"]>;
+    const preferences = Object.fromEntries(
+      exportKeys.map((key) => [key, settings[key]])
+    ) as ExportPayload["preferences"];
 
     return {
       version: "1",
@@ -143,13 +107,21 @@ export default function PrivacySettingsPage() {
 
   const applyImportedPreferences = async (prefs: ExportPayload["preferences"]) => {
     // Only update known keys using updateSetting to respect sync flow
+    const allowedKeys = new Set(SETTINGS_EXPORT_KEYS);
     const entries = Object.entries(prefs) as [keyof ExportPayload["preferences"], any][];
     for (const [key, value] of entries) {
+      if (!allowedKeys.has(key as (typeof SETTINGS_EXPORT_KEYS)[number])) continue;
       try {
         await updateSetting(key as keyof UserSettings, value as any);
       } catch (err) {
         // continue applying others
-        console.warn("Failed to apply setting", key, err);
+        trackJSError({
+          error_type: "SettingsImportError",
+          error_message: err instanceof Error ? err.message : "Failed to apply setting",
+          component: "PrivacySettings.applyImportedPreferences",
+          url: typeof window !== 'undefined' ? window.location.href : undefined,
+          user_action: `apply_setting_${String(key)}`,
+        });
       }
     }
   };
@@ -170,6 +142,13 @@ export default function PrivacySettingsPage() {
       await applyImportedPreferences(parsed.preferences);
       setMessage({ type: "success", text: tPrivacy("messages.importSuccess") });
     } catch (e) {
+      trackJSError({
+        error_type: "SettingsImportError",
+        error_message: e instanceof Error ? e.message : "Failed to import settings",
+        component: "PrivacySettings.handleImportFile",
+        url: typeof window !== 'undefined' ? window.location.href : undefined,
+        user_action: "import_settings",
+      });
       setMessage({
         type: "error",
         text: e instanceof Error ? e.message : tPrivacy("messages.importParseError"),

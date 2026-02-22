@@ -44,9 +44,6 @@ const cleanupOldCache = () => {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-    if (keysToRemove.length > 0) {
-      console.log(`[i18n] Cleaned up ${keysToRemove.length} old cache entries`);
-    }
   } catch (error) {
     console.warn('[i18n] Failed to cleanup old cache:', error);
   }
@@ -81,16 +78,18 @@ const getStoredLocale = (): Locale => {
 
   try {
     const storedLanguage = window.localStorage.getItem('language');
+    
     if (storedLanguage && isValidLocale(storedLanguage)) {
       return storedLanguage as Locale;
     }
 
     const lastLocale = window.localStorage.getItem(LAST_LOCALE_KEY);
+    
     if (lastLocale && isValidLocale(lastLocale)) {
       return lastLocale as Locale;
     }
   } catch (error) {
-    console.warn('[i18n] Unable to read stored locale:', error);
+    console.warn('Error reading from localStorage:', error);
   }
 
   return getLocaleFromBrowser();
@@ -101,7 +100,7 @@ interface I18nProviderProps {
 }
 
 export default function I18nProvider({ children }: I18nProviderProps) {
-  const { settings, isInitialized } = useSettings();
+  const { settings } = useSettings();
   const [bootLocale] = useState<Locale>(() => {
     // Clean up old cached translations on mount
     cleanupOldCache();
@@ -120,7 +119,6 @@ export default function I18nProvider({ children }: I18nProviderProps) {
   // Determine locale: user settings > browser detection > default
   const locale: Locale = (() => {
     if (settings.language && isValidLocale(settings.language)) {
-      console.log('[i18n] Using language from settings:', settings.language);
       return settings.language as Locale;
     }
     return bootLocale;
@@ -136,7 +134,6 @@ export default function I18nProvider({ children }: I18nProviderProps) {
         return;
       }
 
-      console.log('[i18n] Loading messages for locale:', locale);
       const cachedMessages = readCachedMessages(locale);
       if (cachedMessages && isMounted) {
         setMessages(cachedMessages);
@@ -159,7 +156,6 @@ export default function I18nProvider({ children }: I18nProviderProps) {
         const loadedMessages = await import(`@/messages/${locale}.json`);
 
         if (isMounted) {
-          console.log('[i18n] Successfully loaded messages for:', locale);
           setMessages(loadedMessages.default);
           setCurrentLocale(locale);
           persistMessages(locale, loadedMessages.default);
@@ -189,7 +185,7 @@ export default function I18nProvider({ children }: I18nProviderProps) {
   }, [locale, currentLocale]); // Removed 'messages' from dependencies
 
   // Always provide translations, falling back to the last loaded messages while new ones stream in
-  const providerLocale = isInitialized ? locale : currentLocale;
+  const providerLocale = currentLocale;
   const providerMessages = messages || defaultMessages;
 
   return (

@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, Search, MessageCircleMore, Zap, Twitter, Instagram } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import Footer from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
+
+const Footer = dynamic(() => import("@/components/footer"), { ssr: false });
 
 export default function LinksPage() {
   useEffect(() => {
@@ -59,7 +61,7 @@ export default function LinksPage() {
           <section className="mb-8">
             <h2 className="text-lg font-semibold mb-4 text-center text-muted-foreground">Socials</h2>
             <div className="space-y-3">
-              <a 
+              <a
                 href="https://bsky.app/profile/tekir.co"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -77,7 +79,7 @@ export default function LinksPage() {
                 <ExternalLink className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </a>
 
-              <a 
+              <a
                 href="https://instagram.com/tekirsearch"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -93,7 +95,7 @@ export default function LinksPage() {
                 <ExternalLink className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </a>
 
-              <a 
+              <a
                 href="https://x.com/tekirsearch"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -115,7 +117,7 @@ export default function LinksPage() {
           <section className="mb-8">
             <h2 className="text-lg font-semibold mb-4 text-center text-muted-foreground">More From Us</h2>
             <div className="space-y-3">
-              <Link 
+              <Link
                 href="/about"
                 className="w-full p-4 rounded-lg bg-card border border-border hover:bg-accent transition-all duration-200 hover:scale-[1.02] flex items-center justify-between group"
               >
@@ -131,9 +133,9 @@ export default function LinksPage() {
                 <ExternalLink className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </Link>
 
-              
 
-              <Link 
+
+              <Link
                 href="/bangs"
                 className="w-full p-4 rounded-lg bg-card border border-border hover:bg-accent transition-all duration-200 hover:scale-[1.02] flex items-center justify-between group"
               >

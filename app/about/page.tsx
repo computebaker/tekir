@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Lock, Search, MessageCircleMore, Github, Heart } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import Footer from "@/components/footer";
 import { BadgeChip } from "@/components/shared/badge-chip";
+
+const Footer = dynamic(() => import("@/components/footer"), { ssr: false });
 import { SectionHeading } from "@/components/shared/section-heading";
 import { buttonVariants } from "@/components/ui/button";
 import { storeRedirectUrl } from "@/lib/utils";

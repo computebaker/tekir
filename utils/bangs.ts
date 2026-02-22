@@ -1,3 +1,5 @@
+import posthog from 'posthog-js';
+
 let bangsCache: Record<string, {name: string, url: string, main?: string}> | null = null;
 const BANGS_CACHE_KEY = 'tekir_bangs_cache';
 const BANGS_CACHE_EXPIRY_KEY = 'tekir_bangs_cache_expiry';
@@ -115,6 +117,13 @@ export async function handleBangRedirect(query: string): Promise<boolean> {
   const bang = bangsCache ? bangsCache[bangCommand] : undefined;
   
   if (bang) {
+    // Capture bang used event in PostHog
+    posthog.capture('bang_used', {
+      bang_command: bangCommand,
+      bang_name: bang.name,
+      has_search_terms: searchTerms !== '',
+    });
+
     if (searchTerms === "" && bang.main) {
       // If only a bang command is typed, redirect to the main URL
       window.location.href = bang.main;

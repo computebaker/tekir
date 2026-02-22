@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, CheckCircle2, AlertCircle, ArrowLeft, RotateCcw, Loader2 } from "lucide-react";
 import { getRedirectUrlWithFallback } from "@/lib/utils";
+import { showToast } from "@/lib/toast";
 
 function VerifyEmailForm() {
   const [code, setCode] = useState("");
@@ -79,12 +80,14 @@ function VerifyEmailForm() {
 
       if (response.ok) {
         setError("");
-        alert("Verification code sent!");
+        showToast.success("Verification code sent!", "Check your email for the code");
       } else {
         setError("Failed to resend code");
+        showToast.error("Failed to resend code", "Please try again later");
       }
     } catch (error) {
       setError("Failed to resend code");
+      showToast.error("Failed to resend code", "Please check your connection");
     }
   };
 

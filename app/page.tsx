@@ -1,51 +1,22 @@
 "use client";
 
-import { useEffect, useState, useRef, useTransition, useMemo, useCallback } from "react";
+import { useEffect, useState, useRef, useTransition, useMemo, useCallback, useLayoutEffect } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import { Search, Lock, MessageCircleMore, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
-import UserProfile from "@/components/user-profile";
 import { useAuth } from "@/components/auth-provider";
 import { useSettings } from "@/lib/settings";
-import { getLogoMetadata } from "@/components/settings/logo-selector";
-import { fetchWithSessionRefreshAndCache } from "@/lib/cache";
-import WeatherWidget from "@/components/weather-widget";
-import { SearchInput } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import MainFooter from "@/components/main-footer";
+import { useSearchSuggestions, Suggestion } from "@/hooks/use-search-suggestions";
 import { cn } from "@/lib/utils";
+import { Search, MessageCircleMore, RefreshCw } from "lucide-react";
 
-async function fetchWithSessionRefresh(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
-  const originalResponse = await fetch(url, options);
-
-  if (originalResponse.status === 401 || originalResponse.status === 403 && originalResponse.headers.get("Content-Type")?.includes("application/json")) {
-    const responseCloneForErrorCheck = originalResponse.clone();
-    try {
-      const errorData = await responseCloneForErrorCheck.json();
-      if (errorData && errorData.error === "Invalid or expired session token.") {
-        console.log("Session token expired or invalid. Attempting to refresh session...");
-        const registerResponse = await fetch("/api/session/register", { method: "POST" });
-        if (registerResponse.ok) {
-          console.log("Session refreshed successfully. Retrying the original request.");
-          return await fetch(url, options);
-        } else {
-          console.error("Failed to refresh session. Status:", registerResponse.status);
-          return originalResponse;
-        }
-      }
-    } catch (e) {
-      console.warn("Error parsing JSON from 403/401 response, or not the specific session token error:", e);
-    }
-  }
-  return originalResponse;
-}
-
-interface Suggestion {
-  query: string;
-  type?: 'autocomplete' | 'recommendation';
-}
+const UserProfile = dynamic(() => import("@/components/user-profile"), { ssr: false });
+const WeatherWidget = dynamic(() => import("@/components/weather-widget"), { ssr: false });
+const MainFooter = dynamic(() => import("@/components/main-footer"));
+const HeroSection = dynamic(
+  () => import("@/components/home/hero-section").then((mod) => mod.HeroSection),
+  { ssr: false }
+);
 
 export default function Home() {
   const tHome = useTranslations("home");
@@ -54,13 +25,13 @@ export default function Home() {
   const { settings, isInitialized } = useSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+
   // Mobile keyboard awareness
   const [isMobile, setIsMobile] = useState(false);
   const [vvHeight, setVvHeight] = useState<number | null>(null);
   const [kbVisible, setKbVisible] = useState(false);
   const [isHeroInputFocused, setIsHeroInputFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
@@ -68,29 +39,44 @@ export default function Home() {
   const [autocompleteSource] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );
+
   const hasBang = useMemo(() => /(?:^|\s)![a-z]+/.test(searchQuery.toLowerCase()), [searchQuery]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const heroFormRef = useRef<HTMLFormElement>(null);
-  const [recs, setRecs] = useState<string[]>([]);
-  const [recIndex, setRecIndex] = useState(0);
-  const [recLoading, setRecLoading] = useState(false);
-  const [recSwitching, setRecSwitching] = useState(false);
-  const recommendationWindowSize = 5;
+  const mainRef = useRef<HTMLElement>(null);
+  const lastSearchAtRef = useRef(0);
+
   // Lock raised state while submitting so it doesn't animate back before redirect
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Focus lock on mobile: keep input focused until back/outside tap
   const [isFocusLocked, setIsFocusLocked] = useState(false);
   const unlockingRef = useRef(false);
   const pushedStateRef = useRef(false);
-  
+  const [dropdownMetrics, setDropdownMetrics] = useState<{ top: number; left: number; width: number } | null>(null);
+  const dropdownTrackRafRef = useRef<number | null>(null);
+
   // Logo chooser state - load from localStorage on mount
   const [selectedLogoState, setSelectedLogoState] = useState<'tekir' | 'duman' | 'pamuk' | null>(null);
   const [logoLoaded, setLogoLoaded] = useState(false);
-  
+
+  const updateDropdownMetrics = useCallback(() => {
+    if (!heroFormRef.current || !mainRef.current) return;
+    const heroRect = heroFormRef.current.getBoundingClientRect();
+    const mainRect = mainRef.current.getBoundingClientRect();
+    // On mobile we want the dropdown to sit directly below the search bar
+    const mobileOffset = 10; // touch the search bar on mobile
+    const desktopOffset = 12;
+    const offset = isMobile ? mobileOffset : desktopOffset;
+    setDropdownMetrics({
+      top: heroRect.bottom - mainRect.top + offset,
+      left: Math.max(8, heroRect.left - mainRect.left),
+      width: Math.max(280, heroRect.width),
+    });
+  }, [isMobile]);
+
   // Tri-state: null = unknown (no explicit local value) | true | false
-  // If user has an explicit local preference in localStorage, use it immediately.
-  // Otherwise keep null and wait for server settings (isInitialized) before rendering.
   const [localShowRecs, setLocalShowRecs] = useState<boolean | null>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('showRecommendations');
@@ -99,7 +85,32 @@ export default function Home() {
     }
     return null;
   });
-  const showHeroWeather = (settings.clim8Enabled ?? true) && ((settings.weatherPlacement || 'topRight') === 'hero');
+
+  // Determine effective preference
+  const effectiveShowRecs: boolean | null = localShowRecs !== null ? localShowRecs : (isInitialized ? (settings.showRecommendations ?? false) : null);
+
+  const closeSuggestionsAndInput = useCallback((blurInput: boolean) => {
+    if (showSuggestions) {
+      setShowSuggestions(false);
+    }
+    if (blurInput && isHeroInputFocused) {
+      setIsHeroInputFocused(false);
+      try { searchInputRef.current?.blur(); } catch { }
+    }
+  }, [isHeroInputFocused, showSuggestions]);
+
+  // Use custom hook for suggestions
+  const {
+    suggestions,
+    recs,
+    recLoading,
+    recIndex,
+    setRecIndex,
+    recSwitching,
+    setRecSwitching,
+    canShowRecommendations,
+    recommendationWindowSize
+  } = useSearchSuggestions(searchQuery, autocompleteSource, effectiveShowRecs);
 
   // Load logo from localStorage on mount (client-side only)
   useEffect(() => {
@@ -116,33 +127,19 @@ export default function Home() {
   useEffect(() => {
     if (settings.selectedLogo && settings.selectedLogo !== selectedLogoState) {
       setSelectedLogoState(settings.selectedLogo);
-      // Ensure it's saved to localStorage for next load
       localStorage.setItem('selectedLogo', settings.selectedLogo);
     }
   }, [settings.selectedLogo, selectedLogoState]);
 
-  // Determine effective preference: true/false when known, null when still unresolved
-  const effectiveShowRecs: boolean | null = localShowRecs !== null ? localShowRecs : (isInitialized ? (settings.showRecommendations ?? false) : null);
-
-
-  // Placeholder for handleBangRedirect if it's not globally available or imported
+  // Placeholder for handleBangRedirect
   const handleBangRedirect = async (query: string): Promise<boolean> => {
-    // This is a placeholder. Actual implementation might involve API calls.
-    // If it makes fetch calls, they should also use fetchWithSessionRefresh.
-    console.log(`Placeholder: handleBangRedirect for "${query}"`);
     if (query.startsWith("!g ")) {
       window.location.href = `https://google.com/search?q=${encodeURIComponent(query.substring(3))}`;
       return true;
     }
     return false;
   };
-  
-  // Helper function to detect if input contains a bang
-  const checkForBang = (input: string): boolean => {
-    // Check for bang pattern (! followed by letters)
-    return /(?:^|\s)![a-z]+/.test(input.toLowerCase());
-  };
-  
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("karakulakEnabled");
@@ -158,7 +155,6 @@ export default function Home() {
       const serverValue = settings.showRecommendations ?? false;
       setLocalShowRecs(serverValue);
       try {
-        // If there was no local explicit value, persist server value locally for next loads
         if (localStorage.getItem('showRecommendations') === null) {
           localStorage.setItem('showRecommendations', String(serverValue));
         }
@@ -168,44 +164,6 @@ export default function Home() {
     }
   }, [isInitialized, settings.showRecommendations]);
 
-  // Fetch daily recommendations in background on page load
-  useEffect(() => {
-    let active = true;
-    const run = async () => {
-      setRecLoading(true);
-      try {
-        const res = await fetchWithSessionRefreshAndCache<{ results: string[]; date?: string; dateLabel?: string }>(
-          "/api/recommend",
-          { method: "GET", headers: { "Content-Type": "application/json" } },
-          { searchType: "ai", provider: "recommend", query: "today" }
-        );
-        if (!active) return;
-        if (res.ok) {
-          const data = await res.json();
-          const items = Array.isArray(data?.results) ? data.results.filter((s: any) => typeof s === "string" && s.trim()) : [];
-          if (items.length > 0) {
-            setRecs(items);
-            setRecIndex(0);
-            console.log(`[Recommendations] Loaded ${items.length} recommendations:`, items);
-          } else {
-            setRecs([]);
-            console.log('[Recommendations] No recommendations returned from API');
-          }
-        } else {
-          console.warn(`[Recommendations] API returned error status: ${res.status}`);
-        }
-      } catch (e) {
-        console.warn("[Recommendations] Failed to load recommendations", e);
-      } finally {
-        if (active) setRecLoading(false);
-      }
-    };
-    run();
-    return () => {
-      active = false;
-    };
-  }, []); // Only run once on mount
-
   useEffect(() => {
     const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
     let rafId: number | null = null;
@@ -213,7 +171,7 @@ export default function Home() {
       if (rafId != null) return;
       rafId = requestAnimationFrame(() => {
         const y = window.scrollY || 0;
-        const start = 120; 
+        const start = 120;
         const span = 220;
         const raw = Math.min(1, Math.max(0, (y - start) / span));
         const eased = easeOutCubic(raw);
@@ -238,9 +196,9 @@ export default function Home() {
         unlockingRef.current = true;
         setIsFocusLocked(false);
         setIsHeroInputFocused(false);
-        try { searchInputRef.current?.blur(); } catch {}
+        try { searchInputRef.current?.blur(); } catch { }
         window.setTimeout(() => { unlockingRef.current = false; }, 80);
-  pushedStateRef.current = false;
+        pushedStateRef.current = false;
       }
     };
     window.addEventListener('popstate', onPopState);
@@ -253,33 +211,26 @@ export default function Home() {
       const target = ev.target as Node | null;
       const insideSuggestions = suggestionsRef.current?.contains(target as Node) ?? false;
       const insideForm = heroFormRef.current?.contains(target as Node) ?? false;
-      
+
       if (!insideForm && !insideSuggestions) {
-        // Handle focus lock cleanup if active
         if (isFocusLocked) {
-          // Set unlocking flag FIRST to prevent onBlur from refocusing
           unlockingRef.current = true;
           setIsFocusLocked(false);
           setIsHeroInputFocused(false);
           if (pushedStateRef.current) {
-            try { history.back(); } catch {}
+            try { history.back(); } catch { }
             pushedStateRef.current = false;
           }
-          // Blur after state updates to ensure onBlur sees the correct state
           window.setTimeout(() => {
-            try { searchInputRef.current?.blur(); } catch {}
+            try { searchInputRef.current?.blur(); } catch { }
             window.setTimeout(() => { unlockingRef.current = false; }, 80);
           }, 10);
         } else if (isHeroInputFocused) {
-          // Handle regular unfocus if no lock
           setIsHeroInputFocused(false);
-          try { searchInputRef.current?.blur(); } catch {}
+          try { searchInputRef.current?.blur(); } catch { }
         }
-        
-        // Always hide suggestions when clicking outside
-        if (showSuggestions) {
-          setShowSuggestions(false);
-        }
+
+        closeSuggestionsAndInput(true);
       }
     };
     document.addEventListener('touchstart', handler, { passive: true });
@@ -288,7 +239,7 @@ export default function Home() {
       document.removeEventListener('touchstart', handler as any);
       document.removeEventListener('mousedown', handler as any);
     };
-  }, [isMobile, isFocusLocked, isHeroInputFocused, showSuggestions]);
+  }, [isMobile, isFocusLocked, isHeroInputFocused, showSuggestions, closeSuggestionsAndInput]);
 
   // Track mobile viewport and virtual keyboard visibility
   useEffect(() => {
@@ -301,9 +252,8 @@ export default function Home() {
       if (!vv) return;
       const h = Math.round(vv.height);
       setVvHeight(h);
-      // Heuristic: if the visual viewport is notably shorter than the layout viewport, keyboard is likely visible
       const reduced = (window.innerHeight || h) - h;
-      setKbVisible(reduced > 120); // ~ keyboard height threshold in px
+      setKbVisible(reduced > 120);
     };
     if (vv) {
       vv.addEventListener("resize", handleVV);
@@ -319,20 +269,6 @@ export default function Home() {
     };
   }, []);
 
-  const isBlankQuery = searchQuery.trim().length === 0;
-  const canShowRecommendations = effectiveShowRecs === true && isBlankQuery;
-  const recommendationSuggestions = useMemo(() => {
-    if (!canShowRecommendations || recs.length === 0) return [] as Suggestion[];
-    const size = Math.min(recommendationWindowSize, recs.length);
-    const items: Suggestion[] = [];
-    for (let i = 0; i < size; i++) {
-      const query = recs[(recIndex + i) % recs.length];
-      items.push({ query, type: "recommendation" });
-    }
-    return items;
-  }, [canShowRecommendations, recs, recIndex, recommendationWindowSize]);
-  const visibleSuggestions = canShowRecommendations ? recommendationSuggestions : suggestions;
-
   const handleRefreshRecommendations = useCallback(() => {
     if (!canShowRecommendations || recs.length === 0 || recSwitching) return;
     setRecSwitching(true);
@@ -341,7 +277,15 @@ export default function Home() {
       setSelectedIndex(-1);
       setRecSwitching(false);
     }, 200);
-  }, [canShowRecommendations, recs.length, recSwitching, recommendationWindowSize]);
+  }, [
+    canShowRecommendations,
+    recs.length,
+    recSwitching,
+    recommendationWindowSize,
+    setRecIndex,
+    setRecSwitching,
+    setSelectedIndex,
+  ]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,12 +293,14 @@ export default function Home() {
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
 
-    // It's generally better to handle bang redirects before deciding the target path,
-    // as a bang might take the user to a completely different site.
+    const now = Date.now();
+    if (now - lastSearchAtRef.current < 800) return;
+    lastSearchAtRef.current = now;
+
     if (isMobile && isHeroInputFocused) setIsSubmitting(true);
     const isBangRedirected = await handleBangRedirect(trimmed);
     if (isBangRedirected) {
-      return; // If redirected by a bang, no further action is needed here.
+      return;
     }
 
     const params = new URLSearchParams();
@@ -363,148 +309,75 @@ export default function Home() {
     let targetPath = "/search";
 
     startTransition(() => {
-      // Use a timeout to allow visual feedback before navigation
       setTimeout(() => {
         router.replace(`${targetPath}?${params.toString()}`);
-  // safety: in case navigation is delayed/cancelled by browser, release lock after a bit
-  setTimeout(() => setIsSubmitting(false), 1000);
-      }, 100); 
+        setTimeout(() => setIsSubmitting(false), 1000);
+      }, 100);
     });
   };
 
-  useEffect(() => {
-    let isMounted = true; // Flag to prevent state updates if component unmounts or effect re-runs
+  const dropdownActive = (showSuggestions || (isHeroInputFocused && searchQuery.trim().length === 0)) && !isSubmitting;
+  const shouldRenderDropdown = dropdownActive && (
+    suggestions.length > 0 ||
+    (canShowRecommendations && (recLoading || recs.length > 0))
+  );
+  const keyboardAware = isMobile && (isHeroInputFocused || kbVisible || isSubmitting);
 
-    const fetchSuggestions = async () => {
-      if (!isMounted) return;
-
-      // When search is empty and recommendations are enabled, show recommendations immediately
-  if (isBlankQuery) {
-        if (effectiveShowRecs === true && recs.length > 0) {
-          const recSuggestions = recs.map(rec => ({ query: rec, type: 'recommendation' as const }));
-          console.log(`[Suggestions] Showing ${recSuggestions.length} recommendations`, recSuggestions);
-          if (isMounted) setSuggestions(recSuggestions);
-        } else {
-          console.log(`[Suggestions] Not showing recommendations - effectiveShowRecs: ${effectiveShowRecs}, recs.length: ${recs.length}`);
-          if (isMounted) setSuggestions([]);
-        }
-        return;
-      }
-
-  if (!isBlankQuery && searchQuery.trim().length < 2) {
-        if (isMounted) setSuggestions([]);
-        return;
-      }
-
-  // Include user settings in cache key and in the request so suggestions
-  // are scoped to country/lang/safesearch. Use query-string style so keys
-  // match: autocomplete-brave-pornhub?country=ALL&lang=en&safesearch=off
-  const country = (typeof window !== 'undefined' && localStorage.getItem('searchCountry')) || 'ALL';
-  const safesearch = (typeof window !== 'undefined' && localStorage.getItem('safesearch')) || 'moderate';
-  const lang = (typeof window !== 'undefined' && (localStorage.getItem('language') || navigator.language?.slice(0,2))) || '';
-  const baseKey = `autocomplete-${autocompleteSource}-${searchQuery.trim().toLowerCase()}`;
-  const _paramsForKey = new URLSearchParams();
-  _paramsForKey.set('country', country);
-  if (lang) _paramsForKey.set('lang', lang);
-  _paramsForKey.set('safesearch', safesearch);
-  const cacheKey = `${baseKey}?${_paramsForKey.toString()}`;
-  const cached = sessionStorage.getItem(cacheKey);
-      if (!(window as any).__autocompleteRetryMap) (window as any).__autocompleteRetryMap = {};
-      const retryMap: Record<string, boolean> = (window as any).__autocompleteRetryMap;
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            if (isMounted) setSuggestions(parsed);
-            return;
-          }
-          if (Array.isArray(parsed) && parsed.length === 0 && retryMap[cacheKey]) {
-            if (isMounted) setSuggestions([]);
-            return;
-          }
-        } catch (e) {
-          // fall through to fetch
-        }
-      }
-
-      try {
-        const fetchSuggestionsForLang = async (langParam?: string) => {
-          const params = new URLSearchParams();
-          params.set('q', searchQuery);
-          params.set('country', country);
-          if (langParam) params.set('lang', langParam);
-          params.set('safesearch', safesearch);
-          const response = await fetchWithSessionRefresh(`/api/autocomplete/${autocompleteSource}?${params.toString()}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`Autocomplete fetch failed with status ${response.status}`);
-          }
-          const data = await response.json();
-
-          if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
-            return data[1].slice(0, 5).map((suggestion) => ({ query: suggestion, type: 'autocomplete' as const }));
-          }
-
-          console.warn('Unexpected suggestion format:', data);
-          return [] as Suggestion[];
-        };
-
-        let processedSuggestions: Suggestion[] = [];
-
-        try {
-          processedSuggestions = await fetchSuggestionsForLang(lang || undefined);
-        } catch (primaryError) {
-          console.error('Failed to fetch suggestions for current language:', primaryError);
-        }
-
-        if (processedSuggestions.length === 0 && lang && lang.toLowerCase() !== 'en') {
-          try {
-            const fallbackSuggestions = await fetchSuggestionsForLang('en');
-            if (fallbackSuggestions.length > 0) {
-              processedSuggestions = fallbackSuggestions;
-            }
-          } catch (fallbackError) {
-            console.error('Fallback autocomplete fetch failed:', fallbackError);
-          }
-        }
-
-        if (isMounted) setSuggestions(processedSuggestions);
-        sessionStorage.setItem(cacheKey, JSON.stringify(processedSuggestions));
-
-        if (processedSuggestions.length === 0) {
-          retryMap[cacheKey] = true;
-        } else if (retryMap[cacheKey]) {
-          delete retryMap[cacheKey];
-        }
-      } catch (error) {
-        console.error('Failed to fetch suggestions:', error);
-        if (isMounted) setSuggestions([]);
+  const startDropdownTracking = useCallback((durationMs = 360) => {
+    if (!shouldRenderDropdown) return;
+    if (dropdownTrackRafRef.current) {
+      cancelAnimationFrame(dropdownTrackRafRef.current);
+    }
+    const endAt = performance.now() + durationMs;
+    const tick = () => {
+      updateDropdownMetrics();
+      if (performance.now() < endAt) {
+        dropdownTrackRafRef.current = requestAnimationFrame(tick);
+      } else {
+        dropdownTrackRafRef.current = null;
       }
     };
+    dropdownTrackRafRef.current = requestAnimationFrame(tick);
+  }, [shouldRenderDropdown, updateDropdownMetrics]);
 
-  // Show recommendations immediately when search is empty, debounce autocomplete
-  const delay = isBlankQuery ? 0 : 200;
-    const timeoutId = setTimeout(fetchSuggestions, delay);
-    
+  useLayoutEffect(() => {
+    if (!shouldRenderDropdown) return;
+    updateDropdownMetrics();
+    startDropdownTracking();
     return () => {
-      isMounted = false; // Set to false on cleanup
-      clearTimeout(timeoutId);
+      if (dropdownTrackRafRef.current) {
+        cancelAnimationFrame(dropdownTrackRafRef.current);
+        dropdownTrackRafRef.current = null;
+      }
     };
-  }, [searchQuery, autocompleteSource, effectiveShowRecs, recs, isBlankQuery]);
+  }, [
+    keyboardAware,
+    isMobile,
+    scrollProgress,
+    shouldRenderDropdown,
+    updateDropdownMetrics,
+    vvHeight,
+    kbVisible,
+    isHeroInputFocused,
+    showSuggestions,
+    startDropdownTracking,
+  ]);
+
+  useEffect(() => {
+    if (!shouldRenderDropdown) return;
+    const handleResize = () => updateDropdownMetrics();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [shouldRenderDropdown, updateDropdownMetrics]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!shouldRenderDropdown || visibleSuggestions.length === 0) return;
+    if (!shouldRenderDropdown || suggestions.length === 0) return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < visibleSuggestions.length - 1 ? prev + 1 : prev
+        setSelectedIndex(prev =>
+          prev < suggestions.length - 1 ? prev + 1 : prev
         );
         break;
       case 'ArrowUp':
@@ -514,11 +387,10 @@ export default function Home() {
       case 'Enter':
         if (selectedIndex >= 0) {
           e.preventDefault();
-          const selected = visibleSuggestions[selectedIndex];
+          const selected = suggestions[selectedIndex];
           setSearchQuery(selected.query);
           setShowSuggestions(false);
-          
-          // Clean up mobile focus lock state before navigation
+
           if (isMobile && isFocusLocked) {
             unlockingRef.current = true;
             setIsFocusLocked(false);
@@ -528,11 +400,9 @@ export default function Home() {
             }
             setTimeout(() => { unlockingRef.current = false; }, 80);
           }
-          
-          // Navigate to search
+
           router.push(`/search?q=${encodeURIComponent(selected.query)}`);
         } else {
-          // Even if no suggestion is selected, hide the dropdown on Enter
           setShowSuggestions(false);
         }
         break;
@@ -542,76 +412,79 @@ export default function Home() {
     }
   };
 
+  const handleSuggestionClick = useCallback((suggestion: Suggestion) => {
+    setSearchQuery(suggestion.query);
+    setShowSuggestions(false);
+
+    if (isMobile && isFocusLocked) {
+      unlockingRef.current = true;
+      setIsFocusLocked(false);
+      setIsHeroInputFocused(false);
+      if (pushedStateRef.current) {
+        pushedStateRef.current = false;
+      }
+      setTimeout(() => {
+        unlockingRef.current = false;
+      }, 80);
+    }
+
+    router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
+  }, [isFocusLocked, isMobile, router, setIsFocusLocked, setIsHeroInputFocused, setSearchQuery, setShowSuggestions]);
+
   // Set the document title for the homepage
   useEffect(() => {
     document.title = tHome("metaTitle");
   }, [tHome]);
 
-  // Click outside handler for suggestions and input focus
+  // Click outside handler + global keydown listener
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       const clickedInsideSuggestions = suggestionsRef.current?.contains(target);
       const clickedInsideInput = searchInputRef.current?.contains(target);
       const clickedInsideForm = heroFormRef.current?.contains(target);
-      
+
       if (!clickedInsideSuggestions && !clickedInsideInput && !clickedInsideForm) {
-        if (showSuggestions) {
-          setShowSuggestions(false);
-        }
-        if (isHeroInputFocused) {
-          setIsHeroInputFocused(false);
-          try { searchInputRef.current?.blur(); } catch {}
-        }
+        closeSuggestionsAndInput(true);
       }
     };
 
-    // Add event listener
+    const handleGlobalKeydown = (ev: KeyboardEvent) => {
+      if (document.activeElement === searchInputRef.current) return;
+      if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph', 'CapsLock', 'Tab', 'Escape'].includes(ev.key)) {
+        return;
+      }
+      if (ev.ctrlKey || ev.metaKey || ev.altKey) {
+        return;
+      }
+      const isAlphanumeric = /^[a-zA-Z0-9]$/.test(ev.key);
+      if (!isAlphanumeric) return;
+
+      if ((window.scrollY || 0) > 0) {
+        const ua = navigator.userAgent || "";
+        const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
+        if (!isApple) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }
+
+      try {
+        (searchInputRef.current as any)?.focus({ preventScroll: true });
+      } catch {
+        searchInputRef.current?.focus();
+      }
+
+      setSearchQuery(prev => prev + ev.key);
+      ev.preventDefault();
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    
-    // Clean up
+    window.addEventListener('keydown', handleGlobalKeydown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleGlobalKeydown);
     };
-  }, [showSuggestions, isHeroInputFocused]);
-
-  // Global keydown listener to auto-focus search input and capture typing
-  useEffect(() => {
-    const handleGlobalKeydown = (ev: KeyboardEvent) => {
-      if (document.activeElement !== searchInputRef.current) {
-        // If user starts typing while scrolled, jump to top to expose the main search UI
-        const isTypingKey = ev.key === "Backspace" || (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey);
-        if ((window.scrollY || 0) > 0 && isTypingKey) {
-          const ua = navigator.userAgent || "";
-          const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
-          if (!isApple) {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }
-        }
-        try {
-          // Prevent browsers (notably Safari) from auto-scrolling too far when focusing
-          (searchInputRef.current as any)?.focus({ preventScroll: true });
-        } catch {
-          searchInputRef.current?.focus();
-        }
-        if (ev.key === "Backspace") {
-          setSearchQuery(prev => prev.slice(0, -1));
-        } else if (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
-          setSearchQuery(prev => prev + ev.key);
-        }
-        ev.preventDefault();
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeydown);
-    return () => window.removeEventListener('keydown', handleGlobalKeydown);
-  }, []);
-
-  const dropdownActive = (showSuggestions || (isHeroInputFocused && isBlankQuery)) && !isSubmitting;
-  const shouldRenderDropdown = dropdownActive && (
-    visibleSuggestions.length > 0 ||
-    (canShowRecommendations && (recLoading || recs.length > 0))
-  );
-  const keyboardAware = isMobile && (isHeroInputFocused || kbVisible || isSubmitting);
+  }, [closeSuggestionsAndInput]);
 
   useEffect(() => {
     if (!isHeroInputFocused || !canShowRecommendations) return;
@@ -621,9 +494,9 @@ export default function Home() {
   }, [isHeroInputFocused, canShowRecommendations, showSuggestions, recLoading, recs.length]);
 
   return (
-    <main className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
+    <main id="main-content" ref={mainRef} className="h-[100dvh] relative overflow-x-hidden overflow-hidden overscroll-none">
       {/* Top Right Welcome + Profile (only when not scrolled) */}
-  <div
+      <div
         className="fixed top-4 right-4 z-50"
         style={{
           opacity: keyboardAware ? 0 : (1 - scrollProgress),
@@ -641,7 +514,6 @@ export default function Home() {
                 {tHome("welcomePrefix")} <span className="font-semibold text-foreground">{user.name || tHome("defaultUser")}</span>!
               </div>
             )}
-            {/* Weather below welcome (only if placement is topRight) */}
             {(settings.weatherPlacement || 'topRight') === 'topRight' && (
               <div className="text-right">
                 <WeatherWidget size="sm" />
@@ -652,239 +524,142 @@ export default function Home() {
         </div>
       </div>
 
+      <HeroSection
+        keyboardAware={keyboardAware}
+        vvHeight={vvHeight}
+        logoLoaded={logoLoaded}
+        selectedLogoState={selectedLogoState}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        setShowSuggestions={setShowSuggestions}
+        handleKeyDown={handleKeyDown}
+        handleSearch={handleSearch}
+        isHeroInputFocused={isHeroInputFocused}
+        setIsHeroInputFocused={setIsHeroInputFocused}
+        isMobile={isMobile}
+        isFocusLocked={isFocusLocked}
+        setIsFocusLocked={setIsFocusLocked}
+        isSubmitting={isSubmitting}
+        setSelectedIndex={setSelectedIndex}
+        suggestionsRef={suggestionsRef}
+        heroFormRef={heroFormRef}
+        searchInputRef={searchInputRef}
+        unlockingRef={unlockingRef}
+        pushedStateRef={pushedStateRef}
+        hasBang={hasBang}
+        isDropdownOpen={shouldRenderDropdown}
+      />
 
+      {/* Suggestions Dropdown */}
+      {shouldRenderDropdown && (
+        <div
+          ref={suggestionsRef}
+          id="home-suggestions"
+          role="listbox"
+          aria-label={tSearch("relatedSearches")}
+          className={cn(
+            "absolute w-full max-w-3xl bg-card/85 backdrop-blur-xl border border-border/50 shadow-2xl z-40 ring-1 ring-black/5 dark:ring-white/10",
+            isMobile ? "rounded-3xl px-1.5 py-1.5" : "rounded-2xl overflow-hidden",
+            !dropdownMetrics && "left-1/2 -translate-x-1/2",
+            // Fallback position when metrics not yet computed - use closer top value on mobile when focused
+            !dropdownMetrics && (isMobile ? "top-[100px]" : (keyboardAware ? "top-[140px]" : "top-[calc(50vh+40px)] sm:top-[calc(50vh+60px)]"))
+          )}
+          style={dropdownMetrics ? { top: dropdownMetrics.top, left: dropdownMetrics.left, width: dropdownMetrics.width } : undefined}
+          data-mobile={isMobile}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          {/* Recommendations Header */}
+          {canShowRecommendations && (
+            <div
+              className={cn(
+                "flex items-center justify-between border-border/40",
+                isMobile ? "px-3 py-2 rounded-2xl border border-border/60 bg-background/80 shadow-sm" : "px-4 py-2 bg-muted/30 border-b"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="flex flex-col gap-0.5 text-xs font-medium text-muted-foreground">
+                <span className="flex items-center gap-1.5 text-foreground">
+                  <MessageCircleMore className="w-3.5 h-3.5" />
+                  {tHome("recommendations.title")}
+                </span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleRefreshRecommendations();
+                }}
+                disabled={recSwitching}
+                className="p-1.5 hover:bg-background/50 rounded-full transition-colors text-muted-foreground hover:text-primary disabled:opacity-50"
+                title={tHome("recommendations.refresh")}
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", recSwitching && "animate-spin")} />
+              </button>
+            </div>
+          )}
 
-      {/* Hero Section */}
-  <section
-        className={cn(
-          "flex flex-col items-center px-4 relative bg-gradient-to-b from-background via-background to-gray-50/30 dark:to-gray-950/10 transition-[height,padding] duration-200 ease-out",
-          keyboardAware ? "justify-start pt-3" : "justify-center h-[calc(100dvh-64px)]",
-        )}
-        style={{
-          height: keyboardAware && vvHeight ? `${Math.max(320, vvHeight - 140)}px` : undefined
-        }}
-      >
-        <div className={cn(
-          "w-full max-w-3xl text-center",
-          keyboardAware ? "space-y-2 -mt-1" : "space-y-8 -mt-6 sm:-mt-10 md:-mt-14"
-        )}>
-          {/* Logo */}
           <div
             className={cn(
-              "flex justify-center overflow-hidden transition-[opacity,transform,max-height] duration-200 ease-out",
-              keyboardAware ? "opacity-0 -translate-y-2 max-h-0" : "opacity-100 translate-y-0 max-h-[120px]"
+              "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
+              isMobile ? "flex flex-col gap-1.5 max-h-[60vh] overflow-y-auto px-1.5 pb-1.5 pt-0.5" : "max-h-[40vh] overflow-y-auto py-1.5"
             )}
           >
-            <div>
-              {logoLoaded && selectedLogoState ? (
-                (() => {
-                  const logoMetadata = getLogoMetadata(selectedLogoState);
-                  return (
-                    <Image 
-                      key={logoMetadata.path}
-                      src={logoMetadata.path} 
-                      alt={`${logoMetadata.name} logo`}
-                      width={logoMetadata.width} 
-                      height={logoMetadata.height} 
-                      priority
-                      fetchPriority="high"
-                      suppressHydrationWarning
-                    />
-                  );
-                })()
-              ) : (
-                <div style={{ width: 200, height: 66 }} className="bg-transparent" />
-              )}
-            </div>
-          </div>
-
-      {/* Search Bar */}
-  <form ref={heroFormRef} onSubmit={handleSearch} className={cn("relative w-full transition-[margin,transform] duration-200 ease-out", keyboardAware && "mt-6")}> 
-            <div className="relative group">
-              {/* Search input */}
-      <SearchInput
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowSuggestions(true);
+            {suggestions.map((suggestion, index) => (
+              <button
+                type="button"
+                key={`${suggestion.query}-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSuggestionClick(suggestion);
                 }}
-                onKeyDown={handleKeyDown}
-    onFocus={() => { 
-          setShowSuggestions(true); 
-          setIsHeroInputFocused(true); 
-          if (isMobile) {
-            if (!isFocusLocked) {
-              setIsFocusLocked(true);
-              try { history.pushState({ focusLock: true }, "", location.href); pushedStateRef.current = true; } catch {}
-            }
-            window.setTimeout(() => {
-              try {
-                const ua = navigator.userAgent || "";
-                const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
-                if (!isApple) {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              } catch {}
-            }, 50);
-          }
-        }}
-    onBlur={(e) => { 
-          if (isSubmitting) return; 
-          
-          // Give time for click events on suggestions to fire first
-          window.setTimeout(() => {
-            // Check if the newly focused element is within suggestions
-            const newFocus = document.activeElement;
-            const clickedInSuggestions = suggestionsRef.current?.contains(newFocus as Node);
-            
-            if (clickedInSuggestions) {
-              // Keep the dropdown open and refocus input after interaction
-              return;
-            }
-            
-            if (isMobile && isFocusLocked && !unlockingRef.current) {
-              const ua = navigator.userAgent || "";
-              const isApple = /iPhone|iPad|iPod|Mac/.test(ua);
-              if (!isApple) {
-                window.setTimeout(() => searchInputRef.current?.focus(), 0);
-              }
-              return;
-            }
-            
-            setIsHeroInputFocused(false);
-            setIsFocusLocked(false);
-            setShowSuggestions(false);
-            setSelectedIndex(-1);
-          }, 150);
-        }}
-                placeholder={tHome("searchPlaceholder")}
-                className="w-full pr-24 shadow-lg transition-all duration-300 relative z-10"
-              />
-              
-              {/* Search button */}
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center z-20">
-                <Button type="submit" variant="ghost" size="icon" shape="pill" title={tSearch("searchButton")}>
-                  <Search className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-            
-            {/* Static links row under the search bar (when recommendations disabled or search not focused) */}
-            {!isHeroInputFocused && effectiveShowRecs !== true && (
-              <div className="absolute w-full mt-2 px-2 text-[15px] sm:text-base md:text-lg text-muted-foreground/90 font-medium">
-                <div className="flex items-center justify-center">
-                  <div className="flex items-center gap-3 mt-1 text-muted-foreground mx-auto flex-wrap">
-                    <Link href="/about" className="hover:text-foreground transition-colors">
-                      <div className="flex items-center gap-2">
-                        <Lock className="w-4 h-4" />
-                        <span className="font-medium">{tHome("quickLinks.privateSearches")}</span>
-                      </div>
-                    </Link>
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
-                    <Link href="https://chat.tekir.co" className="hover:text-foreground transition-colors">
-                      <div className="flex items-center gap-2">
-                        <MessageCircleMore className="w-4 h-4" />
-                        <span className="font-medium">{tHome("quickLinks.aiChat")}</span>
-                      </div>
-                    </Link>
-                    {showHeroWeather && (
-                      <>
-                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
-                        <WeatherWidget size="link" />
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Autocomplete dropdown with recommendations */}
-            {shouldRenderDropdown && (
-              <div 
-                ref={suggestionsRef}
-                className="absolute w-full mt-2 py-2 bg-background rounded-lg border border-border shadow-lg z-50"
+                className={cn(
+                  "w-full text-left transition-colors",
+                  isMobile
+                    ? "flex items-center gap-2.5 rounded-xl border border-border/60 bg-background/80 px-2.5 py-2 shadow-sm"
+                    : "flex items-center gap-3 px-4 py-3",
+                  index === selectedIndex && !isMobile
+                    ? "bg-accent/50 text-accent-foreground"
+                    : "hover:bg-accent/30 text-foreground/90"
+                )}
               >
-                {canShowRecommendations && (
-                  <>
-                    <div className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 text-left">
-                      {tHome("recommendations.title")}
-                    </div>
-                    {recLoading && recommendationSuggestions.length === 0 && (
-                      <div className="px-4 py-3 text-sm text-muted-foreground/70 flex items-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-                        <span>{tHome("recommendations.loading")}</span>
-                      </div>
+                {isMobile ? (
+                  <div
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-lg shrink-0",
+                      suggestion.type === "recommendation"
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted/60 text-muted-foreground"
                     )}
-                  </>
-                )}
-                {visibleSuggestions.map((suggestion: Suggestion, index: number) => {
-                  const isRecommendation = suggestion.type === 'recommendation';
-                  return (
-                    <button
-                      key={`${suggestion.type}-${suggestion.query}`}
-                      onMouseDown={(e) => {
-                        e.preventDefault(); // Prevent input blur
-                        e.stopPropagation(); // Prevent mobile unlock handler
-                        setSearchQuery(suggestion.query);
-                        setShowSuggestions(false);
-                        
-                        // Clean up mobile focus lock state before navigation
-                        if (isMobile && isFocusLocked) {
-                          unlockingRef.current = true;
-                          setIsFocusLocked(false);
-                          setIsHeroInputFocused(false);
-                          if (pushedStateRef.current) {
-                            pushedStateRef.current = false;
-                          }
-                          setTimeout(() => { unlockingRef.current = false; }, 80);
-                        }
-                        
-                        // Navigate to search
-                        router.push(`/search?q=${encodeURIComponent(suggestion.query)}`);
-                      }}
-                      className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${
-                        index === selectedIndex ? 'bg-muted' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {isRecommendation ? (
-                          <>
-                            <Search className="w-4 h-4 text-primary" />
-                            <span className="text-sm text-foreground/90 font-normal">{suggestion.query}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Search className="w-4 h-4 text-muted-foreground" />
-                            <span>{suggestion.query}</span>
-                          </>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-                {canShowRecommendations && recommendationSuggestions.length > 0 && recs.length > recommendationWindowSize && (
-                  <div className="px-4 pt-2">
-                    <button
-                      type="button"
-                      className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                      onMouseDown={(e) => {
-                        e.preventDefault(); // Prevent input blur
-                        handleRefreshRecommendations();
-                      }}
-                      disabled={recSwitching}
-                    >
-                      {recSwitching ? tHome("recommendations.refreshing") : tHome("recommendations.refresh")}
-                    </button>
+                  >
+                    <Search className="w-3 h-3" />
                   </div>
+                ) : suggestion.type === 'recommendation' ? (
+                  <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Search className="w-3 h-3 text-primary" />
+                  </div>
+                ) : (
+                  <Search className="w-4 h-4 text-muted-foreground shrink-0" />
                 )}
-              </div>
-            )}
-          </form>          
+                <div className="flex-1 min-w-0">
+                  <span className={cn("font-medium", isMobile ? "text-sm leading-tight" : "truncate")}>{suggestion.query}</span>
+                </div>
+              </button>
+            ))}
           </div>
-      </section>
-      {/* Fixed on-screen footer */}
-      <MainFooter hidden={keyboardAware} />
+        </div>
+      )}
+
+      <MainFooter />
     </main>
-  )};
+  );
+}

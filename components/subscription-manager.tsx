@@ -4,18 +4,19 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Loader2, Sparkles, CreditCard, Calendar, XCircle, ExternalLink, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Sparkles, CreditCard, Calendar, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import posthog from 'posthog-js';
 
 interface SubscriptionManagerProps {
   productId?: string;
-  organizationName?: string;
 }
 
 interface SubscriptionInfo {
   id: string;
   status: string;
-  currentPeriodEnd: number;
+  currentPeriodEnd: string | number | null;
+  currentPeriodStart?: string | number | null;
   cancelAtPeriodEnd: boolean;
   product?: {
     name: string;
@@ -33,7 +34,6 @@ interface SubscriptionInfo {
 
 export default function SubscriptionManager({
   productId = process.env.NEXT_PUBLIC_POLAR_PRODUCT_ID || '',
-  organizationName = process.env.NEXT_PUBLIC_POLAR_ORGANIZATION || 'tekir',
 }: SubscriptionManagerProps) {
   const { user } = useAuth();
   const t = useTranslations('subscription');
@@ -41,6 +41,10 @@ export default function SubscriptionManager({
   const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [refreshingStatus, setRefreshingStatus] = useState(false);
+  const [refreshFailed, setRefreshFailed] = useState(false);
 
   const isPaid = user?.roles?.some((role: string) => role.toLowerCase() === 'paid');
 
@@ -60,26 +64,37 @@ export default function SubscriptionManager({
         return;
       }
 
-      try {
-        const response = await fetch('/api/polar/subscription', {
-          credentials: 'include',
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.hasSubscription && data.subscription) {
-            setSubscription(data.subscription);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch subscription:', err);
-      } finally {
-        setCheckingSubscription(false);
-      }
+      await fetchSubscriptionData();
     };
 
     checkSubscription();
   }, [isPaid]);
+
+  const fetchSubscriptionData = async () => {
+    try {
+      setError(null);
+      const response = await fetch('/api/polar/subscription', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasSubscription && data.subscription) {
+          setSubscription(data.subscription);
+        } else {
+          setSubscription(null);
+        }
+      } else {
+        setError('Failed to fetch subscription data');
+      }
+    } catch (err) {
+      console.error('Failed to fetch subscription:', err);
+      setError('Network error while fetching subscription');
+    } finally {
+      setCheckingSubscription(false);
+      setLastFetched(new Date());
+    }
+  };
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -102,12 +117,53 @@ export default function SubscriptionManager({
         throw new Error(data.error || t('errors.checkoutFailed'));
       }
 
+      // Capture subscription checkout started event in PostHog
+      posthog.capture('subscription_checkout_started', {
+        product_id: productId,
+      });
+
       // Redirect to Polar checkout
       window.location.href = data.checkoutUrl;
     } catch (err) {
       console.error('Upgrade error:', err);
       setError(err instanceof Error ? err.message : t('errors.upgradeFailed'));
       setLoading(false);
+    }
+  };
+
+  const handleRefreshStatus = async () => {
+    setRefreshingStatus(true);
+    setError(null);
+    setRefreshFailed(false);
+    try {
+      const response = await fetch('/api/polar/refresh-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message || 'Failed to refresh subscription status');
+      }
+
+      if (!data.foundActiveSubscription) {
+        setRefreshFailed(true);
+      }
+
+      if (data.foundActiveSubscription) {
+        setRefreshFailed(false);
+        // Reload to ensure auth context / UI reflects Plus role.
+        window.location.reload();
+        return;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh subscription status');
+      setRefreshFailed(true);
+    } finally {
+      setRefreshingStatus(false);
     }
   };
 
@@ -118,12 +174,62 @@ export default function SubscriptionManager({
     return `${currencySymbol}${formattedAmount}/${intervalText}`;
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const formatDate = (dateInput: number | string | null | undefined) => {
+    if (!dateInput) return 'N/A';
+    
+    try {
+      // Handle both Unix timestamp (number) and ISO string
+      const date = typeof dateInput === 'number' 
+        ? new Date(dateInput * 1000)  // Unix timestamp in seconds
+        : new Date(dateInput);         // ISO string
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/polar/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          returnUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || t('errors.portalFailed'));
+      }
+
+      if (data.portalUrl) {
+        window.location.href = data.portalUrl;
+      } else {
+        throw new Error(t('errors.portalFailed'));
+      }
+    } catch (err) {
+      console.error('Portal link error:', err);
+      setError(err instanceof Error ? err.message : t('errors.portalFailed'));
+      setPortalLoading(false);
+    }
   };
 
   // Free user view - show upgrade option
@@ -161,24 +267,42 @@ export default function SubscriptionManager({
               <span>{error}</span>
             </div>
           )}
-          <Button
-            onClick={handleUpgrade}
-            disabled={loading || !user}
-            className="w-full"
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {t('actions.loading')}
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                {t('actions.upgrade')}
-              </>
-            )}
-          </Button>
+          <div className="flex w-full gap-2">
+            <Button
+              onClick={handleUpgrade}
+              disabled={loading || refreshingStatus || !user}
+              className="flex-1"
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t('actions.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {t('actions.upgrade')}
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleRefreshStatus}
+              disabled={loading || refreshingStatus || !user}
+              variant="outline"
+              size="lg"
+              className={refreshFailed ? "shrink-0 border-destructive text-destructive hover:bg-destructive/10" : "shrink-0"}
+              aria-invalid={refreshFailed || undefined}
+              title="Refresh subscription status"
+              aria-label="Refresh subscription status"
+            >
+              {refreshingStatus ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
           {!user && (
             <p className="text-xs text-muted-foreground text-center">
               {t('actions.signInRequired')}
@@ -275,16 +399,26 @@ export default function SubscriptionManager({
       </CardContent>
       <CardFooter className="flex-col gap-3">
         {/* Manage Subscription Button */}
-        <a
-          href={`https://polar.sh/${organizationName}/portal`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-background hover:bg-muted transition-colors rounded-lg border border-border text-sm font-medium"
+        <Button
+          onClick={handleManageSubscription}
+          disabled={portalLoading}
+          variant="secondary"
+          className="w-full inline-flex items-center justify-center gap-2"
         >
-          <CreditCard className="w-4 h-4" />
-          {t('actions.manage')}
-          <ExternalLink className="w-3 h-3" />
-        </a>
+          {portalLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <CreditCard className="w-4 h-4" />
+          )}
+          {portalLoading ? t('actions.loading') : t('actions.manage')}
+        </Button>
+
+        {error && (
+          <div className="w-full p-3 text-sm bg-destructive/10 text-destructive rounded-md flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Additional Info */}
         <p className="text-xs text-muted-foreground text-center">

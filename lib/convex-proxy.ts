@@ -35,7 +35,6 @@ function getConvexUrl(): string {
 class ProxiedConvexReactClient extends ConvexReactClient {
   constructor() {
     const url = getConvexUrl();
-    console.log(`Convex client connecting to: ${CONVEX_CONFIG.useProxy ? 'proxy' : 'direct'} - ${url}`);
     
     super(url, {
       // Additional options for proxy support
@@ -48,7 +47,7 @@ class ProxiedConvexReactClient extends ConvexReactClient {
 class ProxiedConvexHttpClient extends ConvexHttpClient {
   constructor() {
     const url = getConvexUrl();
-    console.log(`Convex HTTP client connecting to: ${CONVEX_CONFIG.useProxy ? 'proxy' : 'direct'} - ${url}`);
+    // Avoid noisy browser console logs.
     
     super(url);
   }

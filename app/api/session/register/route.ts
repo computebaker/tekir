@@ -3,6 +3,9 @@ import { randomBytes } from 'crypto';
 import { registerSessionToken, isConvexConfigured, hashIp, getRateLimitStatus } from '@/lib/convex-session';
 import { getJWTUser } from '@/lib/jwt-auth';
 import { RATE_LIMITS, getUserRateLimit, getSessionExpiration } from '@/lib/rate-limits';
+import { WideEvent } from '@/lib/wide-event';
+import { flushServerEvents } from '@/lib/analytics-server';
+import { randomUUID } from 'crypto';
 
 // Function to get client IP address from request
 function getClientIp(req: NextRequest): string | null {
@@ -20,8 +23,18 @@ function getClientIp(req: NextRequest): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  const traceId = randomUUID();
+  const startTime = Date.now();
+  
+  const wideEvent = WideEvent.getOrCreate();
+  wideEvent.setRequest({ method: 'POST', path: '/api/session/register' });
+  wideEvent.setCustom('trace_id', traceId);
+  
   if (!isConvexConfigured) {
     console.warn("Convex is not configured. Cannot register session token via API.");
+    wideEvent.setCustom('latency_ms', Date.now() - startTime);
+    wideEvent.finish(200);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
     return NextResponse.json({ success: true, message: "Convex not configured, skipping registration." });
   }
 
@@ -29,6 +42,12 @@ export async function POST(req: NextRequest) {
     // Check if user is authenticated
     const user = await getJWTUser(req);
     const userId = user?.userId || null;
+    
+    if (userId) {
+      wideEvent.setUser({ id: userId });
+    }
+    
+    wideEvent.setCustom('is_authenticated', !!userId);
 
     const clientIp = getClientIp(req);
     let hashedIpValue: string | null = null;
@@ -47,11 +66,17 @@ export async function POST(req: NextRequest) {
       // 16-byte random hex ID
       deviceId = randomBytes(16).toString('hex');
     }
+    
+    wideEvent.setSession({ new: !req.cookies.get('device-id'), duration_seconds: expirationInSeconds });
 
     // Pass userId to link session to authenticated user and include deviceId
     const token = await registerSessionToken(hashedIpValue, expirationInSeconds, userId, deviceId);
 
     if (!token) {
+      wideEvent.setError({ type: 'SessionError', message: 'Failed to register session token', code: 'token_registration_failed' });
+      wideEvent.setCustom('latency_ms', Date.now() - startTime);
+      wideEvent.finish(500);
+      flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
       return NextResponse.json({ success: false, error: 'Failed to register session token.' }, { status: 500 });
     }
     
@@ -100,9 +125,22 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 365, // 1 year
       path: '/',
     });
+    
+    wideEvent.setCustom('latency_ms', Date.now() - startTime);
+    wideEvent.finish(200);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+    
     return response;
   } catch (error) {
+    const duration = Date.now() - startTime;
+    
     console.error("Error in /api/session/register:", error);
+    
+    wideEvent.setError({ type: error instanceof Error ? error.name : 'UnknownError', message: error instanceof Error ? error.message : 'Internal server error', code: 'session_register_error' });
+    wideEvent.setCustom('latency_ms', duration);
+    wideEvent.finish(500);
+    flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
+    
     let errorMessage = "Internal server error.";
     if (error instanceof Error) {
         errorMessage = error.message;

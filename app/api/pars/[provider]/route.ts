@@ -5,6 +5,12 @@ import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
 import { getJWTUser } from '@/lib/jwt-auth';
+import {
+  trackServerSearch,
+  trackAPIError,
+  flushServerEvents,
+  trackServerLog,
+} from '@/lib/analytics-server';
 
 async function fetchFaviconsForResults(items: Array<{ url: string; favicon?: string }>) {
   if (!Array.isArray(items) || items.length === 0) return;
@@ -117,7 +123,9 @@ async function getGoogle(q: string, country?: string, safesearch?: string, lang?
   const cx = process.env.GOOGLE_CX;
 
   if (!apiKey || !cx) {
-    console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Google Custom Search credentials are missing. Set GOOGLE_API_KEY and GOOGLE_CX.');
+    }
     return { results, totalResults };
   }
 
@@ -179,7 +187,9 @@ async function getGoogle(q: string, country?: string, safesearch?: string, lang?
       });
     });
   } catch (error) {
-    console.error('Error fetching Google results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Google results:', error);
+    }
   }
 
   return { results, totalResults };
@@ -237,7 +247,9 @@ async function getBrave(q: string, country: string = 'ALL', safesearch: string =
       }));
     }
   } catch (error) {
-    console.error('Error fetching Brave results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching Brave results:', error);
+    }
   }
   return { results, videos, news };
 }
@@ -248,7 +260,9 @@ async function getYou(q: string, country?: string | null, safesearch?: string | 
   const apiKey = process.env.YOU_SEARCH_KEY;
 
   if (!apiKey) {
-    console.error('You.com Search API key is missing. Set YOU_SEARCH_KEY.');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('You.com Search API key is missing. Set YOU_SEARCH_KEY.');
+    }
     return { results, totalResults };
   }
 
@@ -318,7 +332,9 @@ async function getYou(q: string, country?: string | null, safesearch?: string | 
       });
     });
   } catch (error) {
-    console.error('Error fetching You.com results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching You.com results:', error);
+    }
   }
 
   return { results, totalResults };
@@ -334,21 +350,21 @@ async function getDuck(q: string): Promise<Results[]> {
       }
     });
     if (!res.ok) throw new Error('Network response was not ok');
-    
+
     const arrayBuffer = await res.arrayBuffer();
     const html = iconv.decode(Buffer.from(arrayBuffer), 'utf-8');
     const $ = load(html);
-    
+
     $('.web-result').each((_, element) => {
       const titleElement = $(element).find('.result__title a');
       const snippetElement = $(element).find('.result__snippet');
       const urlElement = $(element).find('.result__url');
-      
-  const title = sanitizeText(titleElement.text().trim());
-  const description = sanitizeText(snippetElement.text().trim());
+
+      const title = sanitizeText(titleElement.text().trim());
+      const description = sanitizeText(snippetElement.text().trim());
       const url = titleElement.attr('href') || '';
       const displayUrl = urlElement.text().trim().replace(/^https?:\/\//, '');
-      
+
       if (title && url) {
         let favicon = '';
         try {
@@ -370,7 +386,9 @@ async function getDuck(q: string): Promise<Results[]> {
       }
     });
   } catch (error) {
-    console.error('Error fetching DuckDuckGo results:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching DuckDuckGo results:', error);
+    }
   }
   return results;
 }
@@ -382,13 +400,34 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const safesearch = req.nextUrl.searchParams.get('safesearch') || 'moderate';
   const lang = req.nextUrl.searchParams.get('lang') || req.nextUrl.searchParams.get('language') || undefined;
 
+  if (process.env.NODE_ENV === 'development') {
+    trackServerLog('search_request_received', {
+      provider,
+      query_length: query?.length || 0,
+    });
+  }
+
   const rateLimitResult = await checkRateLimit(req, '/api/pars');
   if (!rateLimitResult.success) {
+    if (process.env.NODE_ENV === 'development') {
+      trackServerLog('search_rate_limit_exceeded', {
+        provider,
+      });
+    }
     return rateLimitResult.response!;
   }
 
+  // Validate query parameter
   if (!query) {
     return NextResponse.json({ error: 'Missing query parameter "q".' }, { status: 400 });
+  }
+
+  // Prevent DoS attacks with extremely long queries (max 500 characters)
+  if (query.length > 500) {
+    return NextResponse.json(
+      { error: 'Query parameter is too long. Maximum length is 500 characters.' },
+      { status: 400 }
+    );
   }
 
   let results: Results[] = [];
@@ -397,7 +436,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   let videos: any[] = [];
   let news: any[] = [];
   let totalResultsCount = 0;
-  switch (provider.toLowerCase()) {
+  if (process.env.NODE_ENV === 'development') {
+    trackServerLog('search_provider_call', {
+      provider,
+    });
+  }
+
+  try {
+    switch (provider.toLowerCase()) {
     case 'duck':
       results = await getDuck(query);
       totalResultsCount = results.length;
@@ -415,6 +461,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       if (!authUser) {
         return NextResponse.json({ error: 'Authentication required for Google search.' }, { status: 401 });
       }
+      if (process.env.NODE_ENV === 'development') {
+        trackServerLog('search_google_authenticated', {
+          provider,
+        }, authUser.userId);
+      }
       const googleRes = await getGoogle(query, country, safesearch, lang);
       results = googleRes.results;
       totalResultsCount = results.length;
@@ -429,30 +480,86 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     default:
       return NextResponse.json({ error: 'Unsupported provider.' }, { status: 400 });
   }
+  } catch (error: any) {
+    const responseTime = Date.now() - now;
+    
+    // Track search error with PostHog
+    trackAPIError({
+      endpoint: '/api/pars/[provider]',
+      method: 'GET',
+      status_code: 500,
+      error_type: error.name || 'SearchError',
+      error_message: error.message || 'Unknown search error',
+      user_authenticated: !!(await getJWTUser(req)),
+    });
+    
+    flushServerEvents().catch((err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[PostHog] Failed to flush events:', err);
+      }
+    });
+
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[Search] ${provider} error:`, error);
+    }
+    return NextResponse.json({ error: 'Search failed', details: error.message }, { status: 500 });
+  }
 
   // Generate favicon URLs for returned results using our favicon proxy
   try {
     await fetchFaviconsForResults(results);
   } catch (e) {
-    console.warn('Favicon processing failed:', e);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Search] Favicon processing failed:', e);
+    }
   }
 
   const responseTime = Date.now() - now;
+  if (process.env.NODE_ENV === 'development') {
+    trackServerLog('search_provider_completed', {
+      provider,
+      response_time_ms: responseTime,
+    });
+  }
+
+  // Track successful search with PostHog
+  trackServerSearch({
+    search_type: 'web',
+    provider: provider.toLowerCase(),
+    results_count: totalResultsCount || results.length,
+    response_time_ms: responseTime,
+    user_authenticated: !!(await getJWTUser(req)),
+  });
+
+  // Fire-and-forget usage logging (no PII, aggregated daily)
   // Fire-and-forget usage logging (no PII, aggregated daily)
   try {
     const convex = getConvexClient();
     const type = 'web'; // this route serves web; videos/news are included in payload
-    await convex.mutation(api.usage.logSearchUsage, {
+    convex.mutation(api.usage.logSearchUsage, {
       provider: provider.toLowerCase(),
       type,
       responseTimeMs: responseTime,
       totalResults: totalResultsCount || results.length,
       queryText: query || undefined,
+    }).catch((e) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Convex] Failed to log search usage:', e);
+      }
     });
   } catch (e) {
-    console.warn('Failed to log search usage:', e);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Convex] Failed to initiate search usage logging:', e);
+    }
   }
-  
+
+  // Flush analytics after sending response
+  flushServerEvents().catch((err) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[PostHog] Failed to flush events:', err);
+    }
+  });
+
   return NextResponse.json({
     results,
     videos,
@@ -463,5 +570,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
       responseTime: `${responseTime}ms`,
       totalResults: totalResultsCount || results.length,
     },
+  }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+    }
   });
 }

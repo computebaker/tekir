@@ -16,7 +16,7 @@ export default function NotFound() {
               src="/tekir-head.png" 
               alt="Tekir Logo" 
               width={40} 
-              height={40} 
+              height={22} 
               priority 
             />
             <span className="text-xl font-semibold">Tekir</span>

@@ -4,6 +4,8 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
+import { handleAPIError } from '@/lib/api-error-tracking';
+import { captureServerEvent, type ServerEventProperties } from '@/lib/analytics-server';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -13,6 +15,17 @@ export const runtime = 'nodejs';
 // Store processed webhook IDs to prevent duplicate processing (in-memory cache)
 // In production, use Redis or database for distributed systems
 const processedWebhooks = new Set<string>();
+
+const logPolarWebhookEvent = (
+  event: string,
+  properties?: ServerEventProperties,
+  distinctId?: string
+) => {
+  captureServerEvent(`polar_webhook_${event}`, {
+    endpoint: '/api/polar/webhook',
+    ...properties,
+  }, distinctId);
+};
 
 /**
  * Polar.sh webhook handler
@@ -43,7 +56,7 @@ export async function POST(req: NextRequest) {
     // Get raw body as string for signature verification
     const rawBody = await req.text();
     
-    console.log('[Webhook] Received webhook request');
+    logPolarWebhookEvent('request_received');
     
     // Convert Next.js headers to a plain object
     const headersObj: Record<string, string> = {};
@@ -51,16 +64,23 @@ export async function POST(req: NextRequest) {
       headersObj[key.toLowerCase()] = value;
     });
     
-    console.log('[Webhook] Headers:', headersObj);
+    logPolarWebhookEvent('headers_received', {
+      header_count: Object.keys(headersObj).length,
+      has_signature: Boolean(headersObj['webhook-signature']),
+      has_timestamp: Boolean(headersObj['webhook-timestamp']),
+    });
 
     // Verify webhook signature using Polar's SDK
     const webhookSecret = polarConfig.webhookSecret;
     
     if (!webhookSecret) {
       console.error('[Webhook] POLAR_WEBHOOK_SECRET not configured');
-      return NextResponse.json(
-        { error: 'Webhook secret not configured' },
-        { status: 500, headers }
+      return handleAPIError(
+        new Error('Webhook secret not configured'),
+        req,
+        '/api/polar/webhook',
+        'POST',
+        500
       );
     }
 
@@ -70,34 +90,37 @@ export async function POST(req: NextRequest) {
       // Pass the headers object directly - the SDK will look for webhook-signature and webhook-timestamp
       event = validateEvent(rawBody, headersObj, webhookSecret);
       
-      console.log('[Webhook] Signature verified successfully');
+      logPolarWebhookEvent('signature_verified');
     } catch (error) {
       console.error('[Webhook] Signature validation failed:', error);
       console.error('[Webhook] Error details:', error instanceof Error ? error.message : String(error));
       
-      if (error instanceof WebhookVerificationError) {
-        // Log for debugging
-        console.error('[Webhook] WebhookVerificationError - check your POLAR_WEBHOOK_SECRET');
-        console.error('[Webhook] Expected secret format: polar_whs_...');
-        console.error('[Webhook] Secret configured:', webhookSecret ? `Yes (length: ${webhookSecret.length})` : 'No');
-        
+      if (error instanceof WebhookVerificationError) {        
         // TEMPORARY: Parse body anyway for debugging (REMOVE IN PRODUCTION)
         if (process.env.NODE_ENV === 'development') {
           console.warn('[Webhook] DEV MODE: Processing despite signature failure');
           try {
             event = JSON.parse(rawBody);
-            console.log('[Webhook] DEV MODE: Parsed event type:', event.type);
+            logPolarWebhookEvent('dev_mode_event_parsed', {
+              event_type: event.type,
+            });
           } catch (parseError) {
             console.error('[Webhook] DEV MODE: Failed to parse body:', parseError);
-            return NextResponse.json(
-              { error: 'Invalid webhook signature and unable to parse body' },
-              { status: 403, headers }
+            return handleAPIError(
+              new Error('Invalid webhook signature and unable to parse body'),
+              req,
+              '/api/polar/webhook',
+              'POST',
+              403
             );
           }
         } else {
-          return NextResponse.json(
-            { error: 'Invalid webhook signature' },
-            { status: 403, headers }
+          return handleAPIError(
+            new Error('Invalid webhook signature'),
+            req,
+            '/api/polar/webhook',
+            'POST',
+            403
           );
         }
       } else {
@@ -110,65 +133,92 @@ export async function POST(req: NextRequest) {
     const data = event.data;
     webhookId = event.id || `${eventType}_${Date.now()}`;
 
-    console.log(`[Webhook ${webhookId}] Received event: ${eventType}`);
+    logPolarWebhookEvent('event_received', {
+      event_type: eventType,
+      webhook_id_present: Boolean(webhookId),
+    });
 
     // Check for duplicate webhook processing (idempotency)
     if (webhookId && processedWebhooks.has(webhookId)) {
-      console.log(`[Webhook ${webhookId}] Already processed, skipping`);
+      logPolarWebhookEvent('duplicate_webhook', {
+        webhook_id_present: true,
+      });
       return NextResponse.json({ received: true, duplicate: true }, { headers });
     }
 
     // Handle different event types
     switch (eventType) {
       case 'checkout.created':
-        console.log(`[${webhookId}] Checkout created:`, data.id);
+        logPolarWebhookEvent('checkout_created', {
+          webhook_id_present: Boolean(webhookId),
+        });
         await handleCheckoutCreated(data);
         break;
 
       case 'checkout.updated':
-        console.log(`[${webhookId}] Checkout updated:`, data.id, 'status:', data.status);
+        logPolarWebhookEvent('checkout_updated', {
+          webhook_id_present: Boolean(webhookId),
+          status: data.status,
+        });
         if (data.status === 'confirmed' || data.status === 'succeeded') {
           await handleCheckoutSuccess(data);
         }
         break;
 
       case 'subscription.created':
-        console.log(`[${webhookId}] Subscription created:`, data.id);
+        logPolarWebhookEvent('subscription_created', {
+          webhook_id_present: Boolean(webhookId),
+        });
         await handleSubscriptionCreated(data);
         break;
 
       case 'subscription.updated':
-        console.log(`[${webhookId}] Subscription updated:`, data.id, 'status:', data.status);
+        logPolarWebhookEvent('subscription_updated', {
+          webhook_id_present: Boolean(webhookId),
+          status: data.status,
+        });
         await handleSubscriptionUpdated(data);
         break;
 
       case 'subscription.active':
-        console.log(`[${webhookId}] Subscription active:`, data.id);
+        logPolarWebhookEvent('subscription_active', {
+          webhook_id_present: Boolean(webhookId),
+        });
         await handleSubscriptionActive(data);
         break;
 
       case 'subscription.canceled':
-        console.log(`[${webhookId}] Subscription canceled:`, data.id);
+        logPolarWebhookEvent('subscription_canceled', {
+          webhook_id_present: Boolean(webhookId),
+        });
         await handleSubscriptionCanceled(data);
         break;
 
       case 'subscription.uncanceled':
-        console.log(`[${webhookId}] Subscription uncanceled:`, data.id);
+        logPolarWebhookEvent('subscription_uncanceled', {
+          webhook_id_present: Boolean(webhookId),
+        });
         await handleSubscriptionUncanceled(data);
         break;
 
       case 'subscription.revoked':
-        console.log(`[${webhookId}] Subscription revoked:`, data.id);
+        logPolarWebhookEvent('subscription_revoked', {
+          webhook_id_present: Boolean(webhookId),
+        });
         await handleSubscriptionRevoked(data);
         break;
 
       case 'order.created':
-        console.log(`[${webhookId}] Order created:`, data.id);
+        logPolarWebhookEvent('order_created', {
+          webhook_id_present: Boolean(webhookId),
+        });
         await handleOrderCreated(data);
         break;
 
       default:
-        console.log(`[${webhookId}] Unhandled event type:`, event);
+        logPolarWebhookEvent('unhandled_event_type', {
+          event_type: eventType,
+        });
     }
 
     // Mark webhook as processed
@@ -185,6 +235,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, webhookId }, { headers });
   } catch (error) {
     console.error(`[Webhook ${webhookId}] Processing error:`, error);
+    handleAPIError(error, req, '/api/polar/webhook', 'POST', 500);
     return NextResponse.json(
       { 
         error: 'Webhook processing failed',
@@ -203,7 +254,7 @@ async function handleCheckoutCreated(data: any) {
   const userId = data.custom_field_data?.userId || data.metadata?.userId;
   
   if (userId) {
-    console.log(`User ${userId} started checkout`);
+    logPolarWebhookEvent('checkout_started', {}, userId);
     // Could track this in analytics
   }
 }
@@ -214,15 +265,25 @@ async function handleCheckoutCreated(data: any) {
 async function handleCheckoutSuccess(data: any) {
   const customerId = data.customer_id || data.customer?.id;
   const customerEmail = data.customer_email || data.customer?.email;
+  const embeddedUserId = data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId;
   
-  console.log(`Checkout success for customer ${customerId}, email: ${customerEmail}`);
+  logPolarWebhookEvent('checkout_success', {
+    has_customer_id: Boolean(customerId),
+    has_customer_email: Boolean(customerEmail),
+    has_embedded_user_id: Boolean(embeddedUserId),
+  });
 
-  // Try to find user by customer ID first
-  let userId = customerId ? await findUserByCustomerId(customerId) : null;
-  
-  // If not found and we have an email, try to find by email
+  // Prefer explicit userId we injected at checkout creation time.
+  let userId: string | null = embeddedUserId || null;
+
+  // Fallback: Try to find user by customer ID first
+  if (!userId) {
+    userId = customerId ? await findUserByCustomerId(customerId) : null;
+  }
+
+  // Fallback: If not found and we have an email, try to find by email
   if (!userId && customerEmail) {
-    console.log(`User not found by customer ID, searching by email: ${customerEmail}`);
+    logPolarWebhookEvent('checkout_lookup_by_email');
     userId = await findUserByEmail(customerEmail);
   }
 
@@ -233,12 +294,19 @@ async function handleCheckoutSuccess(data: any) {
 
   // Update user with Polar customer ID for future reference
   try {
+    const cronSecret = process.env.CONVEX_CRON_SECRET;
+    if (!cronSecret) {
+      console.error('[Webhook] CONVEX_CRON_SECRET not configured; cannot update user');
+      return;
+    }
     await convex.mutation(api.users.updateUser, {
       id: userId as Id<'users'>,
       polarCustomerId: customerId,
     });
 
-    console.log(`Updated user ${userId} with Polar customer ID: ${customerId}`);
+    logPolarWebhookEvent('customer_id_stored', {
+      has_customer_id: Boolean(customerId),
+    }, userId);
   } catch (error) {
     console.error('Failed to update user with customer ID:', error);
   }
@@ -250,16 +318,23 @@ async function handleCheckoutSuccess(data: any) {
 async function handleSubscriptionCreated(data: any) {
   const customerId = data.customer_id || data.customer?.id;
   const status = data.status;
-  
+
+  const embeddedUserId = data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId;
+
   // Try multiple ways to find the user
-  let userId = customerId ? await findUserByCustomerId(customerId) : null;
+  let userId: string | null = embeddedUserId || null;
+  if (!userId) {
+    userId = customerId ? await findUserByCustomerId(customerId) : null;
+  }
   
   if (!userId) {
     console.warn('Could not find user for subscription creation');
     return;
   }
 
-  console.log(`Subscription created for user ${userId} with status: ${status}`);
+  logPolarWebhookEvent('subscription_created_for_user', {
+    status,
+  }, userId);
 
   // Grant paid role if subscription is active or trialing
   if (status === 'active' || status === 'trialing') {
@@ -272,14 +347,18 @@ async function handleSubscriptionCreated(data: any) {
  */
 async function handleSubscriptionActive(data: any) {
   const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const userId =
+    data.custom_field_data?.userId ||
+    data.customFieldData?.userId ||
+    data.metadata?.userId ||
+    (customerId ? await findUserByCustomerId(customerId) : null);
 
   if (!userId) {
     console.warn('Could not find user for active subscription');
     return;
   }
 
-  console.log(`Subscription activated for user ${userId}`);
+  logPolarWebhookEvent('subscription_activated_for_user', {}, userId);
   await grantPaidRole(userId);
 }
 
@@ -288,14 +367,18 @@ async function handleSubscriptionActive(data: any) {
  */
 async function handleSubscriptionUncanceled(data: any) {
   const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const userId =
+    data.custom_field_data?.userId ||
+    data.customFieldData?.userId ||
+    data.metadata?.userId ||
+    (customerId ? await findUserByCustomerId(customerId) : null);
 
   if (!userId) {
     console.warn('Could not find user for uncanceled subscription');
     return;
   }
 
-  console.log(`Subscription uncanceled for user ${userId}`);
+  logPolarWebhookEvent('subscription_uncanceled_for_user', {}, userId);
   await grantPaidRole(userId);
 }
 
@@ -304,14 +387,18 @@ async function handleSubscriptionUncanceled(data: any) {
  */
 async function handleSubscriptionRevoked(data: any) {
   const customerId = data.customer_id;
-  const userId = data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId);
+  const userId =
+    data.custom_field_data?.userId ||
+    data.customFieldData?.userId ||
+    data.metadata?.userId ||
+    (customerId ? await findUserByCustomerId(customerId) : null);
 
   if (!userId) {
     console.warn('Could not find user for revoked subscription');
     return;
   }
 
-  console.log(`Subscription revoked for user ${userId}`);
+  logPolarWebhookEvent('subscription_revoked_for_user', {}, userId);
   await revokePaidRole(userId);
 }
 
@@ -321,14 +408,21 @@ async function handleSubscriptionRevoked(data: any) {
 async function handleSubscriptionUpdated(data: any) {
   const status = data.status;
   const customerId = data.customer_id || data.customer?.id;
-  const userId = customerId ? (data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId)) : null;
+  const userId = customerId
+    ? (data.custom_field_data?.userId ||
+        data.customFieldData?.userId ||
+        data.metadata?.userId ||
+        await findUserByCustomerId(customerId))
+    : (data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId || null);
 
   if (!userId) {
     console.warn('Could not find user for subscription update');
     return;
   }
 
-  console.log(`Subscription updated for user ${userId}, new status: ${status}`);
+  logPolarWebhookEvent('subscription_updated_for_user', {
+    status,
+  }, userId);
 
   // Update role based on new status
   // Active states that should grant access
@@ -346,14 +440,19 @@ async function handleSubscriptionUpdated(data: any) {
  */
 async function handleSubscriptionCanceled(data: any) {
   const customerId = data.customer_id || data.customer?.id;
-  const userId = customerId ? (data.custom_field_data?.userId || data.metadata?.userId || await findUserByCustomerId(customerId)) : null;
+  const userId = customerId
+    ? (data.custom_field_data?.userId ||
+        data.customFieldData?.userId ||
+        data.metadata?.userId ||
+        await findUserByCustomerId(customerId))
+    : (data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId || null);
 
   if (!userId) {
     console.warn('Could not find user for subscription cancellation');
     return;
   }
 
-  console.log(`Subscription canceled for user ${userId}`);
+  logPolarWebhookEvent('subscription_canceled_for_user', {}, userId);
   await revokePaidRole(userId);
 }
 
@@ -361,31 +460,51 @@ async function handleSubscriptionCanceled(data: any) {
  * Handle one-time order creation (order.created event fires when payment succeeds)
  */
 async function handleOrderCreated(data: any) {
-  // Log the full data structure to debug
-  console.log('[order.created] Full data:', JSON.stringify(data, null, 2));
+  logPolarWebhookEvent('order_created_payload', {
+    has_customer_id: Boolean(data.customer_id || data.customer?.id),
+    has_customer_email: Boolean(data.customer?.email || data.user?.email),
+    has_embedded_user_id: Boolean(data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId),
+  });
   
+  const embeddedUserId = data.custom_field_data?.userId || data.customFieldData?.userId || data.metadata?.userId;
   const customerId = data.customer_id || data.customer?.id;
   const customerEmail = data.customer?.email || data.user?.email;
   
-  console.log(`Order created for customer ${customerId}, email: ${customerEmail}`);
+  logPolarWebhookEvent('order_created', {
+    has_customer_id: Boolean(customerId),
+    has_customer_email: Boolean(customerEmail),
+    has_embedded_user_id: Boolean(embeddedUserId),
+  });
   
-  // First, try to find user by customer ID
-  let userId = customerId ? await findUserByCustomerId(customerId) : null;
+  // Prefer explicit userId we injected at checkout creation time.
+  let userId: string | null = embeddedUserId || null;
+
+  // Fallback: try to find user by customer ID
+  if (!userId) {
+    userId = customerId ? await findUserByCustomerId(customerId) : null;
+  }
   
   // If not found and we have an email, try to find by email
   if (!userId && customerEmail) {
-    console.log(`User not found by customer ID, searching by email: ${customerEmail}`);
+    logPolarWebhookEvent('order_lookup_by_email');
     userId = await findUserByEmail(customerEmail);
     
     // If found, update the user with the Polar customer ID
     if (userId) {
-      console.log(`Found user by email, updating with Polar customer ID`);
+      logPolarWebhookEvent('order_email_match_found', {}, userId);
       try {
+        const cronSecret = process.env.CONVEX_CRON_SECRET;
+        if (!cronSecret) {
+          console.error('[Webhook] CONVEX_CRON_SECRET not configured; cannot update user (order.created)');
+          return;
+        }
         await convex.mutation(api.users.updateUser, {
           id: userId as Id<'users'>,
           polarCustomerId: customerId,
         });
-        console.log(`Updated user ${userId} with Polar customer ID: ${customerId}`);
+        logPolarWebhookEvent('order_customer_id_stored', {
+          has_customer_id: Boolean(customerId),
+        }, userId);
       } catch (error) {
         console.error('Failed to update user with customer ID:', error);
       }
@@ -397,7 +516,7 @@ async function handleOrderCreated(data: any) {
     return;
   }
 
-  console.log(`Order created for user ${userId}`);
+  logPolarWebhookEvent('order_created_for_user', {}, userId);
   
   // For one-time purchases and subscriptions, grant paid role
   await grantPaidRole(userId);
@@ -442,6 +561,11 @@ async function findUserByCustomerId(customerId: string): Promise<string | null> 
  */
 async function grantPaidRole(userId: string) {
   try {
+    const cronSecret = process.env.CONVEX_CRON_SECRET;
+    if (!cronSecret) {
+      console.error('[Webhook] CONVEX_CRON_SECRET not configured; cannot grant paid role');
+      return;
+    }
     // Get current user roles
     const user = await convex.query(api.users.getUserById, {
       id: userId as Id<'users'>,
@@ -462,9 +586,10 @@ async function grantPaidRole(userId: string) {
       await convex.mutation(api.users.updateUserRoles, {
         id: userId as Id<'users'>,
         roles: newRoles,
+        cronSecret,
       });
 
-      console.log(`Granted paid role to user ${userId}`);
+      logPolarWebhookEvent('paid_role_granted', {}, userId);
     }
   } catch (error) {
     console.error('Failed to grant paid role:', error);
@@ -476,6 +601,11 @@ async function grantPaidRole(userId: string) {
  */
 async function revokePaidRole(userId: string) {
   try {
+    const cronSecret = process.env.CONVEX_CRON_SECRET;
+    if (!cronSecret) {
+      console.error('[Webhook] CONVEX_CRON_SECRET not configured; cannot revoke paid role');
+      return;
+    }
     const user = await convex.query(api.users.getUserById, {
       id: userId as Id<'users'>,
     });
@@ -494,9 +624,10 @@ async function revokePaidRole(userId: string) {
       await convex.mutation(api.users.updateUserRoles, {
         id: userId as Id<'users'>,
         roles: newRoles,
+        cronSecret,
       });
 
-      console.log(`Revoked paid role from user ${userId}`);
+      logPolarWebhookEvent('paid_role_revoked', {}, userId);
     }
   } catch (error) {
     console.error('Failed to revoke paid role:', error);

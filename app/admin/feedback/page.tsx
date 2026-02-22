@@ -3,8 +3,11 @@
 import React, { useState } from "react";
 import AdminShell from "@/components/admin/admin-shell";
 import AdminGuard from "@/components/admin/admin-guard";
+import { useAdminAccess } from "@/components/admin/use-admin-access";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/components/auth-provider";
+import { showToast } from "@/lib/toast";
 
 type Feedback = {
   _id: string;
@@ -20,19 +23,27 @@ type Feedback = {
 
 export default function AdminFeedbackPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const items = useQuery(api.feedbacks.listFeedbacks, { limit: 100 }) as Feedback[] | undefined;
+  const { isAdmin } = useAdminAccess();
+  const { authToken } = useAuth();
+  const items = useQuery(
+    api.feedbacks.listFeedbacks,
+    isAdmin && authToken ? { authToken, limit: 100 } : "skip"
+  ) as Feedback[] | undefined;
   const deleteFeedback = useMutation(api.feedbacks.deleteFeedback);
   // Optional error UI can be added with error boundaries; useQuery doesn't expose error directly
 
-  const loading = items === undefined;
+  const loading = !isAdmin || items === undefined;
 
   const handleDeleteClick = async (id: string) => {
     if (confirmingId === id) {
       setConfirmingId(null);
       try {
-        await deleteFeedback({ id: id as any });
-      } catch (e: any) {
-        alert(`Delete failed: ${e.message || 'Unknown error'}`);
+        if (!authToken) throw new Error("Missing auth token");
+        await deleteFeedback({ authToken, id: id as any });
+        showToast.success("Feedback deleted successfully");
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Unknown error';
+        showToast.error("Failed to delete feedback", message);
       }
     } else {
       setConfirmingId(id);
@@ -94,7 +105,9 @@ export default function AdminFeedbackPage() {
                     <td className="p-3 truncate max-w-[260px]" title={f.comment}>{f.comment || '-'}</td>
                     <td className="p-3 text-right">
                       <button
+                        type="button"
                         onClick={() => handleDeleteClick(f._id)}
+                        aria-pressed={confirmingId === f._id}
                         className={
                           `text-xs px-2 py-1 border rounded ` +
                           (confirmingId === f._id
