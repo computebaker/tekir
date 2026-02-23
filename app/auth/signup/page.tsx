@@ -102,7 +102,7 @@ export default function SignUpPage() {
           setTimeout(() => {
             window.removeEventListener('auth-login-confirmed', handleAuthConfirmed);
             resolve(false);
-          }, 5000);
+          }, 1000);
         });
 
         // Redirect to stored URL or home

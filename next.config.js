@@ -9,7 +9,7 @@ const contentSecurityPolicy = (isDev
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https: blob: https://api.dicebear.com https://i.ytimg.com https://upload.wikimedia.org https://imgs.search.brave.com;
     font-src 'self' data:;
-    connect-src 'self' https://*.convex.cloud https://*.convex.site https://eu.i.posthog.com https://*.polar.sh https://bang.lat wss://*.convex.cloud wss://*.convex.site blob:;
+    connect-src 'self' https://*.tekir.co https://*.convex.cloud https://*.convex.site https://eu.i.posthog.com https://*.polar.sh https://bang.lat wss://*.convex.cloud wss://*.convex.site blob:;
     form-action 'self';
     base-uri 'self';
     object-src 'none';
@@ -23,7 +23,7 @@ const contentSecurityPolicy = (isDev
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https: blob: https://api.dicebear.com https://i.ytimg.com https://upload.wikimedia.org https://imgs.search.brave.com;
     font-src 'self' data:;
-    connect-src 'self' https://*.convex.cloud https://*.convex.site https://eu.i.posthog.com https://*.polar.sh https://bang.lat wss://*.convex.cloud wss://*.convex.site blob:;
+    connect-src 'self' https://*.tekir.co https://*.convex.cloud https://*.convex.site https://eu.i.posthog.com https://*.polar.sh https://bang.lat wss://*.convex.cloud wss://*.convex.site blob:;
     form-action 'self';
     base-uri 'self';
     object-src 'none';
