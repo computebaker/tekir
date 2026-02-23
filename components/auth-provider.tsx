@@ -60,6 +60,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const lastCheckTimeRef = useRef(0); // Track last check time to prevent spam
   const initialCheckDoneRef = useRef(false); // Track if initial check completed
   const pendingAuthCheckRef = useRef<(() => void) | null>(null); // Store pending auth check
+  const authCheckPromiseRef = useRef<{ resolve: (value: boolean) => void; reject: (reason?: any) => void } | null>(null); // For promise-based auth checks
 
   const checkAuthStatus = useCallback(async (force = false, retryCount = 0) => {
     // Prevent multiple simultaneous auth checks
@@ -134,12 +135,22 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           // Only set authenticated status AFTER Convex auth is ready
           setStatus("authenticated");
           initialCheckDoneRef.current = true;
+
+          // Resolve any pending auth check promise
+          if (authCheckPromiseRef.current) {
+            authCheckPromiseRef.current.resolve(true);
+          }
         } else {
           setAuthToken(null);
           await convex.setAuth(async () => null);
           setUser(null);
           setStatus("unauthenticated");
           initialCheckDoneRef.current = true;
+
+          // Resolve any pending auth check promise (not authenticated)
+          if (authCheckPromiseRef.current) {
+            authCheckPromiseRef.current.resolve(false);
+          }
         }
       } else {
         setAuthToken(null);
@@ -147,6 +158,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setStatus("unauthenticated");
         initialCheckDoneRef.current = true;
+
+        // Resolve any pending auth check promise (not authenticated)
+        if (authCheckPromiseRef.current) {
+          authCheckPromiseRef.current.resolve(false);
+        }
       }
     } catch (error) {
       console.error('JWT auth check failed:', error);
@@ -177,6 +193,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setStatus("unauthenticated");
       initialCheckDoneRef.current = true;
+
+      // Resolve any pending auth check promise (not authenticated on error)
+      if (authCheckPromiseRef.current) {
+        authCheckPromiseRef.current.resolve(false);
+      }
     } finally {
       isCheckingRef.current = false;
     }
@@ -214,9 +235,36 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Listen for custom authentication events only
-    const handleAuthLogin = () => {
+    const handleAuthLogin = async () => {
+      // Create a promise that resolves when auth check completes
+      const authPromise = new Promise<boolean>((resolve, reject) => {
+        authCheckPromiseRef.current = { resolve, reject };
+      });
+
       // Force immediate check on login
       checkAuthStatus(true);
+
+      // Wait for the auth check to complete (with timeout)
+      try {
+        const isAuthenticated = await Promise.race([
+          authPromise,
+          new Promise<boolean>((_, reject) =>
+            setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+          )
+        ]);
+        return isAuthenticated;
+      } catch (error) {
+        console.error('Auth login check failed:', error);
+        return false;
+      } finally {
+        authCheckPromiseRef.current = null;
+      }
+    };
+
+    const handleAuthLoginEvent = async () => {
+      const isAuthenticated = await handleAuthLogin();
+      // Dispatch confirmation event with the result
+      window.dispatchEvent(new CustomEvent('auth-login-confirmed', { detail: isAuthenticated }));
     };
 
     const handleAuthLogout = () => {
@@ -225,11 +273,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       setStatus("unauthenticated");
     };
 
-    window.addEventListener('auth-login', handleAuthLogin);
+    window.addEventListener('auth-login', handleAuthLoginEvent);
     window.addEventListener('auth-logout', handleAuthLogout);
 
     return () => {
-      window.removeEventListener('auth-login', handleAuthLogin);
+      window.removeEventListener('auth-login', handleAuthLoginEvent);
       window.removeEventListener('auth-logout', handleAuthLogout);
     };
   }, [checkAuthStatus]); // Depend on stable callback

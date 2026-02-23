@@ -50,14 +50,26 @@ export default function SignInPage() {
           method: 'email_password',
         });
 
-        // Dispatch custom event to notify AuthProvider of successful login
-        window.dispatchEvent(new CustomEvent('auth-login'));
+        // Dispatch custom event to notify AuthProvider of successful login and wait for auth confirmation
+        const authConfirmed = await new Promise<boolean>((resolve) => {
+          const handleAuthConfirmed = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            resolve(detail === true);
+          };
 
-        // Small delay to allow AuthProvider to update before redirect
-        setTimeout(() => {
-          const redirectUrl = getRedirectUrlWithFallback('/');
-          router.push(redirectUrl);
-        }, 100);
+          window.addEventListener('auth-login-confirmed', handleAuthConfirmed, { once: true });
+          window.dispatchEvent(new CustomEvent('auth-login'));
+
+          // Fallback timeout in case auth provider doesn't respond
+          setTimeout(() => {
+            window.removeEventListener('auth-login-confirmed', handleAuthConfirmed);
+            resolve(false);
+          }, 5000);
+        });
+
+        // Redirect after auth is confirmed
+        const redirectUrl = getRedirectUrlWithFallback('/');
+        router.push(redirectUrl);
       } else {
         setError(data.error || "Invalid credentials");
       }

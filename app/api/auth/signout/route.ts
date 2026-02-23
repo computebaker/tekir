@@ -27,16 +27,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Clear both session and JWT cookies
+    // Clear JWT auth token cookie only (keep session-token for rate limiting)
     const response = NextResponse.json({ success: true });
-
-    // Clear session token cookie
-    response.cookies.set('session-token', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 0 // Expire immediately
-    });
 
     // Clear JWT auth token cookie
     response.cookies.set('auth-token', '', {

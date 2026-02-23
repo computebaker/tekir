@@ -88,7 +88,24 @@ export default function SignUpPage() {
       if (data.requiresVerification) {
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } else {
-        // If no verification required, redirect to stored URL or home
+        // If no verification required, wait for auth confirmation before redirect
+        const authConfirmed = await new Promise<boolean>((resolve) => {
+          const handleAuthConfirmed = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            resolve(detail === true);
+          };
+
+          window.addEventListener('auth-login-confirmed', handleAuthConfirmed, { once: true });
+          window.dispatchEvent(new CustomEvent('auth-login'));
+
+          // Fallback timeout in case auth provider doesn't respond
+          setTimeout(() => {
+            window.removeEventListener('auth-login-confirmed', handleAuthConfirmed);
+            resolve(false);
+          }, 5000);
+        });
+
+        // Redirect to stored URL or home
         const redirectUrl = getRedirectUrlWithFallback('/');
         router.push(redirectUrl);
       }
