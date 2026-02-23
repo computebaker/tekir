@@ -4,28 +4,30 @@ const isDev = process.env.NODE_ENV === 'development';
 const contentSecurityPolicy = (isDev
   ? `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://*.ribaunt.com;
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https: blob:;
+    img-src 'self' data: https: blob: https://api.dicebear.com https://i.ytimg.com https://upload.wikimedia.org https://imgs.search.brave.com;
     font-src 'self' data:;
-    connect-src 'self' https: wss: blob:;
+    connect-src 'self' https://*.convex.cloud https://*.convex.site https://eu.i.posthog.com https://*.polar.sh https://bang.lat wss://*.convex.cloud wss://*.convex.site blob:;
+    form-action 'self';
     base-uri 'self';
     object-src 'none';
-    frame-src 'self' https://status.tekir.co;
+    frame-src 'self' https://status.tekir.co https://*.polar.sh;
     frame-ancestors 'self' https://status.tekir.co;
   `
   : `
     default-src 'self';
-    script-src 'self' 'unsafe-inline';
+    script-src 'self' 'unsafe-inline' https://*.ribaunt.com;
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https: blob:;
+    img-src 'self' data: https: blob: https://api.dicebear.com https://i.ytimg.com https://upload.wikimedia.org https://imgs.search.brave.com;
     font-src 'self' data:;
-    connect-src 'self' https: wss: blob:;
+    connect-src 'self' https://*.convex.cloud https://*.convex.site https://eu.i.posthog.com https://*.polar.sh https://bang.lat wss://*.convex.cloud wss://*.convex.site blob:;
+    form-action 'self';
     base-uri 'self';
     object-src 'none';
-    frame-src 'self' https://status.tekir.co;
+    frame-src 'self' https://status.tekir.co https://*.polar.sh;
     frame-ancestors 'self' https://status.tekir.co;
   `
 )
