@@ -124,15 +124,35 @@ export async function handleBangRedirect(query: string): Promise<boolean> {
       has_search_terms: searchTerms !== '',
     });
 
+    let redirectUrl: string;
     if (searchTerms === "" && bang.main) {
       // If only a bang command is typed, redirect to the main URL
-      window.location.href = bang.main;
+      redirectUrl = bang.main;
     } else {
       const encodedTerms = encodeURIComponent(searchTerms);
-      const redirectUrl = bang.url.replace('{search}', encodedTerms);
-      window.location.href = redirectUrl;
+      redirectUrl = bang.url.replace('{search}', encodedTerms);
     }
-    return true;
+    
+    // Security: Validate redirect URL is safe
+    try {
+      const url = new URL(redirectUrl);
+      // Only allow https: protocol
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+        console.error('Unsafe redirect protocol:', url.protocol);
+        return false;
+      }
+      // Additional validation: prevent data:, javascript:, etc.
+      const unsafePatterns = ['javascript:', 'data:', 'vbscript:', 'file:', 'blob:'];
+      if (unsafePatterns.some(pattern => redirectUrl.toLowerCase().includes(pattern))) {
+        console.error('Unsafe redirect URL detected');
+        return false;
+      }
+      window.location.assign(redirectUrl);
+      return true;
+    } catch (e) {
+      console.error('Invalid redirect URL:', redirectUrl, e);
+      return false;
+    }
   }
   
   return false; // No matching bang found

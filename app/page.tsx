@@ -134,8 +134,20 @@ export default function Home() {
   // Placeholder for handleBangRedirect
   const handleBangRedirect = async (query: string): Promise<boolean> => {
     if (query.startsWith("!g ")) {
-      window.location.href = `https://google.com/search?q=${encodeURIComponent(query.substring(3))}`;
-      return true;
+      const searchTerms = query.substring(3);
+      // Validate search terms to prevent injection
+      const sanitizedTerms = searchTerms.replace(/[<>\"'\\]/g, '');
+      const redirectUrl = `https://google.com/search?q=${encodeURIComponent(sanitizedTerms)}`;
+      // Validate the redirect URL is https and well-formed
+      try {
+        const url = new URL(redirectUrl);
+        if (url.protocol === 'https:') {
+          window.location.assign(redirectUrl);
+          return true;
+        }
+      } catch {
+        // Invalid URL, ignore redirect
+      }
     }
     return false;
   };
