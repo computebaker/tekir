@@ -1,24 +1,32 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { useEffect, useRef, useState, useCallback } from 'react';
 import posthog from 'posthog-js';
+import RibauntWidget from 'ribaunt/widget-react';
 
-// Type definition for the Ribaunt widget element
-interface RibauntWidgetElement extends HTMLElement {
-  reset(): void;
-  getState(): string;
-  startVerification(): void;
+interface RibauntErrorDetail {
+  error?: string;
+  message?: string;
 }
 
+interface RibauntStateChangeDetail {
+  state?: string;
+}
+
+type RibauntWidgetElement = HTMLElementTagNameMap['ribaunt-widget'];
+
 export default function CaptchaPage() {
-  const widgetRef = useRef<RibauntWidgetElement | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [widgetLoaded, setWidgetLoaded] = useState(false);
+  const hasTrackedWidgetLoadedRef = useRef(false);
+  const hasRedirectedRef = useRef(false);
+  const widgetElementRef = useRef<RibauntWidgetElement | null>(null);
   const [heading, setHeading] = useState('Let\'s verify you before proceeding.');
   const [returnUrl, setReturnUrl] = useState('/');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [hostname, setHostname] = useState('localhost:3000');
+  const [widgetStatus, setWidgetStatus] = useState<'loading' | 'ready' | 'verifying' | 'done' | 'error'>(
+    'loading'
+  );
 
   // Get the return URL from either query param or current pathname
   useEffect(() => {
@@ -96,114 +104,177 @@ export default function CaptchaPage() {
     }
   }, []);
 
-  // Callback ref to get the widget element when it's mounted
-  const widgetCallbackRef = useCallback((element: HTMLElement | null) => {
-    if (element && !widgetRef.current) {
-      console.log('Widget element mounted:', element);
-      widgetRef.current = element as RibauntWidgetElement;
-      setWidgetLoaded(true);
-
-      posthog.capture('captcha_widget_mounted', {
-        return_url: returnUrl,
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!widgetLoaded || !widgetRef.current) {
+  const completeVerification = useCallback(() => {
+    if (hasRedirectedRef.current) {
       return;
     }
 
-    const widget = widgetRef.current;
-    console.log('Setting up widget event listeners');
+    hasRedirectedRef.current = true;
+    setHeading('Continuing to your destination...');
 
-    // Listen for verification success
-    const verifyHandler = async (e: Event) => {
-      console.log('Verify event received:', e);
-      setHeading('Continuing to your destination...');
+    posthog.capture('captcha_verified', {
+      return_url: returnUrl,
+    });
 
-      // Capture captcha verified event in PostHog
-      posthog.capture('captcha_verified', {
+    console.log('Redirecting to:', returnUrl);
+
+    setTimeout(() => {
+      posthog.capture('captcha_redirected', {
         return_url: returnUrl,
       });
+      window.location.href = returnUrl;
+    }, 300);
+  }, [returnUrl]);
 
-      console.log('Redirecting to:', returnUrl);
+  useEffect(() => {
+    hasRedirectedRef.current = false;
+  }, [returnUrl]);
 
-      setTimeout(() => {
-        posthog.capture('captcha_redirected', {
-          return_url: returnUrl,
-        });
-        window.location.href = returnUrl;
-      }, 300);
-    };
+  const markWidgetLoaded = useCallback(() => {
+    if (hasTrackedWidgetLoadedRef.current) {
+      return;
+    }
 
-    // Listen for errors
-    const errorHandler = (e: Event) => {
-      console.error('Widget error:', e);
+    hasTrackedWidgetLoadedRef.current = true;
+    setWidgetStatus((current) => (current === 'loading' ? 'ready' : current));
+    posthog.capture('captcha_widget_loaded', {
+      return_url: returnUrl,
+    });
+    posthog.capture('captcha_widget_mounted', {
+      return_url: returnUrl,
+    });
+  }, [returnUrl]);
+
+  useEffect(() => {
+    if (widgetStatus !== 'ready') {
+      return;
+    }
+
+    setHeading('Verifying you are a human before proceeding...');
+  }, [widgetStatus]);
+
+  const handleVerify = useCallback(
+    (detail: { solutions?: unknown }) => {
+      console.log('Verify event received:', detail);
+      markWidgetLoaded();
+      setWidgetStatus('done');
+      completeVerification();
+    },
+    [completeVerification, markWidgetLoaded]
+  );
+
+  const handleError = useCallback(
+    (detail: RibauntErrorDetail) => {
+      console.error('Widget error:', detail);
+      markWidgetLoaded();
+      setWidgetStatus('error');
       posthog.capture('captcha_error', {
         source: 'widget',
         return_url: returnUrl,
-        message: (e as CustomEvent)?.detail?.message ?? 'widget_error',
+        message: detail?.error ?? detail?.message ?? 'widget_error',
       });
-    };
+    },
+    [markWidgetLoaded, returnUrl]
+  );
 
-    // Listen for state changes
-    const stateChangeHandler = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      console.log('Widget state changed to:', customEvent.detail?.state);
+  const handleStateChange = useCallback(
+    (detail: RibauntStateChangeDetail) => {
+      markWidgetLoaded();
+      const nextState = detail?.state ?? 'unknown';
+      console.log('Widget state changed to:', nextState);
+
+      if (detail?.state === 'initial') {
+        setWidgetStatus('ready');
+      } else if (detail?.state === 'verifying') {
+        setWidgetStatus('verifying');
+      } else if (detail?.state === 'done') {
+        setWidgetStatus('done');
+      } else if (detail?.state === 'error') {
+        setWidgetStatus('error');
+      }
 
       posthog.capture('captcha_state_change', {
-        state: customEvent.detail?.state ?? 'unknown',
+        state: nextState,
         return_url: returnUrl,
       });
-      
-      if (customEvent.detail?.state === 'verified') {
-        setHeading('Continuing to your destination...');
-        
-        setTimeout(() => {
-          posthog.capture('captcha_redirected', {
-            return_url: returnUrl,
-          });
-          window.location.href = returnUrl;
-        }, 300);
-      } else if (customEvent.detail?.state === 'initial') {
+
+      if (detail?.state === 'done' || detail?.state === 'verified') {
+        completeVerification();
+      } else if (detail?.state === 'initial') {
         setHeading('Verifying you are a human before proceeding...');
       }
-    };
-
-    widget.addEventListener('verify', verifyHandler);
-    widget.addEventListener('error', errorHandler);
-    widget.addEventListener('state-change', stateChangeHandler);
-
-    return () => {
-      widget.removeEventListener('verify', verifyHandler);
-      widget.removeEventListener('error', errorHandler);
-      widget.removeEventListener('state-change', stateChangeHandler);
-    };
-  }, [widgetLoaded, returnUrl]);
+    },
+    [completeVerification, markWidgetLoaded, returnUrl]
+  );
 
   useEffect(() => {
-    // Import the widget dynamically (client-side only)
-    import('ribaunt/widget')
-      .then(() => {
-        console.log('Widget script loaded successfully');
-        setIsLoading(false);
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-        posthog.capture('captcha_widget_loaded', {
-          return_url: returnUrl,
-        });
-      })
-      .catch((err) => {
-        console.error('Failed to load CAPTCHA widget:', err);
-        posthog.capture('captcha_error', {
-          source: 'widget_load',
-          message: err instanceof Error ? err.message : 'Unknown error',
-          return_url: returnUrl,
-        });
-        setHeading('Failed to load verification widget. Please refresh the page.');
-        setIsLoading(false);
+    let cleanup: (() => void) | null = null;
+    let observer: MutationObserver | null = null;
+
+    const attachListeners = (widget: RibauntWidgetElement) => {
+      const verifyHandler = (event: Event) => {
+        handleVerify((event as CustomEvent).detail ?? {});
+      };
+      const errorHandler = (event: Event) => {
+        handleError((event as CustomEvent).detail ?? {});
+      };
+      const stateChangeHandler = (event: Event) => {
+        handleStateChange((event as CustomEvent).detail ?? {});
+      };
+
+      widget.addEventListener('verify', verifyHandler);
+      widget.addEventListener('error', errorHandler);
+      widget.addEventListener('state-change', stateChangeHandler);
+
+      cleanup = () => {
+        widget.removeEventListener('verify', verifyHandler);
+        widget.removeEventListener('error', errorHandler);
+        widget.removeEventListener('state-change', stateChangeHandler);
+      };
+    };
+
+    const tryAttach = () => {
+      const widget =
+        (document.getElementById('captcha-widget') as RibauntWidgetElement | null) ??
+        (document.querySelector('ribaunt-widget') as RibauntWidgetElement | null);
+      if (!widget) {
+        return false;
+      }
+
+      if (widgetElementRef.current === widget) {
+        return true;
+      }
+
+      widgetElementRef.current = widget;
+      markWidgetLoaded();
+      attachListeners(widget);
+      return true;
+    };
+
+    if (!tryAttach()) {
+      observer = new MutationObserver(() => {
+        if (tryAttach() && observer) {
+          observer.disconnect();
+          observer = null;
+        }
       });
-  }, []);
+
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, [handleError, handleStateChange, handleVerify, markWidgetLoaded]);
 
   // Get current date
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -257,6 +328,11 @@ export default function CaptchaPage() {
         .widget-container {
           margin-bottom: 2em;
         }
+        .loading {
+          color: ${theme === 'dark' ? '#ccc' : '#666'};
+          font-size: 14px;
+          margin-bottom: 12px;
+        }
         hr {
           border: 0;
           border-top: 1px solid ${theme === 'dark' ? '#333333' : '#dddddd8f'};
@@ -300,10 +376,6 @@ export default function CaptchaPage() {
           margin: 0px;
           margin-left: auto;
         }
-        .loading {
-          color: ${theme === 'dark' ? '#ccc' : '#666'};
-          font-size: 14px;
-        }
       `}</style>
 
       <div className="container">
@@ -324,17 +396,15 @@ export default function CaptchaPage() {
         <h2>{heading}</h2>
 
         <div className="widget-container">
-          {isLoading ? (
+          {widgetStatus === 'loading' && (
             <div className="loading">Loading verification widget...</div>
-          ) : (
-            <ribaunt-widget
-              ref={widgetCallbackRef}
-              id="captcha-widget"
-              challenge-endpoint="/api/captcha/challenge"
-              verify-endpoint="/api/captcha/verify"
-              show-warning="false"
-            />
           )}
+          <RibauntWidget
+            id="captcha-widget"
+            challengeEndpoint="/api/captcha/challenge"
+            verifyEndpoint="/api/captcha/verify"
+            showWarning={false}
+          />
         </div>
         <noscript>
           <style>{`
