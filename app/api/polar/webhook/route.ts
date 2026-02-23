@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true, webhookId }, { headers });
   } catch (error) {
-    console.error(`[Webhook ${webhookId}] Processing error:`, error);
+    console.error('[Webhook] Processing error:', error, { webhookId });
     handleAPIError(error, req, '/api/polar/webhook', 'POST', 500);
     return NextResponse.json(
       { 

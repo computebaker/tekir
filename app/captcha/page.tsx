@@ -54,8 +54,33 @@ export default function CaptchaPage() {
       url = '/';
     }
     
-    console.log('Return URL set to:', url);
-    setReturnUrl(url);
+    // Security: Validate the URL is a relative path only
+    // Parse as URL to ensure it's relative (will throw for malformed URLs)
+    let validatedUrl: string;
+    try {
+      // Try to parse as relative URL
+      const testUrl = new URL(url, 'http://localhost');
+      // Ensure it's a relative path (no protocol, no host)
+      if (testUrl.protocol === 'http:' && testUrl.hostname === 'localhost' && url.startsWith('/')) {
+        validatedUrl = testUrl.pathname + testUrl.search + testUrl.hash;
+      } else {
+        validatedUrl = '/';
+      }
+    } catch {
+      validatedUrl = '/';
+    }
+    
+    // Additional safety: ensure no javascript:, data:, or other dangerous protocols
+    const dangerousPatterns = ['javascript:', 'data:', 'vbscript:', 'file:', 'ftp:'];
+    const hasDangerousPattern = dangerousPatterns.some(pattern => 
+      validatedUrl.toLowerCase().includes(pattern)
+    );
+    if (hasDangerousPattern) {
+      validatedUrl = '/';
+    }
+    
+    console.log('Return URL set to:', validatedUrl);
+    setReturnUrl(validatedUrl);
 
     posthog.capture('captcha_viewed', {
       return_url: url,
@@ -122,7 +147,7 @@ export default function CaptchaPage() {
       posthog.capture('captcha_redirected', {
         return_url: returnUrl,
       });
-      window.location.href = returnUrl;
+      window.location.assign(returnUrl);
     }, 300);
   }, [returnUrl]);
 

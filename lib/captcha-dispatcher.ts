@@ -227,8 +227,14 @@ export function getChallengeStats(): {
 }
 
 function generateSessionId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+  const crypto = typeof global !== 'undefined' ? global.crypto : (typeof window !== 'undefined' ? window.crypto : undefined);
+  if (crypto && 'randomUUID' in crypto) {
     return `session_${crypto.randomUUID()}`;
   }
-  return `session_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  if (crypto && 'getRandomValues' in crypto) {
+    const bytes = new Uint8Array(8);
+    (crypto as Crypto).getRandomValues(bytes);
+    return `session_${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+  }
+  throw new Error('Cryptographically secure random number generator not available');
 }
