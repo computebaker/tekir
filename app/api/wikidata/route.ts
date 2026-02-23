@@ -9,8 +9,6 @@ import { handleAPIError as handleAPIErrorTracking } from '@/lib/api-error-tracki
 
 const USER_AGENT = 'Tekir/1.0 (https://tekir.co/)';
 
-const cache = new Map<string, any>();
-
 // Allowlist of supported language codes to prevent SSRF attacks via lang parameter
 const SUPPORTED_LANGUAGES = new Set([
   'en', 'de', 'fr', 'it', 'es', 'pt', 'ru', 'ja', 'zh', 'ko', 'ar', 'hi', 'pl', 

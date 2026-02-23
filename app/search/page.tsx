@@ -5,7 +5,7 @@ import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Cat, ChevronDown, ExternalLink, ArrowRight, Lock, MessageCircleMore, Sparkles, Settings, Newspaper, Video, AlertTriangle, X } from "lucide-react";
+import { Search, Cat, ChevronDown, ExternalLink, Lock, MessageCircleMore, Sparkles, Settings, Newspaper, Video, AlertTriangle, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSettings } from "@/lib/settings";
 import { handleBangRedirect } from "@/utils/bangs";
@@ -236,7 +236,6 @@ function SearchPageContent() {
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiExpanded, setWikiExpanded] = useState(false);
-  const [wikiReadMore, setWikiReadMore] = useState(false);
   const [searchType, setSearchType] = useState<'web' | 'images' | 'news' | 'videos'>(settings.searchType === 'web' || settings.searchType === 'images' || settings.searchType === 'news' || settings.searchType === 'videos' ? settings.searchType : 'web');
   const [imageResults, setImageResults] = useState<ImageSearchResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);

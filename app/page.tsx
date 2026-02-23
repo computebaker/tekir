@@ -35,7 +35,7 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const startTransition = useTransition()[1];
   const [autocompleteSource] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('autocompleteSource') || 'brave' : 'brave'
   );

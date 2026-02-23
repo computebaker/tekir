@@ -11,7 +11,6 @@ import { useAuth } from "@/components/auth-provider";
 import { toast } from "sonner";
 import posthog from "posthog-js";
 import {
-  ArrowLeft,
   Search,
   User,
   Shield,

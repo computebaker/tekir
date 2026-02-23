@@ -1,6 +1,5 @@
 import { Newspaper, ChevronDown } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 interface NewsResult {
   title: string;

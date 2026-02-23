@@ -309,14 +309,6 @@ function WeatherWidget({ size = 'md' }: WeatherWidgetProps) {
                     }
                 }
                 
-                // Create cache key based on location type
-                const cacheKey = customLocation 
-                    ? `weather-data-${customLocation.lat}-${customLocation.lon}`
-                    : 'weather-data';
-                const timestampKey = customLocation
-                    ? `weather-timestamp-${customLocation.lat}-${customLocation.lon}`
-                    : 'weather-timestamp';
-                
                 // Check for cached weather data (valid for 10 minutes)
                 // ALWAYS prioritize custom location cache if custom location is set
                 if (customLocation) {
