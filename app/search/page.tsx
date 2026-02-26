@@ -270,13 +270,15 @@ function SearchPageContent() {
   const searchCountryRef = useRef(settings.searchCountry || "ALL");
   const safesearchRef = useRef(settings.safesearch || "moderate");
   const languageRef = useRef(settings.language || '');
-  
+  const tRef = useRef(t);
+
   // Update refs when settings change
   useEffect(() => {
     searchCountryRef.current = settings.searchCountry || "ALL";
     safesearchRef.current = settings.safesearch || "moderate";
     languageRef.current = settings.language || '';
-  }, [settings.searchCountry, settings.safesearch, settings.language]);
+    tRef.current = t;
+  }, [settings.searchCountry, settings.safesearch, settings.language, t]);
 
   useEffect(() => {
     const checkQueryForBangs = async () => {
@@ -421,7 +423,7 @@ function SearchPageContent() {
             metadata: { query: currentQuery, searchType }
           });
           if (isMounted) {
-            setSearchError(t('search.searchError'));
+            setSearchError(tRef.current('search.searchError'));
           }
           return false;
         }
@@ -445,7 +447,7 @@ function SearchPageContent() {
         webSearchAbortRef.current = null;
       }
     };
-  }, [searchParams, router, isAuthenticated, getEngineForMode, searchType, t]);
+  }, [searchParams, router, isAuthenticated, searchType]);
 
   useEffect(() => {
     if (!query || searchType !== 'images') return;
