@@ -14,12 +14,9 @@ interface RibauntStateChangeDetail {
   state?: string;
 }
 
-type RibauntWidgetElement = HTMLElementTagNameMap['ribaunt-widget'];
-
 export default function CaptchaPage() {
   const hasTrackedWidgetLoadedRef = useRef(false);
   const hasRedirectedRef = useRef(false);
-  const widgetElementRef = useRef<RibauntWidgetElement | null>(null);
   const [heading, setHeading] = useState('Let\'s verify you before proceeding.');
   const [returnUrl, setReturnUrl] = useState('/');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -179,7 +176,7 @@ export default function CaptchaPage() {
   }, [widgetStatus]);
 
   const handleVerify = useCallback(
-    (detail: { solutions?: unknown }) => {
+    (detail: { solutions?: unknown[] }) => {
       console.log('Verify event received:', detail);
       markWidgetLoaded();
       setWidgetStatus('done');
@@ -232,74 +229,23 @@ export default function CaptchaPage() {
     [completeVerification, markWidgetLoaded, returnUrl]
   );
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    let cleanup: (() => void) | null = null;
-    let observer: MutationObserver | null = null;
-
-    const attachListeners = (widget: RibauntWidgetElement) => {
-      const verifyHandler = (event: Event) => {
-        handleVerify((event as CustomEvent).detail ?? {});
-      };
-      const errorHandler = (event: Event) => {
-        handleError((event as CustomEvent).detail ?? {});
-      };
-      const stateChangeHandler = (event: Event) => {
-        handleStateChange((event as CustomEvent).detail ?? {});
-      };
-
-      widget.addEventListener('verify', verifyHandler);
-      widget.addEventListener('error', errorHandler);
-      widget.addEventListener('state-change', stateChangeHandler);
-
-      cleanup = () => {
-        widget.removeEventListener('verify', verifyHandler);
-        widget.removeEventListener('error', errorHandler);
-        widget.removeEventListener('state-change', stateChangeHandler);
-      };
-    };
-
-    const tryAttach = () => {
-      const widget =
-        (document.getElementById('captcha-widget') as RibauntWidgetElement | null) ??
-        (document.querySelector('ribaunt-widget') as RibauntWidgetElement | null);
-      if (!widget) {
-        return false;
-      }
-
-      if (widgetElementRef.current === widget) {
-        return true;
-      }
-
-      widgetElementRef.current = widget;
+  const handleReady = useCallback(
+    (detail: RibauntStateChangeDetail) => {
       markWidgetLoaded();
-      attachListeners(widget);
-      return true;
-    };
+      const nextState = detail?.state ?? 'initial';
 
-    if (!tryAttach()) {
-      observer = new MutationObserver(() => {
-        if (tryAttach() && observer) {
-          observer.disconnect();
-          observer = null;
-        }
-      });
-
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    return () => {
-      if (observer) {
-        observer.disconnect();
+      if (nextState === 'verifying') {
+        setWidgetStatus('verifying');
+      } else if (nextState === 'done' || nextState === 'verified') {
+        setWidgetStatus('done');
+      } else if (nextState === 'error') {
+        setWidgetStatus('error');
+      } else {
+        setWidgetStatus('ready');
       }
-      if (cleanup) {
-        cleanup();
-      }
-    };
-  }, [handleError, handleStateChange, handleVerify, markWidgetLoaded]);
+    },
+    [markWidgetLoaded]
+  );
 
   // Get current date
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -429,6 +375,10 @@ export default function CaptchaPage() {
             challengeEndpoint="/api/captcha/challenge"
             verifyEndpoint="/api/captcha/verify"
             showWarning={false}
+            onVerify={handleVerify}
+            onError={handleError}
+            onStateChange={handleStateChange}
+            onReady={handleReady}
           />
         </div>
         <noscript>
