@@ -158,7 +158,7 @@ export function SettingsShell({
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 min-w-0">
+          <main className="flex-1 min-w-0 ph-no-capture">
             {/* Mobile Navigation */}
             <div className="lg:hidden mb-6 mx-2" ref={mobileSettingsRef}>
               <div className="relative">

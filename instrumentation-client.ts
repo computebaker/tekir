@@ -1,6 +1,9 @@
 import posthog from "posthog-js";
 import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals';
 
+const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const POSTHOG_CONFIGURED = Boolean(POSTHOG_KEY);
+
 // ============================================================================
 // Consent Management
 // ============================================================================
@@ -25,61 +28,66 @@ let analyticsInitialized = false;
 // PostHog Initialization
 // ============================================================================
 
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-  api_host: '/ph',
-  defaults: '2025-05-24',
-  ui_host: 'https://eu.posthog.com',
+if (POSTHOG_CONFIGURED) {
+  posthog.init(POSTHOG_KEY!, {
+    api_host: '/ph',
+    defaults: '2025-05-24',
+    ui_host: 'https://eu.posthog.com',
 
-  // Performance & Configuration
-  debug: process.env.NODE_ENV === "development",
+    // Performance & Configuration
+    debug: process.env.NODE_ENV === "development",
 
-  // Privacy: Start disabled, enable only with consent
-  opt_out_capturing_by_default: true,
-  respect_dnt: true,
+    // Privacy: Start disabled, enable only with consent
+    opt_out_capturing_by_default: true,
+    respect_dnt: true,
 
-  // Session recording (disabled by default, enabled with consent)
-  disable_session_recording: true,
+    // Session recording (disabled by default, enabled with consent)
+    disable_session_recording: true,
 
-  // We use minimal persistence - only for session continuity when consent is given
-  disable_persistence: false,
-  persistence: 'localStorage',
-  disable_cookie: true,
+    // We use minimal persistence - only for session continuity when consent is given
+    disable_persistence: false,
+    persistence: 'localStorage',
+    disable_cookie: true,
 
-  // Capture options - we control these dynamically based on consent
-  capture_pageview: false, // We'll manage this dynamically
-  capture_pageleave: false, // We'll manage this dynamically
+    // Capture options - we control these dynamically based on consent
+    capture_pageview: false, // We'll manage this dynamically
+    capture_pageleave: false, // We'll manage this dynamically
 
-  // Auto-capture
-  autocapture: false, // Disable autocapture, we'll manually track
+    // Enable interaction capture under analytics consent so PostHog heatmaps have click/dead-click data.
+    autocapture: true,
+    capture_dead_clicks: true,
 
-  // Error tracking - enabled with consent check in before_send
-  capture_exceptions: true, // Auto-capture exceptions when consent is given
+    // Error tracking - enabled with consent check in before_send
+    capture_exceptions: true, // Auto-capture exceptions when consent is given
 
-  // Session replay
-  session_recording: {
-    maskTextSelector: '*', // Mask all text by default
-    maskAllInputs: true, // Mask all inputs
-  },
+    // Session replay
+    session_recording: {
+      maskTextSelector: '*', // Mask all text by default
+      maskAllInputs: true, // Mask all inputs
+    },
 
-  // Advanced configuration
-  before_send: (event) => {
-    // Check consent before sending any event
-    if (!getAnalyticsConsent() || !event) {
-      return null;
-    }
+    // Advanced configuration
+    before_send: (event) => {
+      // Check consent before sending any event
+      if (!getAnalyticsConsent() || !event) {
+        return null;
+      }
 
-    // Add environment info to all events
-    event.properties = {
-      ...event.properties,
-      environment: process.env.NODE_ENV || 'unknown',
-    };
+      // Add environment info to all events
+      event.properties = {
+        ...event.properties,
+        environment: process.env.NODE_ENV || 'unknown',
+      };
 
-    return event;
-  },
+      return event;
+    },
 
-  // Rich analytics
-  advanced_disable_decide: false,
-});
+    // Rich analytics
+    advanced_disable_decide: false,
+  });
+} else if (process.env.NODE_ENV === 'development') {
+  console.warn('[PostHog] Skipping client initialization: NEXT_PUBLIC_POSTHOG_KEY is not set');
+}
 
 // ============================================================================
 // Web Vitals Tracking
@@ -108,7 +116,7 @@ function getNavigationType(): string {
 }
 
 function trackWebVital(metric: MetricData) {
-  if (!getAnalyticsConsent()) return;
+  if (!POSTHOG_CONFIGURED || !getAnalyticsConsent()) return;
 
   const ratingOrder = { good: 1, 'needs-improvement': 2, poor: 3 };
   const rating = ratingOrder[metric.rating as keyof typeof ratingOrder] || 2;
@@ -209,7 +217,7 @@ const scrollConfig: ScrollDepthConfig = {
 };
 
 function trackScrollDepth(depth: number) {
-  if (!getAnalyticsConsent()) return;
+  if (!POSTHOG_CONFIGURED || !getAnalyticsConsent()) return;
   if (scrollConfig.trackedDepths.has(depth)) return;
 
   scrollConfig.trackedDepths.add(depth);
@@ -228,7 +236,7 @@ let lastScrollTop = 0;
 let scrollTimeout: NodeJS.Timeout | null = null;
 
 function handleScroll() {
-  if (!getAnalyticsConsent()) return;
+  if (!POSTHOG_CONFIGURED || !getAnalyticsConsent()) return;
 
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
   const scrollHeight = document.documentElement.scrollHeight;
@@ -265,7 +273,7 @@ function initScrollTracking() {
 // ============================================================================
 
 function trackPageView() {
-  if (!getAnalyticsConsent()) return;
+  if (!POSTHOG_CONFIGURED || !getAnalyticsConsent()) return;
 
   posthog.capture('$pageview', {
     $current_url: window.location.href,
@@ -288,11 +296,14 @@ function initPageTracking() {
   // Track page leave on visibility change (user switches tabs)
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && getAnalyticsConsent()) {
+      const maxScrollDepth = scrollConfig.trackedDepths.size
+        ? Math.max(...Array.from(scrollConfig.trackedDepths))
+        : 0;
       posthog.capture('$pageleave', {
         $current_url: window.location.href,
         $pathname: window.location.pathname,
         engagement_time: Date.now() - (window as any).__pageLoadTime,
-        max_scroll_depth: Math.max(...Array.from(scrollConfig.trackedDepths)),
+        max_scroll_depth: maxScrollDepth,
       });
     }
   });
@@ -300,11 +311,14 @@ function initPageTracking() {
   // Track page leave on beforeunload
   window.addEventListener('beforeunload', () => {
     if (getAnalyticsConsent()) {
+      const maxScrollDepth = scrollConfig.trackedDepths.size
+        ? Math.max(...Array.from(scrollConfig.trackedDepths))
+        : 0;
       posthog.capture('$pageleave', {
         $current_url: window.location.href,
         $pathname: window.location.pathname,
         engagement_time: Date.now() - (window as any).__pageLoadTime,
-        max_scroll_depth: Math.max(...Array.from(scrollConfig.trackedDepths)),
+        max_scroll_depth: maxScrollDepth,
       });
     }
   });
@@ -324,6 +338,8 @@ export function enableAnalytics(enabled: boolean): void {
   if (typeof window === 'undefined') return;
 
   localStorage.setItem('analyticsEnabled', String(enabled));
+
+  if (!POSTHOG_CONFIGURED) return;
 
   if (enabled) {
     posthog.opt_in_capturing();
@@ -352,6 +368,8 @@ export function enableSessionReplay(enabled: boolean): void {
   if (typeof window === 'undefined') return;
 
   localStorage.setItem('sessionReplayEnabled', String(enabled));
+
+  if (!POSTHOG_CONFIGURED) return;
 
   if (enabled && getAnalyticsConsent()) {
     posthog.startSessionRecording();
@@ -383,7 +401,7 @@ export function isSessionReplayEnabled(): boolean {
  * Use in route change handlers or layout effects
  */
 export function trackRouteChange(url: string) {
-  if (!getAnalyticsConsent()) return;
+  if (!POSTHOG_CONFIGURED || !getAnalyticsConsent()) return;
 
   posthog.capture('$pageview', {
     $current_url: url,
@@ -401,7 +419,7 @@ export function trackRouteChange(url: string) {
 
 if (typeof window !== 'undefined') {
   // Check if user previously consented
-  if (getAnalyticsConsent()) {
+  if (POSTHOG_CONFIGURED && getAnalyticsConsent()) {
     analyticsInitialized = true;
     initWebVitals();
     initScrollTracking();

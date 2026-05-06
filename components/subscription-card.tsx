@@ -104,7 +104,7 @@ export default function SubscriptionCard({
 
   if (isPaid) {
     return (
-      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 ph-no-capture">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -134,7 +134,7 @@ export default function SubscriptionCard({
   }
 
   return (
-    <Card className="border-2 border-border hover:border-primary/50 transition-colors">
+    <Card className="border-2 border-border hover:border-primary/50 transition-colors ph-no-capture">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>{cardTitle}</CardTitle>

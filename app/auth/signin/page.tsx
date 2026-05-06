@@ -81,7 +81,7 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-background ph-no-capture">
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
           <Link href="/" className="inline-block">

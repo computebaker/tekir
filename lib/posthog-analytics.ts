@@ -17,6 +17,8 @@ import type {
   ErrorEventProperties,
 } from './analytics-events';
 
+const POSTHOG_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
+
 // ============================================================================
 // User Identity Management
 // ============================================================================
@@ -27,6 +29,7 @@ import type {
  */
 function getDistinctId(): string {
   if (typeof window === 'undefined') return 'anonymous';
+  if (!POSTHOG_CONFIGURED) return localStorage.getItem('posthog_anonymous_id') || 'anonymous';
 
   // Try to get PostHog's distinct ID first
   const phDistinctId = posthog.get_distinct_id();
@@ -89,6 +92,8 @@ export function setAnalyticsConsent(enabled: boolean): void {
   const wasEnabled = hasAnalyticsConsent();
   localStorage.setItem('analyticsEnabled', String(enabled));
 
+  if (!POSTHOG_CONFIGURED) return;
+
   if (enabled && !wasEnabled) {
     // User just opted in - enable tracking
     posthog.opt_in_capturing();
@@ -114,6 +119,8 @@ export function setSessionReplayConsent(enabled: boolean): void {
   const wasEnabled = hasSessionReplayConsent();
   localStorage.setItem('sessionReplayEnabled', String(enabled));
 
+  if (!POSTHOG_CONFIGURED) return;
+
   if (enabled && !wasEnabled && hasAnalyticsConsent()) {
     posthog.startSessionRecording();
   } else if (!enabled && wasEnabled) {
@@ -133,7 +140,7 @@ function captureEvent(
   eventName: string,
   properties?: Record<string, any>
 ): void {
-  if (!hasAnalyticsConsent()) {
+  if (!POSTHOG_CONFIGURED || !hasAnalyticsConsent()) {
     return;
   }
 
@@ -166,6 +173,8 @@ export function trackClientLog(
 // ============================================================================
 
 export function trackSignUp(method: 'email' | 'oauth' = 'email'): void {
+  if (!POSTHOG_CONFIGURED || !hasAnalyticsConsent()) return;
+
   const distinctId = getDistinctId();
 
   // Identify the user right after signup
@@ -445,6 +454,8 @@ export function trackSettingChanged(settingKey: string, previousValue: any, newV
  */
 export function trackAnalyticsConsentChanged(enabled: boolean): void {
   // This event bypasses consent check since it's about consent
+  if (!POSTHOG_CONFIGURED) return;
+
   try {
     posthog.capture('analytics_consent_changed', {
       enabled,
@@ -502,7 +513,7 @@ export function trackAPIError(
  * Call this when navigating to a new page
  */
 export function trackPageView(url?: string, title?: string): void {
-  if (!hasAnalyticsConsent()) return;
+  if (!POSTHOG_CONFIGURED || !hasAnalyticsConsent()) return;
 
   const currentUrl = url || window.location.href;
   const currentTitle = title || document.title;
@@ -530,7 +541,7 @@ export function identifyUser(
   userId: string,
   properties?: Record<string, any>
 ): void {
-  if (!hasAnalyticsConsent()) return;
+  if (!POSTHOG_CONFIGURED || !hasAnalyticsConsent()) return;
 
   try {
     // Store user ID for later retrieval
@@ -556,7 +567,7 @@ export function identifyUser(
  * Set user properties for the currently identified user
  */
 export function setUserProperties(properties: Record<string, any>): void {
-  if (!hasAnalyticsConsent()) return;
+  if (!POSTHOG_CONFIGURED || !hasAnalyticsConsent()) return;
 
   try {
     posthog.people.set(properties);
@@ -574,7 +585,7 @@ export function setUserProperties(properties: Record<string, any>): void {
  * Only works if user has consented to session replay
  */
 export function startSessionReplay(): void {
-  if (!hasAnalyticsConsent() || !hasSessionReplayConsent()) return;
+  if (!POSTHOG_CONFIGURED || !hasAnalyticsConsent() || !hasSessionReplayConsent()) return;
   posthog.startSessionRecording();
 }
 
@@ -582,6 +593,7 @@ export function startSessionReplay(): void {
  * Stop session replay recording
  */
 export function stopSessionReplay(): void {
+  if (!POSTHOG_CONFIGURED) return;
   posthog.stopSessionRecording();
 }
 

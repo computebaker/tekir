@@ -5,12 +5,14 @@ import AuthProvider from "@/components/auth-provider";
 import I18nProvider from "@/components/i18n-provider";
 import { ConvexProvider } from "convex/react";
 import convex from "@/lib/convex-proxy";
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { prefetchBangs } from '@/utils/bangs';
 import { initGlobalErrorHandlers } from '@/lib/client-error-tracking';
 import { Toaster } from "@/components/toaster";
 import { trackClientLog } from "@/lib/posthog-analytics";
 import { initClientConsoleForwarding } from "@/lib/console-forwarder-client";
+import { trackRouteChange } from "@/instrumentation-client";
 
 // Helper functions for cookie manipulation using document.cookie
 const getCookie = (name: string): string | undefined => {
@@ -43,6 +45,9 @@ export default function ClientLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const hasTrackedRouteChange = useRef(false);
+
   // Prefetch bangs when the app initializes
   useEffect(() => {
     initClientConsoleForwarding();
@@ -104,6 +109,15 @@ export default function ClientLayout({
     };
     initializeSession();
   }, []);
+
+  useEffect(() => {
+    if (!hasTrackedRouteChange.current) {
+      hasTrackedRouteChange.current = true;
+      return;
+    }
+
+    trackRouteChange(`${window.location.origin}${pathname}${window.location.search}`);
+  }, [pathname]);
 
   return (
     <ConvexProvider client={convex}>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import OpenAI from 'openai';
 import { WideEvent } from '@/lib/wide-event';
-import { flushServerEvents } from '@/lib/analytics-server';
+import { flushServerEvents, trackLLMGeneration } from '@/lib/analytics-server';
 import { handleAPIError } from '@/lib/api-error-tracking';
 import { randomUUID } from 'crypto';
 
@@ -61,7 +61,8 @@ const WIKIPEDIA_SUGGEST_MODEL = process.env.WIKIPEDIA_SUGGEST_MODEL || 'mistrala
 async function suggestWikipediaArticle(
   query: string, 
   browserLanguage?: string, 
-  searchCountry?: string
+  searchCountry?: string,
+  traceId?: string
 ): Promise<{ article: string; language: string }> {
   let priorityLanguage = browserLanguage;
   
@@ -71,6 +72,9 @@ async function suggestWikipediaArticle(
 
   try {
     if (priorityLanguage) {
+      const spanId = randomUUID();
+      const prompt = `Suggest the best matching Wikipedia article for query "${query}" in ${priorityLanguage}.`;
+      const aiStart = Date.now();
       const response = await openai.chat.completions.create({
         model: WIKIPEDIA_SUGGEST_MODEL,
         temperature: 0.1, 
@@ -87,8 +91,28 @@ async function suggestWikipediaArticle(
         ],
         stream: false,
       });
+      const aiLatency = Date.now() - aiStart;
 
       const result = response.choices[0].message.content?.trim() || '';
+      trackLLMGeneration({
+        $ai_provider: 'openrouter',
+        $ai_model: response.model || WIKIPEDIA_SUGGEST_MODEL,
+        $ai_input: prompt,
+        $ai_output: result,
+        $ai_latency: aiLatency,
+        $ai_tokens_input: response.usage?.prompt_tokens,
+        $ai_tokens_output: response.usage?.completion_tokens,
+        $ai_tokens_total: response.usage?.total_tokens,
+        $ai_trace_id: traceId,
+        $ai_span_id: spanId,
+        $ai_span_name: 'wikipedia_priority_language_suggest',
+        $ai_temperature: 0.1,
+        $ai_max_tokens: 80,
+        $ai_http_status: 200,
+        $ai_base_url: 'https://openrouter.ai/api/v1',
+        $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+        $ai_stop_reason: response.choices[0]?.finish_reason || undefined,
+      });
       
       const parts = result.split('|');
       if (parts.length === 2) {
@@ -102,6 +126,9 @@ async function suggestWikipediaArticle(
     }
     
     // Priority 3: AI-based query language detection (fallback)
+    const spanId = randomUUID();
+    const prompt = `Detect the query language and suggest the best matching Wikipedia article for query "${query}".`;
+    const aiStart = Date.now();
     const response = await openai.chat.completions.create({
       model: WIKIPEDIA_SUGGEST_MODEL,
       temperature: 0.1, 
@@ -118,8 +145,28 @@ async function suggestWikipediaArticle(
       ],
       stream: false,
     });
+    const aiLatency = Date.now() - aiStart;
 
     const result = response.choices[0].message.content?.trim() || '';
+    trackLLMGeneration({
+      $ai_provider: 'openrouter',
+      $ai_model: response.model || WIKIPEDIA_SUGGEST_MODEL,
+      $ai_input: prompt,
+      $ai_output: result,
+      $ai_latency: aiLatency,
+      $ai_tokens_input: response.usage?.prompt_tokens,
+      $ai_tokens_output: response.usage?.completion_tokens,
+      $ai_tokens_total: response.usage?.total_tokens,
+      $ai_trace_id: traceId,
+      $ai_span_id: spanId,
+      $ai_span_name: 'wikipedia_language_detect_suggest',
+      $ai_temperature: 0.1,
+      $ai_max_tokens: 80,
+      $ai_http_status: 200,
+      $ai_base_url: 'https://openrouter.ai/api/v1',
+      $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+      $ai_stop_reason: response.choices[0]?.finish_reason || undefined,
+    });
     
     // Parse the response format "ARTICLE_NAME|LANGUAGE_CODE"
     const parts = result.split('|');
@@ -142,6 +189,23 @@ async function suggestWikipediaArticle(
     };
   } catch (error) {
     console.error('Error suggesting Wikipedia article:', error);
+    trackLLMGeneration({
+      $ai_provider: 'openrouter',
+      $ai_model: WIKIPEDIA_SUGGEST_MODEL,
+      $ai_input: query,
+      $ai_output: '',
+      $ai_latency: 0,
+      $ai_trace_id: traceId,
+      $ai_span_id: randomUUID(),
+      $ai_span_name: 'wikipedia_suggest',
+      $ai_temperature: 0.1,
+      $ai_max_tokens: 80,
+      $ai_http_status: error instanceof Error && 'status' in error ? Number((error as any).status) : 500,
+      $ai_base_url: 'https://openrouter.ai/api/v1',
+      $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+      $ai_is_error: true,
+      $ai_error: error instanceof Error ? error.message : 'Wikipedia suggestion failed',
+    });
     return {
       article: '',
       language: priorityLanguage || 'en'
@@ -184,7 +248,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const aiStart = Date.now();
-    const result = await suggestWikipediaArticle(query, browserLanguage || undefined, searchCountry || undefined);
+    const result = await suggestWikipediaArticle(query, browserLanguage || undefined, searchCountry || undefined, traceId);
     const aiLatency = Date.now() - aiStart;
     
     wideEvent.setAI({

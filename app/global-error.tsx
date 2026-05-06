@@ -1,8 +1,7 @@
 'use client';
 
-import posthog from "posthog-js";
-import NextError from "next/error";
 import { useEffect } from "react";
+import { trackJSError } from "@/lib/posthog-analytics";
 
 export default function GlobalError({
   error,
@@ -12,13 +11,12 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Capture exception to PostHog
-    posthog.captureException(error, {
-      $exception_type: error.name,
-      $exception_message: error.message,
-      $exception_stack: error.stack,
-      $exception_digest: error.digest,
-      $exception_level: 'fatal', // Mark as fatal since it's a global error
+    trackJSError({
+      error_type: error.name || 'GlobalError',
+      error_message: error.message,
+      component: 'app/global-error',
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+      user_action: error.digest ? `fatal_digest:${error.digest}` : 'fatal',
     });
   }, [error]);
 

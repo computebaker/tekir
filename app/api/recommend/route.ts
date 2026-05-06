@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex-client';
 import { WideEvent } from '@/lib/wide-event';
-import { flushServerEvents } from '@/lib/analytics-server';
+import { flushServerEvents, trackLLMGeneration } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
 
 const openai = new OpenAI({
@@ -39,7 +39,7 @@ function getHumanDateLabel(date = new Date()): string {
   return `${month} ${day}${suffix(day)}, ${year}`;
 }
 
-async function generateRecommendations(todayLabel: string): Promise<string[]> {
+async function generateRecommendations(todayLabel: string, traceId: string, spanId: string): Promise<string[]> {
   const system = `You are an AI agent responsible for creating "recommended search" options for users of a privacy related search engine. Every time you are invoked, you will create 8 different recommended search options for users. You will return this as a json file like this:
 
 ["item1","item2","item3","item4","item5","item6","item7","item8"]
@@ -56,6 +56,7 @@ Try not to be politic. Prefer using international days where possible.
 
 Today's date is: ${todayLabel}`;
 
+  const aiStart = Date.now();
   const response = await openai.chat.completions.create({
     model: 'openai/gpt-5-nano',
     temperature: 0,
@@ -65,7 +66,27 @@ Today's date is: ${todayLabel}`;
     ],
     stream: false,
   });
+  const aiLatency = Date.now() - aiStart;
   const content = response.choices[0]?.message?.content?.trim() ?? '';
+
+  trackLLMGeneration({
+    $ai_provider: 'openai',
+    $ai_model: response.model || 'openai/gpt-5-nano',
+    $ai_input: [{ role: 'system', content: [{ type: 'text', text: system }] }],
+    $ai_output: content,
+    $ai_latency: aiLatency,
+    $ai_tokens_input: response.usage?.prompt_tokens,
+    $ai_tokens_output: response.usage?.completion_tokens,
+    $ai_tokens_total: response.usage?.total_tokens,
+    $ai_trace_id: traceId,
+    $ai_span_id: spanId,
+    $ai_span_name: 'recommendations_generation',
+    $ai_temperature: 0,
+    $ai_http_status: 200,
+    $ai_base_url: 'https://openrouter.ai/api/v1',
+    $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+    $ai_stop_reason: response.choices[0]?.finish_reason || undefined,
+  });
   // Attempt to parse JSON array robustly
   const tryParseJsonArray = (text: string): string[] | null => {
     try {
@@ -119,6 +140,7 @@ Today's date is: ${todayLabel}`;
 
 export async function GET(req: NextRequest) {
   const traceId = randomUUID();
+  const generationSpanId = randomUUID();
   const startTime = Date.now();
   
   const wideEvent = WideEvent.getOrCreate();
@@ -163,7 +185,7 @@ export async function GET(req: NextRequest) {
     wideEvent.setCustom('cache_hit', false);
     wideEvent.setCustom('date_key', dateKey);
     const aiStart = Date.now();
-    const items = await generateRecommendations(dateLabel);
+    const items = await generateRecommendations(dateLabel, traceId, generationSpanId);
     const aiLatency = Date.now() - aiStart;
     
     wideEvent.setAI({
@@ -187,6 +209,22 @@ export async function GET(req: NextRequest) {
     const duration = Date.now() - startTime;
     console.error('Error in /api/recommend:', error);
     wideEvent.setError({ type: error instanceof Error ? error.name : 'UnknownError', message: error instanceof Error ? error.message : 'Failed to generate recommendations', code: 'recommend_error' });
+    trackLLMGeneration({
+      $ai_provider: 'openai',
+      $ai_model: 'openai/gpt-5-nano',
+      $ai_input: `Generate recommended searches for ${dateLabel}`,
+      $ai_output: '',
+      $ai_latency: duration,
+      $ai_trace_id: traceId,
+      $ai_span_id: generationSpanId,
+      $ai_span_name: 'recommendations_generation',
+      $ai_temperature: 0,
+      $ai_http_status: error.status || error.statusCode || 500,
+      $ai_base_url: 'https://openrouter.ai/api/v1',
+      $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+      $ai_is_error: true,
+      $ai_error: error instanceof Error ? error.message : 'Failed to generate recommendations',
+    });
 
     try {
       const latest = await convex.query(api.recommendations.getLatest, {});

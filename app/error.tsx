@@ -1,7 +1,7 @@
 "use client";
 
-import posthog from "posthog-js";
 import { useEffect } from "react";
+import { trackJSError } from "@/lib/posthog-analytics";
 
 export default function Error({
   error,
@@ -11,12 +11,12 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Capture exception to PostHog
-    posthog.captureException(error, {
-      $exception_type: error.name,
-      $exception_message: error.message,
-      $exception_stack: error.stack,
-      $exception_digest: error.digest,
+    trackJSError({
+      error_type: error.name || 'AppRouteError',
+      error_message: error.message,
+      component: 'app/error',
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+      user_action: error.digest ? `digest:${error.digest}` : undefined,
     });
   }, [error]);
 
@@ -42,7 +42,7 @@ export default function Error({
         <h2 className="mb-2 text-2xl font-bold">Something went wrong!</h2>
         
         <p className="mb-6 text-muted-foreground">
-          An unexpected error occurred. We've been notified and are working on it.
+          An unexpected error occurred. We&apos;ve been notified and are working on it.
         </p>
         
         {process.env.NODE_ENV === 'development' && (

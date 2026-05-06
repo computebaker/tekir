@@ -165,6 +165,7 @@ async function getUserDataFromRequest(req: NextRequest): Promise<UserData | null
 export async function POST(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
   // Generate a unique trace ID for this request
   const traceId = randomUUID();
+  const spanId = randomUUID();
 
   // Add security headers
   const headers = {
@@ -318,8 +319,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
       $ai_tokens_total: totalTokens,
       $ai_total_cost_usd: actualCost ?? undefined,
       $ai_trace_id: traceId,
+      $ai_session_id: sessionToken ? `session_${sessionToken.slice(0, 8)}` : undefined,
+      $ai_span_id: spanId,
+      $ai_span_name: `karakulak_${modelKey}_completion`,
       $ai_temperature: generationConfig.temperature,
       $ai_max_tokens: generationConfig.max_tokens,
+      $ai_http_status: 200,
+      $ai_base_url: 'https://openrouter.ai/api/v1',
+      $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+      $ai_stop_reason: response.choices[0]?.finish_reason || undefined,
       user_id: analyticsDistinctId || undefined,
       user_name: analyticsUserName || userData?.name || undefined,
       user_email: userData?.email || undefined,
@@ -387,6 +395,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
       model: modelKey,
       error_type: error.name || 'APIError',
       is_dive_mode: false,
+    });
+
+    trackLLMGeneration({
+      $ai_provider: MODEL_CONFIG[modelKey].provider,
+      $ai_model: MODEL_CONFIG[modelKey].id,
+      $ai_input: sanitizedMessage,
+      $ai_output: '',
+      $ai_latency: latency,
+      $ai_trace_id: traceId,
+      $ai_session_id: sessionToken ? `session_${sessionToken.slice(0, 8)}` : undefined,
+      $ai_span_id: spanId,
+      $ai_span_name: `karakulak_${modelKey}_completion`,
+      $ai_temperature: generationConfig.temperature,
+      $ai_max_tokens: generationConfig.max_tokens,
+      $ai_http_status: error.status || error.statusCode || 500,
+      $ai_base_url: 'https://openrouter.ai/api/v1',
+      $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+      $ai_is_error: true,
+      $ai_error: error.message || 'AI API request failed',
     });
     flushServerEvents().catch((err) => {
       if (process.env.NODE_ENV === 'development') {

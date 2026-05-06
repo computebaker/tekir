@@ -235,7 +235,7 @@ export default function SubscriptionManager({
   // Free user view - show upgrade option
   if (!isPaid) {
     return (
-      <Card className="border-2 border-border hover:border-primary/50 transition-colors">
+      <Card className="border-2 border-border hover:border-primary/50 transition-colors ph-no-capture">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -316,7 +316,7 @@ export default function SubscriptionManager({
   // Paid user view - show subscription info
   if (checkingSubscription) {
     return (
-      <Card className="border-2 border-primary/20">
+      <Card className="border-2 border-primary/20 ph-no-capture">
         <CardContent className="pt-6">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -328,7 +328,7 @@ export default function SubscriptionManager({
   }
 
   return (
-    <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+    <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 ph-no-capture">
       <CardHeader>
         <div className="flex items-center gap-2">
           <div className="p-2 bg-primary/10 rounded-lg">

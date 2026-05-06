@@ -82,7 +82,7 @@ export async function register() {
 
 // Server-side error tracking
 export const onRequestError = async (err: Error, request: Request, context: any) => {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
+  if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
     try {
       const { getPostHogServer } = await import('./lib/posthog-server');
       const posthog = getPostHogServer();
@@ -130,4 +130,3 @@ export const onRequestError = async (err: Error, request: Request, context: any)
     }
   }
 };
-

@@ -140,7 +140,9 @@ async function fetchPagesWithFallback(pages: PageContent[]): Promise<PageContent
 export async function POST(req: NextRequest) {
   // Generate unique trace ID for this request
   const traceId = randomUUID();
+  const generationSpanId = randomUUID();
   const startTime = Date.now();
+  let llmPromptForAnalytics = '';
 
   // Initialize wide event
   const wideEvent = WideEvent.getOrCreate();
@@ -188,6 +190,7 @@ export async function POST(req: NextRequest) {
     });
 
     const llmPrompt = `Query: "${query}"\n\nContent:\n${contextForLlm}\n\nProvide a concise, accurate answer based on the above sources.`;
+    llmPromptForAnalytics = llmPrompt;
 
     // Call LLM with timing
     const aiStartTime = Date.now();
@@ -232,15 +235,21 @@ export async function POST(req: NextRequest) {
     trackLLMGeneration({
       $ai_provider: DIVE_PROVIDER,
       $ai_model: actualModel,
-      $ai_input: llmPrompt.substring(0, 1000) + '...', // Truncate for logging
+      $ai_input: llmPrompt,
       $ai_output: answer,
       $ai_latency: aiDuration,
       $ai_tokens_input: usage?.prompt_tokens,
       $ai_tokens_output: usage?.completion_tokens,
       $ai_tokens_total: usage?.total_tokens,
       $ai_trace_id: traceId,
+      $ai_span_id: generationSpanId,
+      $ai_span_name: 'dive_generation',
       $ai_temperature: 0.3,
       $ai_max_tokens: 400,
+      $ai_http_status: 200,
+      $ai_base_url: 'https://openrouter.ai/api/v1',
+      $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+      $ai_stop_reason: llmResponse.choices[0]?.finish_reason || undefined,
     });
 
     const jsonResponse = NextResponse.json({
@@ -276,6 +285,23 @@ export async function POST(req: NextRequest) {
       model: 'dive',
       error_type: error.name || 'DiveError',
       is_dive_mode: true,
+    });
+    trackLLMGeneration({
+      $ai_provider: DIVE_PROVIDER,
+      $ai_model: DIVE_MODEL,
+      $ai_input: llmPromptForAnalytics,
+      $ai_output: '',
+      $ai_latency: totalDuration,
+      $ai_trace_id: traceId,
+      $ai_span_id: generationSpanId,
+      $ai_span_name: 'dive_generation',
+      $ai_temperature: 0.3,
+      $ai_max_tokens: 400,
+      $ai_http_status: error.status || error.statusCode || 500,
+      $ai_base_url: 'https://openrouter.ai/api/v1',
+      $ai_request_url: 'https://openrouter.ai/api/v1/chat/completions',
+      $ai_is_error: true,
+      $ai_error: error.message || 'Dive request failed',
     });
     flushServerEvents().catch((err) => console.warn('[PostHog] Failed to flush events:', err));
 

@@ -10,9 +10,17 @@ import { PostHog } from 'posthog-node';
 
 // Check if PostHog is configured
 const POSTHOG_PROJECT_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com';
 
 let posthogClient: PostHog | null = null;
+
+function createTelemetryId(): string {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `telemetry_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+}
 
 /**
  * Get or create the PostHog server client
@@ -31,6 +39,22 @@ export function getPostHogClient(): PostHog | null {
   }
 
   return posthogClient;
+}
+
+/**
+ * Compatibility alias for code paths that expect a non-null PostHog server client.
+ */
+export function getPostHogServer(): PostHog {
+  const client = getPostHogClient();
+  if (!client) {
+    return new PostHog('', {
+      host: POSTHOG_HOST,
+      flushAt: 1,
+      flushInterval: 0,
+    });
+  }
+
+  return client;
 }
 
 /**
@@ -215,8 +239,8 @@ export function trackServerAIError(properties: AIErrorEventProperties): void {
 export interface LLMServerEventProperties {
   $ai_provider: string;
   $ai_model: string;
-  $ai_input: string;
-  $ai_output: string;
+  $ai_input: string | Array<Record<string, any>>;
+  $ai_output: string | Array<Record<string, any>>;
   $ai_latency: number;
   $ai_tokens_input?: number;
   $ai_tokens_output?: number;
@@ -226,13 +250,59 @@ export interface LLMServerEventProperties {
   $ai_output_cost_usd?: number;
   $ai_total_cost_usd?: number;
   $ai_trace_id?: string;
+  $ai_session_id?: string;
+  $ai_span_id?: string;
+  $ai_span_name?: string;
+  $ai_parent_id?: string;
   $ai_temperature?: number;
   $ai_max_tokens?: number;
+  $ai_http_status?: number;
+  $ai_base_url?: string;
+  $ai_request_url?: string;
+  $ai_is_error?: boolean;
+  $ai_error?: string | Record<string, any>;
+  $ai_stop_reason?: string;
   user_id?: string;
   // User properties for context
   user_name?: string;
   user_email?: string;
   user_avatar?: string;
+}
+
+function normalizeAIInput(input: LLMServerEventProperties['$ai_input']): Array<Record<string, any>> {
+  if (Array.isArray(input)) {
+    return input;
+  }
+
+  return [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: input,
+        },
+      ],
+    },
+  ];
+}
+
+function normalizeAIOutput(output: LLMServerEventProperties['$ai_output']): Array<Record<string, any>> {
+  if (Array.isArray(output)) {
+    return output;
+  }
+
+  return [
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'text',
+          text: output,
+        },
+      ],
+    },
+  ];
 }
 
 export function trackLLMGeneration(properties: LLMServerEventProperties): void {
@@ -262,21 +332,28 @@ export function trackLLMGeneration(properties: LLMServerEventProperties): void {
   const eventProperties: Record<string, any> = {
     $ai_provider: properties.$ai_provider,
     $ai_model: properties.$ai_model,
-    // PostHog expects OpenAI-compatible message format for proper display
-    $ai_input: [
-      { role: 'user', content: properties.$ai_input }
-    ],
-    // Output choices - just the content strings
-    $ai_output_choices: [properties.$ai_output],
+    $ai_input: normalizeAIInput(properties.$ai_input),
+    $ai_output_choices: normalizeAIOutput(properties.$ai_output),
     $ai_latency: properties.$ai_latency / 1000, // Convert ms to seconds for PostHog
     // Token counts
     $ai_input_tokens: properties.$ai_tokens_input,
     $ai_output_tokens: properties.$ai_tokens_output,
+    $ai_total_tokens: properties.$ai_tokens_total,
     // Cost in USD - PostHog uses these for LLM cost dashboards
     $ai_input_cost_usd: properties.$ai_input_cost_usd,
     $ai_output_cost_usd: properties.$ai_output_cost_usd,
     $ai_total_cost_usd: properties.$ai_total_cost_usd,
-    $ai_trace_id: properties.$ai_trace_id,
+    $ai_trace_id: properties.$ai_trace_id || createTelemetryId(),
+    $ai_session_id: properties.$ai_session_id,
+    $ai_span_id: properties.$ai_span_id || createTelemetryId(),
+    $ai_span_name: properties.$ai_span_name || `${properties.$ai_provider}.${properties.$ai_model}`,
+    $ai_parent_id: properties.$ai_parent_id,
+    $ai_http_status: properties.$ai_http_status,
+    $ai_base_url: properties.$ai_base_url,
+    $ai_request_url: properties.$ai_request_url,
+    $ai_is_error: properties.$ai_is_error,
+    $ai_error: properties.$ai_error,
+    $ai_stop_reason: properties.$ai_stop_reason,
     // Additional metadata
     temperature: properties.$ai_temperature,
     max_tokens: properties.$ai_max_tokens,
