@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
 import { getJWTUser } from '@/lib/jwt-auth';
+import { withAPIObservability } from '@/lib/api-observability';
 import {
   trackServerSearch,
   trackAPIError,
@@ -393,7 +394,7 @@ async function getDuck(q: string): Promise<Results[]> {
   return results;
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
+async function GETHandler(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
   const query = req.nextUrl.searchParams.get('q');
   const country = req.nextUrl.searchParams.get('country') || 'ALL';
@@ -576,3 +577,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     }
   });
 }
+
+export const GET = withAPIObservability(GETHandler);

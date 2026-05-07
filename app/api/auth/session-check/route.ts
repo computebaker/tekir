@@ -4,10 +4,11 @@ import { api } from "@/convex/_generated/api";
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -84,3 +85,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

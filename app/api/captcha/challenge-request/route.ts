@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dispatchChallenge } from '@/lib/captcha-dispatcher';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { withAPIObservability } from '@/lib/api-observability';
 
 function captureCaptchaEvent(
   event: string,
@@ -20,7 +21,7 @@ function captureCaptchaEvent(
   posthog.flush();
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const userAgent = request.headers.get('user-agent') ?? '';
     
@@ -95,7 +96,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   // Allow HEAD requests for resource validation
-  return POST(request);
+  return POSTHandler(request);
 }
+
+export const POST = withAPIObservability(POSTHandler);
+export const GET = withAPIObservability(GETHandler);

@@ -7,8 +7,9 @@ import { api } from '@/convex/_generated/api';
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents, trackServerLog } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
-export async function GET(req: NextRequest) {
+async function GETHandler(req: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -133,3 +134,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

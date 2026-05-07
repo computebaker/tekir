@@ -3,8 +3,9 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { getConvexClient } from "@/lib/convex-client";
 import { api } from "@/convex/_generated/api";
 import { handleAPIError } from "@/lib/api-error-tracking";
+import { withAPIObservability } from '@/lib/api-observability';
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   // Ensure requester is an admin (DB-validated)
   const forbidden = await requireAdmin(req);
   if (forbidden) return forbidden;
@@ -55,3 +56,5 @@ export async function POST(req: NextRequest) {
     return handleAPIError(error, req, "/api/admin/users/roles", "POST", 500);
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

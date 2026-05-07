@@ -3,8 +3,9 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex-client';
 import { handleAPIError } from '@/lib/api-error-tracking';
+import { withAPIObservability } from '@/lib/api-observability';
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const forbidden = await requireAdmin(request);
   if (forbidden) return forbidden;
 
@@ -26,3 +27,5 @@ export async function POST(request: NextRequest) {
     return handleAPIError(error, request, '/api/admin/purge-analytics', 'POST', 500);
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

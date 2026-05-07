@@ -6,6 +6,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { handleAPIError } from '@/lib/api-error-tracking';
 import { captureServerEvent, type ServerEventProperties } from '@/lib/analytics-server';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -15,7 +16,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
  * GET /api/polar/subscription
  * Returns subscription info including status, next billing date, etc.
  */
-export async function GET(req: NextRequest) {
+async function GETHandler(req: NextRequest) {
   const headers = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
@@ -178,3 +179,5 @@ export async function GET(req: NextRequest) {
     return handleAPIError(error, req, '/api/polar/subscription', 'GET', 500);
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

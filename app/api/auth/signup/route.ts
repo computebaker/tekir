@@ -9,6 +9,7 @@ import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
 import { sanitizeUsername, sanitizeEmail, isValidEmail, isValidUsername } from "@/lib/sanitize";
 import { trackServerAuth, flushServerEvents } from "@/lib/analytics-server";
 import { WideEvent } from "@/lib/wide-event";
+import { withAPIObservability } from '@/lib/api-observability';
 
 const signupSchema = z.object({
   username: z.string().min(3).max(12).regex(/^[a-zA-Z0-9]+$/, "Username must contain only letters and numbers"),
@@ -16,7 +17,7 @@ const signupSchema = z.object({
   password: z.string().min(6),
 });
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const wideEvent = WideEvent.getOrCreate();
   wideEvent.setRequest({ method: 'POST', path: '/api/auth/signup' });
 
@@ -216,3 +217,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

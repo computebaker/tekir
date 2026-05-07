@@ -6,12 +6,13 @@ import { api } from '@/convex/_generated/api';
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const emailSchema = z.object({
   email: z.string().email('Invalid email format'),
 });
 
-export async function PUT(request: NextRequest) {
+async function PUTHandler(request: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -113,3 +114,5 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export const PUT = withAPIObservability(PUTHandler);

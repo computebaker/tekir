@@ -79,7 +79,7 @@ export function hasAnalyticsConsent(): boolean {
 export function hasSessionReplayConsent(): boolean {
   if (typeof window === 'undefined') return false;
   const consent = localStorage.getItem('sessionReplayEnabled');
-  return consent === 'true';
+  return consent === null || consent === 'true';
 }
 
 /**
@@ -103,8 +103,12 @@ export function setAnalyticsConsent(enabled: boolean): void {
     posthog.identify(distinctId);
 
     captureEvent('analytics_enabled', { distinct_id: distinctId });
+    if (hasSessionReplayConsent()) {
+      posthog.startSessionRecording();
+    }
   } else if (!enabled && wasEnabled) {
     // User just opted out - disable tracking
+    posthog.stopSessionRecording();
     posthog.opt_out_capturing();
     // Don't clear the distinct_id - we want to remember the user if they opt back in
   }

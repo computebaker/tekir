@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleAPIError } from '@/lib/api-error-tracking';
+import { withAPIObservability } from '@/lib/api-observability';
 
-export async function GET(
+async function GETHandler(
   req: NextRequest,
   { params }: { params: Promise<{ hostname: string }> }
 ) {
@@ -65,3 +66,5 @@ export async function GET(
     return handleAPIError(error, req, '/api/favicon/[hostname]', 'GET', 500);
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

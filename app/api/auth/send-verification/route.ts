@@ -8,12 +8,13 @@ import { sanitizeEmail, isValidEmail } from "@/lib/sanitize";
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const sendVerificationSchema = z.object({
   email: z.string().email(),
 });
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -132,3 +133,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

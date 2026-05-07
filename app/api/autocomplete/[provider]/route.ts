@@ -4,6 +4,7 @@ import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { handleAPIError } from '@/lib/api-error-tracking';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 async function brave(query: string, count: number = 4, country?: string, lang?: string, safesearch?: string) {
     const params = new URLSearchParams({ q: query, count: String(count) });
@@ -75,7 +76,7 @@ async function duck(query: string, count: number = 8, country?: string, lang?: s
     }
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
+async function GETHandler(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
     const { provider } = await params;
     
     const traceId = randomUUID();
@@ -144,3 +145,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
+
+export const GET = withAPIObservability(GETHandler);

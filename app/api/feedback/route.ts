@@ -5,8 +5,9 @@ import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -95,3 +96,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to save feedback' }, { status: 500, headers });
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

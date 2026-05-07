@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChallengeStats, getSession } from '@/lib/captcha-dispatcher';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { withAPIObservability } from '@/lib/api-observability';
 
 function captureCaptchaEvent(
   event: string,
@@ -32,7 +33,7 @@ function isAuthorized(request: NextRequest): boolean {
   return authHeader === `Bearer ${adminToken}`;
 }
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   // Check authorization
   if (!isAuthorized(request)) {
     return NextResponse.json(
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Endpoint to check a specific session (for debugging)
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -111,3 +112,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const GET = withAPIObservability(GETHandler);
+export const POST = withAPIObservability(POSTHandler);

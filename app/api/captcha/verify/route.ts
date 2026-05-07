@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 import { markSessionVerified } from '@/lib/captcha-dispatcher';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { withAPIObservability } from '@/lib/api-observability';
 
 function captureCaptchaEvent(
   event: string,
@@ -20,7 +21,7 @@ function captureCaptchaEvent(
 
 const secret = new TextEncoder().encode(process.env.RIBAUNT_SECRET!);
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const { tokens, solutions, sessionId } = await request.json();
 
@@ -69,3 +70,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

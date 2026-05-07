@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createCheckoutSession } from '@/lib/polar';
 import { getJWTUser } from '@/lib/jwt-auth';
 import { handleAPIError } from '@/lib/api-error-tracking';
+import { withAPIObservability } from '@/lib/api-observability';
 
 /**
  * API endpoint to create a Polar.sh checkout session
@@ -10,7 +11,7 @@ import { handleAPIError } from '@/lib/api-error-tracking';
  * POST /api/polar/checkout
  * Body: { productId: string }
  */
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   const headers = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
@@ -78,3 +79,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

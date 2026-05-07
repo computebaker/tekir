@@ -6,6 +6,7 @@ import {
   flushServerEvents,
 } from '@/lib/analytics-server';
 import { handleAPIError as handleAPIErrorTracking } from '@/lib/api-error-tracking';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const USER_AGENT = 'Tekir/1.0 (https://tekir.co/)';
 
@@ -109,7 +110,7 @@ async function resolveLabelsForQids(qids: string[] = [], lang = 'en') {
   return out;
 }
 
-export async function GET(req: NextRequest) {
+async function GETHandler(req: NextRequest) {
   const now = Date.now();
   
   try {
@@ -391,3 +392,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'internal_error' }, { status: 500 });
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

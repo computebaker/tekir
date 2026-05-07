@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
 import { handleAPIError } from '@/lib/api-error-tracking';
+import { withAPIObservability } from '@/lib/api-observability';
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   try {
     const rateLimitResult = await checkRateLimit(request, '/api/weather/current');
     if (!rateLimitResult.success) {
@@ -47,3 +48,5 @@ export async function GET(request: NextRequest) {
     return handleAPIError(error, request, '/api/weather/current', 'GET', 500);
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

@@ -6,6 +6,7 @@ import { getConvexClient } from '@/lib/convex-client';
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents, trackLLMGeneration } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -138,7 +139,7 @@ Today's date is: ${todayLabel}`;
   return items;
 }
 
-export async function GET(req: NextRequest) {
+async function GETHandler(req: NextRequest) {
   const traceId = randomUUID();
   const generationSpanId = randomUUID();
   const startTime = Date.now();
@@ -247,3 +248,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500, headers: { ...headers } });
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

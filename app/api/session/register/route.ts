@@ -6,6 +6,7 @@ import { RATE_LIMITS, getUserRateLimit, getSessionExpiration } from '@/lib/rate-
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 // Function to get client IP address from request
 function getClientIp(req: NextRequest): string | null {
@@ -22,7 +23,7 @@ function getClientIp(req: NextRequest): string | null {
   return null;
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -148,3 +149,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

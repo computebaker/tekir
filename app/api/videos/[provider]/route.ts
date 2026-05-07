@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
+import { withAPIObservability } from '@/lib/api-observability';
 import {
   trackServerSearch,
   trackAPIError,
@@ -80,7 +81,7 @@ async function getBraveVideos(q: string, count: number = 20): Promise<VideoResul
   }
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
+async function GETHandler(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
 
   const rateLimitResult = await checkRateLimit(req, '/api/videos');
@@ -154,3 +155,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     return NextResponse.json({ error: 'Video search failed', details: error.message }, { status: 500 });
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

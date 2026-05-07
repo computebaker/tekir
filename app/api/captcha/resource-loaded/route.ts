@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { recordResourceLoad } from '@/lib/captcha-dispatcher';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { withAPIObservability } from '@/lib/api-observability';
 
 function captureCaptchaEvent(
   event: string,
@@ -25,7 +26,7 @@ function captureCaptchaEvent(
   posthog.flush();
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const rateLimit = await checkRateLimit(request, {
       keyPrefix: 'captcha-resource-loaded',
@@ -88,3 +89,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

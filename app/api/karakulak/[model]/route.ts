@@ -11,6 +11,7 @@ import {
 } from '@/lib/analytics-server';
 import { WideEvent } from '@/lib/wide-event';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
 
@@ -162,7 +163,7 @@ async function getUserDataFromRequest(req: NextRequest): Promise<UserData | null
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
+async function POSTHandler(req: NextRequest, { params }: { params: Promise<{ model: string }> }) {
   // Generate a unique trace ID for this request
   const traceId = randomUUID();
   const spanId = randomUUID();
@@ -424,3 +425,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500, headers });
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

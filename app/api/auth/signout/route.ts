@@ -3,10 +3,11 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { trackServerAuth, flushServerEvents } from '@/lib/analytics-server';
 import { WideEvent } from '@/lib/wide-event';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const wideEvent = WideEvent.getOrCreate();
   wideEvent.setRequest({ method: 'POST', path: '/api/auth/signout' });
 
@@ -64,3 +65,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

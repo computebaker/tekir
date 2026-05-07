@@ -8,6 +8,7 @@ import { applyRateLimit, RateLimitPresets } from '@/lib/rate-limit';
 import { sanitizeString, sanitizeEmail } from '@/lib/sanitize';
 import { trackServerAuth, flushServerEvents } from '@/lib/analytics-server';
 import { WideEvent } from '@/lib/wide-event';
+import { withAPIObservability } from '@/lib/api-observability';
 
 // Helper function to get JWT_SECRET with validation
 function getJWTSecret(): string {
@@ -18,7 +19,7 @@ function getJWTSecret(): string {
   return secret;
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   const startTime = Date.now();
   const wideEvent = WideEvent.getOrCreate();
   wideEvent.setRequest({ method: 'POST', path: '/api/auth/signin' });
@@ -258,3 +259,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

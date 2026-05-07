@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
+import { withAPIObservability } from '@/lib/api-observability';
 import {
   trackAPISuccess,
   trackAPIError,
   flushServerEvents,
 } from '@/lib/analytics-server';
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   // Use the improved rate limiting middleware
   const rateLimitResult = await checkRateLimit(request, '/api/weather');
   
@@ -95,3 +96,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

@@ -10,11 +10,12 @@ const contentSecurityPolicy = (isDev
     img-src 'self' data: https: blob: https://api.dicebear.com https://i.ytimg.com https://upload.wikimedia.org https://imgs.search.brave.com;
     font-src 'self' data:;
     connect-src 'self' https://*.tekir.co https://*.convex.cloud https://*.convex.site https://eu.i.posthog.com https://*.polar.sh https://bang.lat https://*.wikipedia.org wss://*.convex.cloud wss://*.convex.site blob:;
+    worker-src 'self' blob:;
     form-action 'self';
     base-uri 'self';
     object-src 'none';
     frame-src 'self' https://status.tekir.co https://*.polar.sh;
-    frame-ancestors 'self' https://status.tekir.co;
+    frame-ancestors 'self' https://status.tekir.co https://*.posthog.com https://posthog.com;
   `
   : `
     default-src 'self';
@@ -24,11 +25,12 @@ const contentSecurityPolicy = (isDev
     img-src 'self' data: https: blob: https://api.dicebear.com https://i.ytimg.com https://upload.wikimedia.org https://imgs.search.brave.com;
     font-src 'self' data:;
     connect-src 'self' https://*.tekir.co https://*.convex.cloud https://*.convex.site https://eu.i.posthog.com https://*.polar.sh https://bang.lat https://*.wikipedia.org wss://*.convex.cloud wss://*.convex.site blob:;
+    worker-src 'self' blob:;
     form-action 'self';
     base-uri 'self';
     object-src 'none';
     frame-src 'self' https://status.tekir.co https://*.polar.sh;
-    frame-ancestors 'self' https://status.tekir.co;
+    frame-ancestors 'self' https://status.tekir.co https://*.posthog.com https://posthog.com;
   `
 )
   .replace(/\s{2,}/g, ' ')

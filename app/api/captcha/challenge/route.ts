@@ -1,8 +1,9 @@
 import { createChallenge } from 'ribaunt';
 import { NextRequest, NextResponse } from 'next/server';
 import { handleAPIError } from '@/lib/api-error-tracking';
+import { withAPIObservability } from '@/lib/api-observability';
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   try {
     const challenges = createChallenge(3, 3, 100);
 
@@ -11,3 +12,5 @@ export async function GET(request: NextRequest) {
     return handleAPIError(error, request, '/api/captcha/challenge', 'GET', 500);
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

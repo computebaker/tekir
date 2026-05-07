@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit-middleware';
+import { withAPIObservability } from '@/lib/api-observability';
 import {
   trackServerSearch,
   trackAPIError,
@@ -117,7 +118,7 @@ async function getBraveNews(q: string, country: string = 'ALL', safesearch: stri
   return results;
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
+async function GETHandler(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
   const query = req.nextUrl.searchParams.get('q');
   const country = req.nextUrl.searchParams.get('country') || 'ALL';
@@ -185,3 +186,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
 
   return NextResponse.json({ results }, { status: 200 });
 }
+
+export const GET = withAPIObservability(GETHandler);

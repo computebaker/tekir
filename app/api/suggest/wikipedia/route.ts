@@ -5,6 +5,7 @@ import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents, trackLLMGeneration } from '@/lib/analytics-server';
 import { handleAPIError } from '@/lib/api-error-tracking';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 // Country code to language code mapping for Wikipedia
 const COUNTRY_TO_LANGUAGE: Record<string, string> = {
@@ -213,7 +214,7 @@ async function suggestWikipediaArticle(
   }
 }
 
-export async function GET(req: NextRequest) {
+async function GETHandler(req: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -284,3 +285,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

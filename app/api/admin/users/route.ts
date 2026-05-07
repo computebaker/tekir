@@ -3,8 +3,9 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex-client';
 import { requireAdmin } from '@/lib/admin-auth';
 import { handleAPIError } from '@/lib/api-error-tracking';
+import { withAPIObservability } from '@/lib/api-observability';
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   const forbidden = await requireAdmin(request);
   if (forbidden) return forbidden;
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+async function DELETEHandler(request: NextRequest) {
   const forbidden = await requireAdmin(request);
   if (forbidden) return forbidden;
 
@@ -54,3 +55,6 @@ export async function DELETE(request: NextRequest) {
     return handleAPIError(error, request, '/api/admin/users', 'DELETE', 500);
   }
 }
+
+export const GET = withAPIObservability(GETHandler);
+export const DELETE = withAPIObservability(DELETEHandler);

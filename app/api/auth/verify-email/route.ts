@@ -8,6 +8,7 @@ import { sanitizeEmail, sanitizeString, isValidEmail } from "@/lib/sanitize";
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 // Helper function to get JWT_SECRET with validation
 function getJWTSecret(): string {
@@ -23,7 +24,7 @@ const verifyCodeSchema = z.object({
   code: z.string().length(6),
 });
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -187,3 +188,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

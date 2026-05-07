@@ -7,6 +7,7 @@ import { api } from '@/convex/_generated/api';
 import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
@@ -15,7 +16,7 @@ const passwordSchema = z.object({
     .max(100, 'New password cannot exceed 100 characters'),
 });
 
-export async function PUT(request: NextRequest) {
+async function PUTHandler(request: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -133,3 +134,5 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export const PUT = withAPIObservability(PUTHandler);

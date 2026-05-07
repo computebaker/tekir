@@ -18,11 +18,27 @@ const getAnalyticsConsent = (): boolean => {
 const getSessionReplayConsent = (): boolean => {
   if (typeof window === 'undefined') return false;
   const consent = localStorage.getItem('sessionReplayEnabled');
-  return consent === 'true';
+  // Tekir's product default enables replay unless the user explicitly opts out.
+  return consent === null || consent === 'true';
 };
 
 // Track if analytics has been properly initialized with consent
 let analyticsInitialized = false;
+
+function captureReplayStatus(source: string): void {
+  if (!POSTHOG_CONFIGURED || !getAnalyticsConsent()) return;
+
+  try {
+    posthog.capture('session_replay_status', {
+      source,
+      session_replay_enabled: getSessionReplayConsent(),
+      session_recording_started: posthog.sessionRecordingStarted(),
+      session_id: posthog.get_session_id?.(),
+    });
+  } catch {
+    // Diagnostics should never interfere with app startup.
+  }
+}
 
 // ============================================================================
 // PostHog Initialization
@@ -55,6 +71,7 @@ if (POSTHOG_CONFIGURED) {
 
     // Enable interaction capture under analytics consent so PostHog heatmaps have click/dead-click data.
     autocapture: true,
+    capture_heatmaps: true,
     capture_dead_clicks: true,
 
     // Error tracking - enabled with consent check in before_send
@@ -354,7 +371,13 @@ export function enableAnalytics(enabled: boolean): void {
 
     // Track current page view
     trackPageView();
+
+    if (getSessionReplayConsent()) {
+      posthog.startSessionRecording();
+      captureReplayStatus('analytics_enabled');
+    }
   } else {
+    posthog.stopSessionRecording();
     posthog.opt_out_capturing();
     // Clear tracked depths
     scrollConfig.trackedDepths.clear();
@@ -373,6 +396,7 @@ export function enableSessionReplay(enabled: boolean): void {
 
   if (enabled && getAnalyticsConsent()) {
     posthog.startSessionRecording();
+    captureReplayStatus('session_replay_enabled');
   } else {
     posthog.stopSessionRecording();
   }
@@ -420,6 +444,7 @@ export function trackRouteChange(url: string) {
 if (typeof window !== 'undefined') {
   // Check if user previously consented
   if (POSTHOG_CONFIGURED && getAnalyticsConsent()) {
+    posthog.opt_in_capturing();
     analyticsInitialized = true;
     initWebVitals();
     initScrollTracking();
@@ -428,6 +453,7 @@ if (typeof window !== 'undefined') {
     // Enable session replay if consented
     if (getSessionReplayConsent()) {
       posthog.startSessionRecording();
+      captureReplayStatus('startup');
     }
   }
 }

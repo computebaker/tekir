@@ -5,6 +5,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { handleAPIError } from '@/lib/api-error-tracking';
 import { captureServerEvent, type ServerEventProperties } from '@/lib/analytics-server';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -22,7 +23,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
  * Headers:
  * - X-Convex-Cron-Secret: Secret key to authenticate cron requests
  */
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   const headers = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
@@ -161,3 +162,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

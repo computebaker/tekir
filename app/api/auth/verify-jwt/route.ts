@@ -6,6 +6,7 @@ import { WideEvent } from '@/lib/wide-event';
 import { flushServerEvents } from '@/lib/analytics-server';
 import { randomUUID } from 'crypto';
 import { getSessionExpiration } from '@/lib/rate-limits';
+import { withAPIObservability } from '@/lib/api-observability';
 
 // Helper function to get JWT_SECRET with validation
 function getJWTSecret(): string {
@@ -16,7 +17,7 @@ function getJWTSecret(): string {
   return secret;
 }
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   const traceId = randomUUID();
   const startTime = Date.now();
   
@@ -145,3 +146,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ authenticated: false });
   }
 }
+
+export const GET = withAPIObservability(GETHandler);

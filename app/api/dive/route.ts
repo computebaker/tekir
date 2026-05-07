@@ -9,6 +9,7 @@ import {
   trackLLMGeneration,
 } from '@/lib/analytics-server';
 import { WideEvent } from '@/lib/wide-event';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -137,7 +138,7 @@ async function fetchPagesWithFallback(pages: PageContent[]): Promise<PageContent
   return validResults;
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   // Generate unique trace ID for this request
   const traceId = randomUUID();
   const generationSpanId = randomUUID();
@@ -308,3 +309,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);

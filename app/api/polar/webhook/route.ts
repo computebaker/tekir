@@ -6,6 +6,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
 import { handleAPIError } from '@/lib/api-error-tracking';
 import { captureServerEvent, type ServerEventProperties } from '@/lib/analytics-server';
+import { withAPIObservability } from '@/lib/api-observability';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -43,7 +44,7 @@ const logPolarWebhookEvent = (
  * 
  * Updates user roles in Convex based on subscription status
  */
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   const headers = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
@@ -633,3 +634,5 @@ async function revokePaidRole(userId: string) {
     console.error('Failed to revoke paid role:', error);
   }
 }
+
+export const POST = withAPIObservability(POSTHandler);
